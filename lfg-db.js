@@ -21,7 +21,7 @@ async function sbGet(table, params = '') {
   return res.json();
 }
 
-async function sbPost(table, body, key = SUPABASE_ANON_KEY) {
+async function sbPost(table, body) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
