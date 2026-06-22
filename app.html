@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LFG Staff — Lancer Farms</title>
+<meta name="theme-color" content="#4F7355">
+<link rel="stylesheet" href="lfg-theme.css">
+<script>
+(function(){try{
+  var m = localStorage.getItem('lfg-mode');
+  if (m === 'dark') document.documentElement.setAttribute('data-mode','dark');
+}catch(e){}})();
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Source+Sans+3:wght@300;400;600&family=Courier+Prime&display=swap');
+
+/* ── APP SHELL ── */
+body { margin:0; background:var(--bg); }
+
+.app-shell {
+  width:100%; max-width:480px; min-height:100vh;
+  background:var(--bg); color:var(--ink);
+  display:flex; flex-direction:column;
+  margin:0 auto;
+  box-shadow:0 0 60px rgba(0,0,0,0.12);
+  position:relative;
+}
+
+/* ── SCREENS ── */
+.screen {
+  display:none; flex-direction:column; flex:1;
+  min-height:calc(100vh - 60px);
+  overflow-y:auto;
+  padding-bottom:80px;
+}
+.screen.active { display:flex; }
+
+/* ── HEADER ── */
+.screen-header {
+  background:var(--surface); color:var(--ink);
+  padding:14px 16px 12px;
+  display:flex; align-items:center; gap:10px;
+  border-bottom:var(--border-w) solid var(--card-border);
+  position:sticky; top:0; z-index:30;
+}
+.screen-header h1 { font-family:'IM Fell English',serif; font-size:1.2rem; flex:1; margin:0; }
+.screen-header p { font-size:0.65rem; color:var(--ink-soft); opacity:0.75; font-family:'Courier Prime',monospace; text-transform:uppercase; letter-spacing:0.08em; flex:1; margin:0; }
+.back-btn {
+  background:none; border:none; color:var(--ink-soft); cursor:pointer;
+  font-size:1.3rem; padding:4px 8px; border-radius:6px; line-height:1;
+  flex-shrink:0;
+  transition:color 150ms, background 150ms;
+}
+.back-btn:hover { color:var(--ink); background:color-mix(in srgb,var(--ink) 8%,transparent); }
+
+.header-actions { display:flex; gap:6px; align-items:center; }
+
+/* ── SCREEN BODY ── */
+.screen-body { padding:20px 16px; display:flex; flex-direction:column; gap:14px; flex:1; }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:480px;
+  background:var(--surface);
+  border-top:var(--border-w) solid var(--card-border);
+  display:flex; align-items:stretch;
+  z-index:40;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-btn {
+  flex:1; border:none; background:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; padding:10px 4px 8px;
+  color:var(--ink-soft); opacity:0.6;
+  font-family:'Courier Prime',monospace; font-size:0.58rem; text-transform:uppercase; letter-spacing:0.06em;
+  transition:opacity 150ms, color 150ms;
+}
+.nav-btn.active { color:var(--accent); opacity:1; }
+.nav-btn svg { width:20px; height:20px; stroke:currentColor; stroke-width:1.8; fill:none; }
+
+/* ── AUTH SCREEN ── */
+.login-card {
+  background:var(--card); border:var(--border-w) solid var(--card-border);
+  border-radius:14px; padding:28px 22px; text-align:center;
+  box-shadow:var(--shadow);
+}
+.login-card h2 { font-family:'IM Fell English',serif; font-size:1.3rem; margin:0 0 6px; }
+.login-card p { font-size:0.8rem; color:var(--ink-soft); margin:0 0 20px; line-height:1.5; }
+
+/* ── TASK ITEMS ── */
+.task-item {
+  background:var(--card); border:var(--border-w) solid var(--card-border);
+  border-radius:10px; padding:14px 16px;
+  cursor:pointer; display:flex; align-items:flex-start; gap:12px;
+  transition:transform 150ms ease, box-shadow 150ms ease;
+}
+.task-item:hover { transform:translateY(-1px); box-shadow:0 3px 12px rgba(0,0,0,0.08); }
+.task-item.done { opacity:0.5; }
+.task-item.core { border-left:3px solid var(--accent); }
+.task-item.overdue { border-color:var(--alert); }
+
+.task-check {
+  width:22px; height:22px; border-radius:50%;
+  border:2px solid var(--card-border); background:var(--bg);
+  flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  margin-top:1px;
+  transition:border-color 150ms, background 150ms;
+}
+.task-item.done .task-check { background:var(--accent); border-color:var(--accent); }
+.task-item.done .task-check::after { content:'✓'; color:var(--on-accent); font-size:12px; }
+
+.task-body { flex:1; min-width:0; }
+.task-title { font-size:0.92rem; font-weight:600; color:var(--ink); }
+.task-sub { font-size:0.72rem; color:var(--ink-soft); margin-top:2px; font-family:'Courier Prime',monospace; }
+.task-item.done .task-title { text-decoration:line-through; }
+
+/* ── TASK DETAIL SHEET ── */
+.sheet-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.5); z-index:50;
+  align-items:flex-end; justify-content:center;
+}
+.sheet-overlay.open { display:flex; }
+.sheet {
+  background:var(--bg); border-radius:16px 16px 0 0;
+  padding:0 0 env(safe-area-inset-bottom);
+  width:100%; max-width:480px;
+  max-height:90vh; overflow-y:auto;
+  animation:slideUp 0.22s ease-out;
+}
+@keyframes slideUp { from { transform:translateY(60px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+
+.sheet-handle { width:36px; height:4px; background:var(--card-border); border-radius:2px; margin:12px auto 0; }
+.sheet-header { padding:16px 20px 0; display:flex; align-items:center; gap:8px; }
+.sheet-header h2 { font-family:'IM Fell English',serif; font-size:1.1rem; flex:1; margin:0; }
+.sheet-body { padding:16px 20px 28px; display:flex; flex-direction:column; gap:14px; }
+
+.instructions-block {
+  background:var(--surface); border:var(--border-w) solid var(--card-border);
+  border-radius:10px; padding:16px;
+}
+.instructions-block h4 { font-family:'Courier Prime',monospace; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-soft); margin:0 0 8px; }
+.instructions-block p { font-size:0.88rem; color:var(--ink); line-height:1.65; margin:0; white-space:pre-wrap; }
+
+/* ── COMPLETE PROMPT ── */
+.complete-prompt {
+  background:var(--surface); border:var(--border-w) solid var(--card-border);
+  border-radius:10px; padding:14px;
+  display:none; flex-direction:column; gap:10px;
+}
+.complete-prompt.visible { display:flex; }
+.complete-prompt p { font-size:0.82rem; color:var(--ink-soft); margin:0; }
+
+/* ── AREA CARDS ── */
+.area-card {
+  background:var(--card); border:var(--border-w) solid var(--card-border);
+  border-radius:10px; padding:14px 16px; cursor:pointer;
+  display:flex; justify-content:space-between; align-items:center;
+  transition:transform 150ms ease;
+}
+.area-card:hover { transform:translateY(-1px); }
+.area-card .area-name { font-size:0.92rem; font-weight:600; color:var(--ink); }
+.area-card .area-meta { font-size:0.7rem; color:var(--ink-soft); margin-top:2px; font-family:'Courier Prime',monospace; }
+.area-type-chip { font-family:'Courier Prime',monospace; font-size:0.6rem; text-transform:uppercase; padding:2px 7px; border-radius:10px; background:var(--mist); color:var(--ink-soft); flex-shrink:0; }
+
+/* ── ZONE FILTER ── */
+.zone-filter { display:flex; gap:6px; flex-wrap:wrap; }
+.zone-chip {
+  font-family:'Courier Prime',monospace; font-size:0.68rem; text-transform:uppercase;
+  letter-spacing:0.06em; padding:6px 12px; border-radius:20px;
+  border:var(--border-w) solid var(--card-border); background:var(--card); color:var(--ink-soft);
+  cursor:pointer; transition:all 150ms;
+}
+.zone-chip.active { background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+
+/* ── BED DETAIL ── */
+.area-hero {
+  background:linear-gradient(180deg, color-mix(in srgb,var(--accent) 100%,white 8%), var(--accent));
+  color:var(--on-accent); padding:20px 16px 16px; border-radius:10px;
+}
+.area-hero .area-id { font-family:'Courier Prime',monospace; font-size:0.7rem; opacity:0.85; text-transform:uppercase; letter-spacing:0.08em; }
+.area-hero h2 { font-family:'IM Fell English',serif; font-size:1.35rem; margin:4px 0 2px; }
+.area-hero .area-mgr { font-size:0.8rem; opacity:0.9; }
+
+.info-row { background:var(--card); border-radius:8px; padding:12px 14px; border:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; }
+.info-row .label { font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft); font-family:'Courier Prime',monospace; }
+.info-row .value { font-size:0.9rem; font-weight:600; color:var(--ink); text-align:right; max-width:60%; }
+
+.blessing-block { background:var(--surface); border:var(--border-w) solid var(--card-border); border-radius:10px; padding:16px 18px; text-align:center; }
+.blessing-block p { font-family:'IM Fell English',serif; font-style:italic; font-size:0.92rem; color:var(--ink); line-height:1.6; margin:0; }
+.blessing-block cite { display:block; font-family:'Courier Prime',monospace; font-size:0.65rem; color:var(--ink-soft); opacity:0.7; margin-top:6px; font-style:normal; letter-spacing:0.06em; }
+
+/* ── EVENT FEED ── */
+.event-feed { display:flex; flex-direction:column; gap:8px; }
+.event-item { background:var(--card); border-radius:8px; padding:10px 14px; border:1px solid var(--card-border); }
+.event-item .event-type { font-family:'Courier Prime',monospace; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent); }
+.event-item .event-main { font-size:0.85rem; color:var(--ink); margin-top:2px; }
+.event-item .event-meta { font-size:0.68rem; color:var(--ink-soft); opacity:0.75; margin-top:2px; font-family:'Courier Prime',monospace; }
+
+/* ── LOG FEED ── */
+.log-feed { display:flex; flex-direction:column; gap:8px; }
+.log-item { background:var(--card); border-radius:8px; padding:10px 14px; border:1px solid var(--card-border); }
+.log-item .log-meta { font-size:0.68rem; color:var(--ink-soft); opacity:0.75; font-family:'Courier Prime',monospace; margin-bottom:3px; }
+.log-item p { font-size:0.85rem; color:var(--ink); margin:0; }
+
+/* ── SECTION LABEL ── */
+.section-label { font-family:'Courier Prime',monospace; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-soft); opacity:0.7; }
+
+/* ── BADGES ── */
+.badge { font-family:'Courier Prime',monospace; font-size:0.58rem; text-transform:uppercase; letter-spacing:0.06em; padding:2px 6px; border-radius:4px; }
+.badge-done    { background:var(--card-border); color:var(--ink-soft); }
+.badge-overdue { background:var(--alert); color:var(--on-alert); }
+.badge-core    { background:#2d6a4f; color:#fff; }
+
+/* ── ALMANAC ── */
+.alm-hero { background:linear-gradient(180deg, #1a3a2a, #2d5a3d); color:#fff; border-radius:10px; padding:20px; text-align:center; }
+.alm-hero .alm-temp { font-family:'IM Fell English',serif; font-size:3rem; }
+.alm-hero .alm-cond { font-size:0.85rem; opacity:0.85; margin-top:4px; }
+
+/* ── EMPTY / LOADING ── */
+.empty-block { background:var(--card); border:var(--border-w) dashed var(--card-border); border-radius:10px; padding:24px; text-align:center; color:var(--ink-soft); font-size:0.82rem; opacity:0.7; }
+.skeleton { background:var(--mist); border-radius:8px; animation:shimmer 1.4s ease infinite; }
+@keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:1} }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:74px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface); color:var(--ink); padding:10px 20px; border-radius:20px; font-size:0.82rem; font-family:'Courier Prime',monospace; transition:transform 0.3s ease; z-index:999; white-space:nowrap; border:var(--border-w) solid var(--card-border); box-shadow:0 4px 16px rgba(0,0,0,0.12); }
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ── MORE MENU ── */
+.more-list { display:flex; flex-direction:column; gap:8px; }
+.more-item { background:var(--card); border:var(--border-w) solid var(--card-border); border-radius:10px; padding:14px 16px; cursor:pointer; display:flex; align-items:center; gap:14px; transition:transform 150ms; }
+.more-item:hover { transform:translateY(-1px); }
+.more-item svg { width:22px; height:22px; stroke:var(--accent); stroke-width:1.8; fill:none; flex-shrink:0; }
+.more-item .item-label { font-size:0.9rem; font-weight:600; color:var(--ink); }
+.more-item .item-sub { font-size:0.72rem; color:var(--ink-soft); margin-top:2px; }
+
+@media (min-width:520px) {
+  .app-shell { border-radius:16px; margin:24px auto; min-height:calc(100vh - 48px); }
+  .bottom-nav { border-radius:0 0 16px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ══ LOGIN ══ -->
+  <div class="screen active" id="screen-login" style="justify-content:center;padding:24px 16px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <img src="lfg-wordmark.png" alt="Lancer Farms & Gardens" style="width:200px;max-width:100%;">
+    </div>
+    <div class="login-card">
+      <h2>Staff Sign In</h2>
+      <p>Enter the staff password followed by your birthday in MMDD format</p>
+      <div class="form-group" style="margin-bottom:12px;text-align:left;">
+        <label>Password</label>
+        <input type="password" id="login-pw" placeholder="Password + MMDD (e.g. Godisgood0315)" autocomplete="off">
+      </div>
+      <div class="form-group" style="margin-bottom:16px;text-align:left;">
+        <label>Your Name</label>
+        <input type="text" id="login-name" placeholder="First name">
+      </div>
+      <button class="submit-btn" onclick="handleLogin()">Sign In</button>
+      <div style="text-align:center;margin-top:14px;">
+        <a href="/" style="font-size:0.72rem;color:var(--ink-soft);opacity:0.6;text-decoration:none;">← Back to farm</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TASKS TAB ══ -->
+  <div class="screen" id="screen-tasks">
+    <div class="screen-header">
+      <div style="flex:1;">
+        <h1>Today's Tasks</h1>
+        <p id="tasks-date-label">Loading…</p>
+      </div>
+      <div class="header-actions">
+        <button class="mode-toggle back-btn" onclick="toggleMode()" aria-label="Toggle mode">☀</button>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div id="overdue-banner" style="display:none;background:var(--alert);color:var(--on-alert);border-radius:8px;padding:10px 14px;font-size:0.82rem;font-family:'Courier Prime',monospace;"></div>
+      <div id="tasks-list">
+        <div class="skeleton" style="height:64px;margin-bottom:8px;"></div>
+        <div class="skeleton" style="height:64px;margin-bottom:8px;"></div>
+        <div class="skeleton" style="height:64px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ AREAS TAB ══ -->
+  <div class="screen" id="screen-areas">
+    <div class="screen-header">
+      <div style="flex:1;"><h1>Growing Areas</h1><p>Select to view detail</p></div>
+      <div class="header-actions">
+        <button class="back-btn mode-toggle" onclick="toggleMode()">☀</button>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="zone-filter" id="zone-filter"></div>
+      <div class="form-group">
+        <label>Select area</label>
+        <select id="areas-dropdown" onchange="if(this.value) goToArea(this.value)">
+          <option value="">— Choose —</option>
+        </select>
+      </div>
+      <div class="section-label">Or browse</div>
+      <div id="areas-browse-list">
+        <div class="skeleton" style="height:60px;margin-bottom:8px;"></div>
+        <div class="skeleton" style="height:60px;margin-bottom:8px;"></div>
+        <div class="skeleton" style="height:60px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ AREA DETAIL ══ -->
+  <div class="screen" id="screen-area-detail">
+    <div class="screen-header">
+      <button class="back-btn" onclick="goBack('screen-areas')">‹</button>
+      <div style="flex:1;"><h1 id="detail-title">Area</h1><p id="detail-subtitle"></p></div>
+    </div>
+    <div class="screen-body">
+      <div class="area-hero" id="detail-hero">
+        <div class="area-id" id="detail-type"></div>
+        <h2 id="detail-name">—</h2>
+        <div class="area-mgr" id="detail-mgr"></div>
+      </div>
+      <div id="detail-info-rows"></div>
+      <div class="blessing-block" id="detail-blessing" style="display:none;">
+        <p id="detail-blessing-text"></p>
+        <cite id="detail-blessing-ref"></cite>
+      </div>
+      <div id="detail-description" style="display:none;" class="instructions-block">
+        <h4>Notes</h4>
+        <p id="detail-desc-text"></p>
+      </div>
+
+      <div class="section-label">Log Activity Here</div>
+      <div class="card" style="background:var(--card);border:var(--border-w) solid var(--card-border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+        <div class="form-group">
+          <label>What did you do?</label>
+          <textarea id="area-log-note" placeholder="Watered, pruned, observed…" style="min-height:70px;"></textarea>
+        </div>
+        <button class="submit-btn" onclick="submitAreaLog()" style="padding:12px;">Log It</button>
+      </div>
+
+      <div class="section-label">Recent Events</div>
+      <div class="event-feed" id="area-events-list">
+        <div class="skeleton" style="height:52px;"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="manage-btn" onclick="openEventSheet()" style="flex:1;">+ Log Event</button>
+        <button class="btn-text" onclick="go('screen-damage-report')">Report issue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LOG TAB ══ -->
+  <div class="screen" id="screen-log">
+    <div class="screen-header">
+      <div style="flex:1;"><h1>Field Log</h1><p>Farm Journal</p></div>
+      <div class="header-actions">
+        <button class="back-btn mode-toggle" onclick="toggleMode()">☀</button>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="form-group">
+        <label>Location</label>
+        <select id="log-area-select">
+          <option value="">General Farm</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>What did you observe or do?</label>
+        <textarea id="log-note" placeholder="Transplanted seedlings, watered Zone 2, spotted aphids on 1C…" style="min-height:90px;"></textarea>
+      </div>
+      <button class="submit-btn" onclick="submitLog()">Add Log Entry</button>
+
+      <div class="section-label">Recent Entries</div>
+      <div class="log-feed" id="log-feed">
+        <div class="skeleton" style="height:52px;margin-bottom:8px;"></div>
+        <div class="skeleton" style="height:52px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MORE TAB ══ -->
+  <div class="screen" id="screen-more">
+    <div class="screen-header">
+      <div style="flex:1;"><h1>More</h1><p id="more-name-label">Staff</p></div>
+      <div class="header-actions">
+        <button class="back-btn mode-toggle" onclick="toggleMode()">☀</button>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="more-list">
+        <div class="more-item" onclick="go('screen-almanac'); loadAlmanac();">
+          <svg viewBox="0 0 24 24"><path d="M3 16c2-7 7-11 9-11s7 4 9 11"/><path d="M2 18h20"/></svg>
+          <div><div class="item-label">Farm Almanac</div><div class="item-sub">Live weather, sun &amp; moon</div></div>
+        </div>
+        <div class="more-item" onclick="go('screen-inventory')">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          <div><div class="item-label">Inventory</div><div class="item-sub">Tools &amp; supplies</div></div>
+        </div>
+        <div class="more-item" onclick="go('screen-requests')">
+          <svg viewBox="0 0 24 24"><path d="M6 11h12l-1.5 8a2 2 0 0 1-2 1.7H9.5a2 2 0 0 1-2-1.7L6 11Z"/><path d="M8 11c0-3.5 2-6 4-6s4 2.5 4 6"/></svg>
+          <div><div class="item-label">Submit a Request</div><div class="item-sub">Resupply, repairs, assistance</div></div>
+        </div>
+        <div class="more-item" onclick="go('screen-photo-album'); loadAlbum();">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+          <div><div class="item-label">Photo Album</div><div class="item-sub">Browse &amp; upload farm photos</div></div>
+        </div>
+        <div class="more-item" onclick="go('screen-damage-report')">
+          <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          <div><div class="item-label">Report an Issue</div><div class="item-sub">Damage, pests, irrigation</div></div>
+        </div>
+        <div class="more-item" onclick="window.location.href='/admin.html'">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <div><div class="item-label">Admin Panel</div><div class="item-sub">Manage tasks, reports &amp; data</div></div>
+        </div>
+        <div class="more-item" onclick="signOut()" style="opacity:0.65;">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          <div><div class="item-label">Sign Out</div><div class="item-sub">End your session</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ALMANAC ══ -->
+  <div class="screen" id="screen-almanac">
+    <div class="screen-header">
+      <button class="back-btn" onclick="goBack('screen-more')">‹</button>
+      <div style="flex:1;"><h1>Farm Almanac</h1><p>Live conditions</p></div>
+    </div>
+    <div class="screen-body">
+      <div class="alm-hero">
+        <div class="alm-temp" id="alm-temp">…</div>
+        <div class="alm-cond" id="alm-cond">Checking weather…</div>
+      </div>
+      <div class="info-row"><span class="label">Wind</span><span class="value" id="alm-wind">—</span></div>
+      <div class="info-row"><span class="label">Sunrise</span><span class="value" id="alm-sunrise">—</span></div>
+      <div class="info-row"><span class="label">Sunset</span><span class="value" id="alm-sunset">—</span></div>
+      <div class="info-row"><span class="label">Daylight</span><span class="value" id="alm-daylight">—</span></div>
+      <div class="info-row"><span class="label">Moon</span><span class="value" id="alm-moon">—</span></div>
+      <div class="section-label">Forecast</div>
+      <div id="alm-forecast" class="log-feed"></div>
+      <div class="blessing-block"><p>"He made the moon to mark the seasons, and the sun knows when to go down."</p><cite>— Psalm 104:19</cite></div>
+    </div>
+  </div>
+
+  <!-- ══ INVENTORY ══ -->
+  <div class="screen" id="screen-inventory">
+    <div class="screen-header">
+      <button class="back-btn" onclick="goBack('screen-more')">‹</button>
+      <div style="flex:1;"><h1>Inventory</h1><p>Tools &amp; Supplies</p></div>
+    </div>
+    <div class="screen-body">
+      <div id="inventory-content"><div class="skeleton" style="height:80px;"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ REQUESTS ══ -->
+  <div class="screen" id="screen-requests">
+    <div class="screen-header">
+      <button class="back-btn" onclick="goBack('screen-more')">‹</button>
+      <div style="flex:1;"><h1>Submit a Request</h1><p>Outside assistance</p></div>
+    </div>
+    <div class="screen-body">
+      <div class="form-group"><label>Your Name</label><input type="text" id="req-name" placeholder="First Last"></div>
+      <div class="form-group"><label>Request Type</label>
+        <select id="req-type"><option>Resupply</option><option>Repair</option><option>Planting Assistance</option><option>Infrastructure</option><option>Other</option></select>
+      </div>
+      <div class="form-group"><label>Area (if applicable)</label><select id="req-area"><option value="">Not area-specific</option></select></div>
+      <div class="form-group"><label>Priority</label>
+        <select id="req-priority"><option>Normal — within the week</option><option>Urgent — within 48 hours</option><option>Low — when available</option></select>
+      </div>
+      <div class="form-group"><label>What do you need?</label><textarea id="req-note" placeholder="Describe what's needed…"></textarea></div>
+      <button class="submit-btn" onclick="submitRequest()">Submit Request</button>
+    </div>
+  </div>
+
+  <!-- ══ DAMAGE REPORT ══ -->
+  <div class="screen" id="screen-damage-report">
+    <div class="screen-header">
+      <button class="back-btn" onclick="goBack()">‹</button>
+      <div style="flex:1;"><h1>Report an Issue</h1><p>Help keep the farm healthy</p></div>
+    </div>
+    <div class="screen-body">
+      <div class="form-group"><label>Your Name</label><input type="text" id="dr-name" placeholder="First name"></div>
+      <div class="form-group"><label>What did you notice?</label>
+        <select id="dr-type"><option>Damaged structure or materials</option><option>Pest or disease signs</option><option>Irrigation problem</option><option>Vandalism</option><option>Other</option></select>
+      </div>
+      <div class="form-group"><label>Area (if applicable)</label><select id="dr-area"><option value="">General Farm</option></select></div>
+      <div class="form-group"><label>Description</label><textarea id="dr-desc" placeholder="Describe what you observed…"></textarea></div>
+      <button class="submit-btn" onclick="submitReport()">Submit Report</button>
+    </div>
+  </div>
+
+  <!-- ══ PHOTO ALBUM ══ -->
+  <div class="screen" id="screen-photo-album">
+    <div class="screen-header">
+      <button class="back-btn" onclick="goBack('screen-more')">‹</button>
+      <div style="flex:1;"><h1>Photo Album</h1><p>Lancer Farms</p></div>
+    </div>
+    <div class="screen-body">
+      <button class="upload-btn" onclick="openUploadModal()">📷 Add a Photo</button>
+      <div id="album-content"><div class="skeleton" style="height:200px;"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ BOTTOM NAV (shown after login) ══ -->
+  <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+    <button class="nav-btn active" id="nav-tasks" onclick="switchTab('tasks')">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tasks
+    </button>
+    <button class="nav-btn" id="nav-areas" onclick="switchTab('areas')">
+      <svg viewBox="0 0 24 24"><path d="M3 14h18v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6Z"/><path d="M12 14V6"/><path d="M7 14v-3M17 14v-5"/></svg>
+      Areas
+    </button>
+    <button class="nav-btn" id="nav-log" onclick="switchTab('log')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Log
+    </button>
+    <button class="nav-btn" id="nav-more" onclick="switchTab('more')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
+      More
+    </button>
+  </nav>
+</div><!-- /app-shell -->
+
+<!-- ══ TASK DETAIL SHEET ══ -->
+<div class="sheet-overlay" id="task-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="sheet-task-title">Task</h2>
+      <button class="back-btn" onclick="closeTaskSheet()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="info-row" id="sheet-area-row" style="display:none;">
+        <span class="label">Area</span>
+        <span class="value" id="sheet-area"></span>
+      </div>
+      <div class="info-row" id="sheet-schedule-row">
+        <span class="label">Schedule</span>
+        <span class="value" id="sheet-schedule"></span>
+      </div>
+      <div class="instructions-block" id="sheet-instructions" style="display:none;">
+        <h4>Instructions</h4>
+        <p id="sheet-instructions-text"></p>
+      </div>
+      <div class="complete-prompt" id="complete-prompt">
+        <p>Who is completing this task?</p>
+        <div class="form-group">
+          <input type="text" id="complete-name" placeholder="First name">
+        </div>
+        <div class="form-group">
+          <label>Note (optional)</label>
+          <input type="text" id="complete-note" placeholder="Any observations…">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="submit-btn" style="flex:1;padding:12px;" onclick="confirmComplete()">✓ Mark Complete</button>
+          <button class="btn-text" onclick="cancelComplete()">Cancel</button>
+        </div>
+      </div>
+      <div id="sheet-actions" style="display:flex;gap:8px;">
+        <button class="submit-btn" id="sheet-complete-btn" onclick="openCompletePrompt()" style="flex:1;">Mark Complete</button>
+        <button class="btn-text" onclick="closeTaskSheet()">Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EVENT SHEET ══ -->
+<div class="sheet-overlay" id="event-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Log Event</h2>
+      <button class="back-btn" onclick="closeEventSheet()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label>Event Type</label>
+        <select id="event-type">
+          <option value="observed">Observed</option>
+          <option value="planted">Planted</option>
+          <option value="harvested">Harvested</option>
+          <option value="pruned">Pruned</option>
+          <option value="treated">Treated (pest/disease)</option>
+          <option value="fruited">Fruited</option>
+          <option value="removed">Removed plant</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group" id="event-plant-group">
+        <label>Plant / Crop (if applicable)</label>
+        <input type="text" id="event-plant" placeholder="e.g. Tomatoes, Naval Orange">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="event-notes" placeholder="Details…" style="min-height:70px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="event-date">
+      </div>
+      <button class="submit-btn" onclick="submitEvent()">Log Event</button>
+      <button class="btn-text" onclick="closeEventSheet()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ UPLOAD MODAL ══ -->
+<div class="sheet-overlay" id="upload-modal">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header"><h2>Add a Photo</h2><button class="back-btn" onclick="closeUploadModal()">✕</button></div>
+    <div class="sheet-body">
+      <div class="upload-preview" id="upload-preview">
+        <img id="preview-img" src="" alt="" style="display:none;">
+        <div class="placeholder" id="preview-placeholder">Tap to choose a photo</div>
+        <input type="file" accept="image/*" capture="environment" onchange="previewPhoto(this)">
+      </div>
+      <div class="form-group"><label>Area</label><select id="upload-area"><option value="">General Farm</option></select></div>
+      <div class="form-group"><label>Your Name</label><input type="text" id="upload-name" placeholder="First name or nickname"></div>
+      <div class="form-group"><label>Caption (optional)</label><input type="text" id="upload-caption" placeholder="What's growing here?"></div>
+      <button class="submit-btn" onclick="submitPhoto()">Upload Photo</button>
+      <button class="btn-text" onclick="closeUploadModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="">
+  <div class="lightbox-meta"><h3 id="lightbox-title"></h3><p id="lightbox-date"></p></div>
+  <div class="lightbox-actions" onclick="event.stopPropagation()">
+    <button onclick="closeLightbox()">Close</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import {
+  verifyStaffPassword, getAreas, buildAreaOptions, getAreaEvents, addAreaEvent,
+  getActivePlants, getMasterPlants, addMasterPlant,
+  getTodaysTasks, completeTask, getLog, addLog,
+  getPhotos, addPhoto, getInventory, addRequest as dbAddRequest, addReport as dbAddReport,
+  fmtDate, fmtTime, esc, showToast, today
+} from './lfg-db.js';
+
+// ─── State ───────────────────────────────────────────────────
+let currentAreaId = null;
+let currentTask = null;
+let prevScreen = null;
+let lbData = [];
+
+const FARM_LAT = 33.9281417, FARM_LNG = -117.4301472;
+const CLOUD_NAME = 'ddbsuxerb', UPLOAD_PRESET = 'lfg-photos';
+
+// ─── Mode ────────────────────────────────────────────────────
+window.toggleMode = function() {
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-mode') === 'dark';
+  dark ? html.removeAttribute('data-mode') : html.setAttribute('data-mode','dark');
+  try { localStorage.setItem('lfg-mode', dark ? 'light' : 'dark'); } catch(e) {}
+  updateModeIcons();
+};
+function updateModeIcons() {
+  const dark = document.documentElement.getAttribute('data-mode') === 'dark';
+  document.querySelectorAll('.mode-toggle').forEach(b => b.textContent = dark ? '🌙' : '☀');
+}
+
+// ─── Login ───────────────────────────────────────────────────
+let loginAttempts = 0, loginLocked = false;
+
+window.handleLogin = function() {
+  if (loginLocked) { showToast('Too many attempts — wait 30 seconds'); return; }
+  const pw = document.getElementById('login-pw').value;
+  const name = document.getElementById('login-name').value.trim();
+  if (!name) { showToast('Enter your name'); return; }
+  if (!verifyStaffPassword(pw)) {
+    loginAttempts++;
+    if (loginAttempts >= 3) {
+      loginLocked = true;
+      showToast('Locked for 30 seconds');
+      setTimeout(() => { loginLocked = false; loginAttempts = 0; }, 30000);
+    } else { showToast('Incorrect password — ' + (3 - loginAttempts) + ' attempts left'); }
+    return;
+  }
+  sessionStorage.setItem('lfg_token', pw);
+  sessionStorage.setItem('lfg_name', name);
+  document.getElementById('more-name-label').textContent = name;
+  showAppShell();
+};
+
+window.signOut = function() {
+  sessionStorage.removeItem('lfg_token');
+  sessionStorage.removeItem('lfg_name');
+  showToast('Signed out');
+  document.getElementById('bottom-nav').style.display = 'none';
+  go('screen-login');
+};
+
+function showAppShell() {
+  document.getElementById('bottom-nav').style.display = 'flex';
+  document.getElementById('more-name-label').textContent = sessionStorage.getItem('lfg_name') || 'Staff';
+  switchTab('tasks');
+  initApp();
+}
+
+// ─── Navigation ──────────────────────────────────────────────
+const TAB_SCREENS = { tasks:'screen-tasks', areas:'screen-areas', log:'screen-log', more:'screen-more' };
+
+window.switchTab = function(tab) {
+  Object.entries(TAB_SCREENS).forEach(([t, sid]) => {
+    const s = document.getElementById(sid);
+    const b = document.getElementById('nav-' + t);
+    if (s) s.classList.toggle('active', t === tab);
+    if (b) b.classList.toggle('active', t === tab);
+  });
+  if (tab === 'tasks') loadTasks();
+  if (tab === 'areas') loadAreas();
+  if (tab === 'log')   loadLog();
+};
+
+window.go = function(screenId) {
+  const current = document.querySelector('.screen.active');
+  prevScreen = current ? current.id : null;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById(screenId);
+  if (target) { target.classList.add('active'); target.scrollTop = 0; }
+};
+
+window.goBack = function(fallback) {
+  const to = prevScreen || fallback || 'screen-tasks';
+  go(to);
+};
+
+// ─── Tasks ───────────────────────────────────────────────────
+async function loadTasks() {
+  const box = document.getElementById('tasks-list');
+  const label = document.getElementById('tasks-date-label');
+  const banner = document.getElementById('overdue-banner');
+  const d = new Date();
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  label.textContent = dayNames[d.getDay()] + ', ' + fmtDate(d.toISOString());
+
+  try {
+    const tasks = await getTodaysTasks();
+    const overdue = tasks.filter(t => t._overdue && !t._doneToday);
+    if (overdue.length) {
+      banner.style.display = '';
+      banner.textContent = overdue.length + ' overdue task' + (overdue.length > 1 ? 's' : '') + ' — complete as soon as possible';
+    } else {
+      banner.style.display = 'none';
+    }
+    if (!tasks.length) {
+      box.innerHTML = '<div class="empty-block">No tasks scheduled for today.</div>';
+      return;
+    }
+    box.innerHTML = tasks.map((t,i) => {
+      const done = t._doneToday;
+      let schedLabel = '';
+      switch(t.recurrence_type) {
+        case 'visit':    schedLabel = 'Every visit'; break;
+        case 'weekly':   schedLabel = 'Weekly'; break;
+        case 'biweekly': schedLabel = (t.recurrence_days||[]).join(' & '); break;
+        case 'interval': schedLabel = 'Every ' + t.recurrence_interval + ' days'; break;
+        case 'one_time': schedLabel = 'One-time'; break;
+        case 'seasonal': schedLabel = 'Seasonal'; break;
+      }
+      return `<div class="task-item ${done ? 'done' : ''} ${t.is_core ? 'core' : ''} ${t._overdue && !done ? 'overdue' : ''}"
+        onclick="openTaskSheet(${JSON.stringify({id:t.id, title:t.title, instructions:t.instructions||'', recurrence_type:t.recurrence_type, recurrence_days:t.recurrence_days, is_core:t.is_core, _doneToday:done}).replace(/"/g,'&quot;')}, ${i})">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-title">${t.is_core ? '★ ' : ''}${esc(t.title)}</div>
+          <div class="task-sub">${esc(schedLabel)}${done ? ' · ✓ Done' : ''}</div>
+        </div>
+        ${t._overdue && !done ? '<span class="badge badge-overdue">Late</span>' : ''}
+        ${t.is_core ? '<span class="badge badge-core">Core</span>' : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    box.innerHTML = '<div class="empty-block">Could not load tasks — check connection.</div>';
+    console.error(e);
+  }
+}
+
+window.openTaskSheet = function(task, idx) {
+  currentTask = task;
+  document.getElementById('sheet-task-title').textContent = task.title;
+  document.getElementById('sheet-schedule').textContent = scheduleLabel(task);
+  const instrEl = document.getElementById('sheet-instructions');
+  if (task.instructions) {
+    instrEl.style.display = '';
+    document.getElementById('sheet-instructions-text').textContent = task.instructions;
+  } else {
+    instrEl.style.display = 'none';
+  }
+  document.getElementById('complete-prompt').classList.remove('visible');
+  document.getElementById('sheet-actions').style.display = 'flex';
+  const completeBtn = document.getElementById('sheet-complete-btn');
+  if (task._doneToday) {
+    completeBtn.textContent = '✓ Already Done Today';
+    completeBtn.disabled = true;
+  } else {
+    completeBtn.textContent = 'Mark Complete';
+    completeBtn.disabled = false;
+  }
+  document.getElementById('task-sheet').classList.add('open');
+  document.getElementById('complete-name').value = sessionStorage.getItem('lfg_name') || '';
+};
+
+function scheduleLabel(t) {
+  switch(t.recurrence_type) {
+    case 'visit':    return 'Every visit (Mon & Fri)';
+    case 'weekly':   return 'Weekly · ' + (t.recurrence_days||[]).join(', ');
+    case 'biweekly': return (t.recurrence_days||[]).join(' & ');
+    case 'interval': return 'Every ' + t.recurrence_interval + ' days';
+    case 'one_time': return 'One-time task';
+    case 'seasonal': return 'Seasonal';
+    default:         return '';
+  }
+}
+
+window.closeTaskSheet = function() {
+  document.getElementById('task-sheet').classList.remove('open');
+  currentTask = null;
+};
+
+window.openCompletePrompt = function() {
+  document.getElementById('sheet-actions').style.display = 'none';
+  document.getElementById('complete-prompt').classList.add('visible');
+  document.getElementById('complete-name').focus();
+};
+
+window.cancelComplete = function() {
+  document.getElementById('complete-prompt').classList.remove('visible');
+  document.getElementById('sheet-actions').style.display = 'flex';
+};
+
+window.confirmComplete = async function() {
+  const name = document.getElementById('complete-name').value.trim();
+  if (!name) { showToast('Enter your name'); return; }
+  const note = document.getElementById('complete-note').value.trim();
+  showToast('Logging…');
+  try {
+    await completeTask(currentTask.id, name, note);
+    showToast('Task complete — thanks ' + name + '!');
+    closeTaskSheet();
+    loadTasks();
+  } catch(e) { showToast('Could not log — check connection'); console.error(e); }
+};
+
+// ─── Areas ───────────────────────────────────────────────────
+let allAreas = [];
+let activeZoneFilter = '';
+
+async function loadAreas() {
+  const box = document.getElementById('areas-browse-list');
+  const dropdown = document.getElementById('areas-dropdown');
+  try {
+    allAreas = await getAreas();
+    // Zone filter chips
+    const zones = [...new Set(allAreas.map(a => a.zone || 'Unzoned'))].sort();
+    const filterEl = document.getElementById('zone-filter');
+    filterEl.innerHTML = `<div class="zone-chip active" onclick="filterZone('',this)">All</div>` +
+      zones.map(z => `<div class="zone-chip" onclick="filterZone('${esc(z)}',this)">${esc(z)}</div>`).join('');
+    renderAreasList(allAreas);
+    // Dropdown
+    dropdown.innerHTML = '<option value="">— Choose —</option>' + buildAreaOptions(allAreas, false);
+    // Populate other dropdowns
+    const opts = buildAreaOptions(allAreas, true);
+    ['log-area-select','req-area','dr-area','upload-area'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<option value="">General / Farm</option>' + opts.replace('<option value="">— Select area —</option>','');
+    });
+  } catch(e) {
+    box.innerHTML = '<div class="empty-block">Could not load areas.</div>';
+  }
+}
+
+window.filterZone = function(zone, chip) {
+  activeZoneFilter = zone;
+  document.querySelectorAll('.zone-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  const filtered = zone ? allAreas.filter(a => (a.zone || 'Unzoned') === zone) : allAreas;
+  renderAreasList(filtered);
+};
+
+function renderAreasList(areas) {
+  const box = document.getElementById('areas-browse-list');
+  if (!areas.length) { box.innerHTML = '<div class="empty-block">No areas in this zone.</div>'; return; }
+  box.innerHTML = areas.map(a => `
+    <div class="area-card" onclick="goToArea('${a.id}')">
+      <div>
+        <div class="area-name">${esc(a.name)}</div>
+        <div class="area-meta">${a.zone ? esc(a.zone) + ' · ' : ''}${a.manager ? esc(a.manager) : 'No manager'}</div>
+      </div>
+      <span class="area-type-chip">${a.area_type.replace('_',' ')}</span>
+    </div>`).join('');
+}
+
+window.goToArea = async function(areaId) {
+  currentAreaId = areaId;
+  const area = allAreas.find(a => a.id === areaId);
+  if (!area) return;
+  document.getElementById('detail-title').textContent = area.name;
+  document.getElementById('detail-subtitle').textContent = (area.zone || '') + ' · ' + area.area_type.replace('_',' ');
+  document.getElementById('detail-type').textContent = area.area_type.replace('_',' ').toUpperCase();
+  document.getElementById('detail-name').textContent = area.name;
+  document.getElementById('detail-mgr').textContent = area.manager ? 'Managed by ' + area.manager : '';
+  const blessEl = document.getElementById('detail-blessing');
+  if (area.blessing) {
+    blessEl.style.display = '';
+    document.getElementById('detail-blessing-text').textContent = area.blessing;
+    document.getElementById('detail-blessing-ref').textContent = area.blessing_ref ? '— ' + area.blessing_ref : '';
+  } else { blessEl.style.display = 'none'; }
+  const descEl = document.getElementById('detail-description');
+  if (area.description) {
+    descEl.style.display = '';
+    document.getElementById('detail-desc-text').textContent = area.description;
+  } else { descEl.style.display = 'none'; }
+  document.getElementById('area-log-note').value = '';
+  go('screen-area-detail');
+  loadAreaEvents(areaId);
+};
+
+async function loadAreaEvents(areaId) {
+  const box = document.getElementById('area-events-list');
+  try {
+    const events = await getAreaEvents(areaId);
+    if (!events.length) { box.innerHTML = '<div class="empty-block">No events logged yet.</div>'; return; }
+    box.innerHTML = events.slice(0,15).map(e => `
+      <div class="event-item">
+        <div class="event-type">${e.event_type}</div>
+        <div class="event-main">${esc(e.plant_name || e.notes || '—')}</div>
+        <div class="event-meta">${esc(e.performed_by || '')} · ${fmtDate(e.event_date)}</div>
+      </div>`).join('');
+  } catch(err) { box.innerHTML = '<div class="empty-block">Could not load events.</div>'; }
+}
+
+window.submitAreaLog = async function() {
+  const note = document.getElementById('area-log-note').value.trim();
+  if (!note) { showToast('Write a note first'); return; }
+  showToast('Saving…');
+  try {
+    await addAreaEvent(currentAreaId, 'observed', { notes: note, performed_by: sessionStorage.getItem('lfg_name') || 'Staff' });
+    await addLog(currentAreaId, null, note, sessionStorage.getItem('lfg_name') || 'Staff');
+    showToast('Logged!');
+    document.getElementById('area-log-note').value = '';
+    loadAreaEvents(currentAreaId);
+  } catch(e) { showToast('Could not log — check connection'); }
+};
+
+// ─── Event Sheet ─────────────────────────────────────────────
+window.openEventSheet = function() { document.getElementById('event-sheet').classList.add('open'); document.getElementById('event-date').value = today(); };
+window.closeEventSheet = function() { document.getElementById('event-sheet').classList.remove('open'); };
+
+window.submitEvent = async function() {
+  const type = document.getElementById('event-type').value;
+  const notes = document.getElementById('event-notes').value.trim();
+  const plant = document.getElementById('event-plant').value.trim();
+  const date = document.getElementById('event-date').value;
+  if (!notes && !plant) { showToast('Add some notes'); return; }
+  showToast('Logging…');
+  try {
+    await addAreaEvent(currentAreaId, type, { notes, plant_name: plant || null, event_date: date, performed_by: sessionStorage.getItem('lfg_name') || 'Staff' });
+    showToast('Event logged!');
+    closeEventSheet();
+    loadAreaEvents(currentAreaId);
+  } catch(e) { showToast('Could not log'); }
+};
+
+// ─── Field Log ───────────────────────────────────────────────
+async function loadLog() {
+  const feed = document.getElementById('log-feed');
+  try {
+    const log = await getLog(25);
+    if (!log.length) { feed.innerHTML = '<div class="empty-block">No entries yet.</div>'; return; }
+    feed.innerHTML = log.map(e => `
+      <div class="log-item">
+        <div class="log-meta">${esc(e.location_label || 'Farm')} · ${esc(e.logged_by || '')} · ${fmtDate(e.logged_at)}</div>
+        <p>${esc(e.note)}</p>
+      </div>`).join('');
+  } catch(e) { feed.innerHTML = '<div class="empty-block">Could not load entries.</div>'; }
+}
+
+window.submitLog = async function() {
+  const note = document.getElementById('log-note').value.trim();
+  if (!note) { showToast('Write a note first'); return; }
+  const areaId = document.getElementById('log-area-select').value || null;
+  showToast('Saving…');
+  try {
+    await addLog(areaId, areaId ? null : 'General Farm', note, sessionStorage.getItem('lfg_name') || 'Staff');
+    showToast('Logged!');
+    document.getElementById('log-note').value = '';
+    loadLog();
+  } catch(e) { showToast('Could not log — check connection'); }
+};
+
+// ─── Inventory ───────────────────────────────────────────────
+async function loadInventoryScreen() {
+  const box = document.getElementById('inventory-content');
+  try {
+    const items = await getInventory();
+    if (!items.length) { box.innerHTML = '<div class="empty-block">No inventory items yet.</div>'; return; }
+    const groups = {};
+    items.forEach(i => { const c = i.category || 'Other'; if (!groups[c]) groups[c] = []; groups[c].push(i); });
+    let html = '';
+    Object.keys(groups).sort().forEach(cat => {
+      html += `<div class="section-label" style="margin-top:8px;">${esc(cat)}</div>`;
+      groups[cat].forEach(i => {
+        const qty = Number(i.quantity||0), par = Number(i.par_level||0);
+        const low = par > 0 && qty <= par;
+        html += `<div class="info-row ${low ? 'style="border-color:var(--alert)"' : ''}">
+          <span class="label">${esc(i.item_name)}${low ? ' ⚠' : ''}</span>
+          <span class="value">${qty} ${esc(i.unit||'')}${par ? ' / par '+par : ''}</span>
+        </div>`;
+      });
+    });
+    box.innerHTML = html;
+  } catch(e) { box.innerHTML = '<div class="empty-block">Could not load inventory.</div>'; }
+}
+
+// ─── Requests ────────────────────────────────────────────────
+window.submitRequest = async function() {
+  const name = document.getElementById('req-name').value.trim();
+  const note = document.getElementById('req-note').value.trim();
+  if (!name || !note) { showToast('Name and description required'); return; }
+  showToast('Submitting…');
+  try {
+    await dbAddRequest(name, document.getElementById('req-type').value, document.getElementById('req-area').value || null, note, document.getElementById('req-priority').value);
+    showToast('Request submitted!');
+    document.getElementById('req-note').value = '';
+    goBack('screen-more');
+  } catch(e) { showToast('Could not submit'); }
+};
+
+// ─── Damage Report ───────────────────────────────────────────
+window.submitReport = async function() {
+  const desc = document.getElementById('dr-desc').value.trim();
+  if (!desc) { showToast('Describe what you observed'); return; }
+  showToast('Sending…');
+  try {
+    await dbAddReport(document.getElementById('dr-area').value || null, document.getElementById('dr-type').value, desc, document.getElementById('dr-name').value.trim() || null);
+    showToast('Report submitted — thank you');
+    document.getElementById('dr-desc').value = '';
+    goBack();
+  } catch(e) { showToast('Could not send'); }
+};
+
+// ─── Photos ──────────────────────────────────────────────────
+async function loadAlbum() {
+  const box = document.getElementById('album-content'); if (!box) return;
+  try {
+    const photos = await getPhotos();
+    if (!photos.length) { box.innerHTML = '<div class="empty-block">No photos yet — be the first!</div>'; return; }
+    let html = '<div class="photo-grid">';
+    lbData = [];
+    photos.forEach((ph, idx) => {
+      const thumb = ph.thumbnail_url || ph.cloudinary_url.replace('/upload/','/upload/w_300,h_300,c_fill/');
+      lbData.push({ src: ph.cloudinary_url, title: ph.caption || 'Farm photo', date: fmtDate(ph.uploaded_at) });
+      html += `<div class="photo-thumb" onclick="openLightbox(${idx})"><img src="${esc(thumb)}" alt="${esc(ph.caption||'')}" loading="lazy"></div>`;
+    });
+    html += '</div>';
+    box.innerHTML = html;
+  } catch(e) { box.innerHTML = '<div class="empty-block">Could not load photos.</div>'; }
+}
+window.loadAlbum = loadAlbum;
+
+window.openUploadModal = function() { document.getElementById('upload-modal').classList.add('open'); };
+window.closeUploadModal = function() {
+  document.getElementById('upload-modal').classList.remove('open');
+  document.getElementById('preview-img').style.display = 'none';
+  document.getElementById('preview-placeholder').style.display = 'block';
+  document.getElementById('preview-img').src = '';
+  document.getElementById('upload-caption').value = '';
+  document.getElementById('upload-name').value = '';
+};
+
+window.previewPhoto = function(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.getElementById('preview-img');
+      img.src = e.target.result; img.style.display = 'block';
+      document.getElementById('preview-placeholder').style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+};
+
+window.submitPhoto = async function() {
+  const fileInput = document.querySelector('#upload-preview input[type=file]');
+  const name = document.getElementById('upload-name').value.trim();
+  if (!name) { showToast('Enter your name'); return; }
+  if (!fileInput.files || !fileInput.files[0]) { showToast('Choose a photo first'); return; }
+  showToast('Uploading…');
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  formData.append('upload_preset', UPLOAD_PRESET);
+  formData.append('folder', 'lfg-photos');
+  try {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method:'POST', body:formData });
+    const data = await res.json();
+    if (data.secure_url) {
+      await addPhoto(document.getElementById('upload-area').value || null, document.getElementById('upload-caption').value, data.secure_url, data.secure_url.replace('/upload/','/upload/w_300,h_300,c_fill/'), name);
+      showToast('Photo uploaded!');
+      closeUploadModal();
+      loadAlbum();
+    } else { showToast('Upload failed — try again'); }
+  } catch(e) { showToast('Upload failed — check connection'); }
+};
+
+window.openLightbox = function(idx) {
+  const d = lbData[idx]; if (!d) return;
+  document.getElementById('lightbox-img').src = d.src;
+  document.getElementById('lightbox-title').textContent = d.title;
+  document.getElementById('lightbox-date').textContent = d.date;
+  document.getElementById('lightbox').classList.add('open');
+};
+window.closeLightbox = function() { document.getElementById('lightbox').classList.remove('open'); };
+
+// ─── Almanac ─────────────────────────────────────────────────
+window.loadAlmanac = async function() {
+  const n = new Date();
+  const sun = sunTimes(n);
+  document.getElementById('alm-sunrise').textContent = fmtAlmTime(sun.sunrise);
+  document.getElementById('alm-sunset').textContent = fmtAlmTime(sun.sunset);
+  if (sun.sunrise && sun.sunset) {
+    const mins = Math.round((sun.sunset - sun.sunrise) / 60000);
+    document.getElementById('alm-daylight').textContent = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+  }
+  document.getElementById('alm-moon').textContent = moonPhase(n);
+  try {
+    let cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem('lfg-wx') || 'null'); } catch(e) {}
+    let periods;
+    if (cached && (Date.now() - cached.at) < 1800000) {
+      periods = cached.periods;
+    } else {
+      const pt = await (await fetch(`https://api.weather.gov/points/${FARM_LAT},${FARM_LNG}`)).json();
+      const fc = await (await fetch(pt.properties.forecast)).json();
+      periods = fc.properties.periods.slice(0,5);
+      try { sessionStorage.setItem('lfg-wx', JSON.stringify({ at:Date.now(), periods })); } catch(e) {}
+    }
+    const p = periods[0];
+    document.getElementById('alm-temp').textContent = p.temperature + '°' + p.temperatureUnit;
+    document.getElementById('alm-cond').textContent = p.shortForecast + ' · ' + p.name;
+    document.getElementById('alm-wind').textContent = p.windSpeed + ' ' + p.windDirection;
+    document.getElementById('alm-forecast').innerHTML = periods.slice(1).map(pd =>
+      `<div class="log-item"><div class="log-meta">${esc(pd.name)} · ${pd.temperature}°${pd.temperatureUnit}</div><p>${esc(pd.detailedForecast)}</p></div>`
+    ).join('');
+  } catch(e) {
+    document.getElementById('alm-temp').textContent = '—';
+    document.getElementById('alm-cond').textContent = 'Weather unavailable — sun & moon still accurate';
+  }
+};
+
+function fmtAlmTime(d) { return d ? d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '—'; }
+
+function sunTimes(date) {
+  const rad = Math.PI/180, lat = FARM_LAT, lng = FARM_LNG;
+  const doy = Math.floor((date - new Date(date.getFullYear(),0,0)) / 86400000);
+  function calc(rising) {
+    const z=90.833, lh=lng/15, t=doy+((rising?6:18)-lh)/24, M=0.9856*t-3.289;
+    let L=M+1.916*Math.sin(M*rad)+0.020*Math.sin(2*M*rad)+282.634;
+    L=((L%360)+360)%360;
+    let RA=Math.atan(0.91764*Math.tan(L*rad))/rad;
+    RA=((RA%360)+360)%360;
+    RA+=(Math.floor(L/90)*90-Math.floor(RA/90)*90); RA/=15;
+    const sd=0.39782*Math.sin(L*rad), cd=Math.cos(Math.asin(sd));
+    const ch=(Math.cos(z*rad)-(sd*Math.sin(lat*rad)))/(cd*Math.cos(lat*rad));
+    if(ch>1||ch<-1) return null;
+    let H=rising?360-Math.acos(ch)/rad:Math.acos(ch)/rad; H/=15;
+    const T=H+RA-0.06571*t-6.622;
+    let UT=((T-lh)%24+24)%24;
+    const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+    d.setUTCMinutes(Math.round(UT*60)); return d;
+  }
+  return { sunrise:calc(true), sunset:calc(false) };
+}
+
+function moonPhase(date) {
+  const syn=29.53058867, known=Date.UTC(2000,0,6,18,14);
+  let age=((date.getTime()-known)/86400000)%syn;
+  if(age<0) age+=syn;
+  const names=[[1.85,'🌑 New Moon'],[5.54,'🌒 Waxing Crescent'],[9.23,'🌓 First Quarter'],[12.91,'🌔 Waxing Gibbous'],[16.61,'🌕 Full Moon'],[20.30,'🌖 Waning Gibbous'],[23.99,'🌗 Last Quarter'],[27.68,'🌘 Waning Crescent'],[99,'🌑 New Moon']];
+  for(const [l,n] of names) if(age<l) return n;
+  return '🌙';
+}
+
+// ─── Init ────────────────────────────────────────────────────
+function initApp() {
+  loadAreas().then(() => {
+    loadInventoryScreen();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateModeIcons();
+  const token = sessionStorage.getItem('lfg_token');
+  if (token && verifyStaffPassword(token)) {
+    showAppShell();
+  }
+  document.getElementById('login-pw').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+});
+</script>
+<script src="lfg-audio.js" defer></script>
+</body>
+</html>
