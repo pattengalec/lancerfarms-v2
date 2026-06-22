@@ -325,6 +325,7 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
           <label class="day-check"><input type="checkbox" id="t-core"> <span style="font-size:0.85rem;font-weight:600;">Core task</span> <span style="font-size:0.75rem;color:var(--ink-soft);margin-left:4px;">(always pinned to top)</span></label>
         </div>
         <button class="btn btn-primary" onclick="addTask()">Add Task</button>
+        <button class="btn btn-ghost" id="task-cancel-btn" style="display:none;" onclick="cancelTaskEdit()">Cancel edit</button>
       </div>
 
       <div class="section-label">All Active Tasks</div>
@@ -907,12 +908,92 @@ async function loadTasks() {
           ${done ? '<span class="badge badge-done">Done today</span>' : ''}
           ${t.is_core ? '<span class="badge badge-core">Core</span>' : ''}
           <button class="btn btn-success btn-sm" onclick="promptComplete('${t.id}','${esc(t.title)}',${i})">✓ Done</button>
+          <button class="btn btn-ghost btn-sm" onclick="editTask(${i})">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="archiveTaskRow('${t.id}')">Archive</button>
         </div>
       </div>`;
     }).join('');
+
+    // Store tasks in cache for edit access
+    window._tasksCache = tasks;
   } catch(e) { box.innerHTML = '<div class="empty-state">Could not load tasks.</div>'; }
 }
+
+window.editTask = function(idx) {
+  const t = (window._tasksCache || [])[idx];
+  if (!t) return;
+  // Store edit id
+  window._editingTaskId = t.id;
+  // Fill form fields
+  document.getElementById('t-title').value = t.title || '';
+  document.getElementById('t-instructions').value = t.instructions || '';
+  document.getElementById('t-recurrence').value = t.recurrence_type || 'visit';
+  document.getElementById('t-priority').value = t.priority || 3;
+  document.getElementById('t-core').checked = !!t.is_core;
+  toggleRecurringFields();
+  // Fill recurrence-specific fields
+  if (t.recurrence_type === 'weekly' && t.recurrence_days?.[0]) {
+    document.getElementById('t-weekly-day').value = t.recurrence_days[0];
+  }
+  if (t.recurrence_type === 'interval' && t.recurrence_interval) {
+    document.getElementById('t-interval').value = t.recurrence_interval;
+  }
+  if (t.recurrence_type === 'one_time' && t.due_date) {
+    document.getElementById('t-due-date').value = t.due_date;
+  }
+  if (t.recurrence_type === 'seasonal') {
+    if (t.season_start) document.getElementById('t-season-start').value = t.season_start;
+    if (t.season_end) document.getElementById('t-season-end').value = t.season_end;
+  }
+  // Switch add button to update mode
+  const btn = document.querySelector('#tab-tasks .btn-primary[onclick="addTask()"]');
+  if (btn) {
+    btn.textContent = 'Update Task';
+    btn.setAttribute('onclick', 'updateTask()');
+  }
+  // Show cancel button
+  document.getElementById('task-cancel-btn').style.display = '';
+  // Scroll to form
+  document.querySelector('#tab-tasks .card').scrollIntoView({ behavior:'smooth' });
+  showToast('Editing task — update fields and save');
+};
+
+window.updateTask = async function() {
+  const id = window._editingTaskId;
+  if (!id) { showToast('No task selected for editing'); return; }
+  const title = document.getElementById('t-title').value.trim();
+  if (!title) { showToast('Task title is required'); return; }
+  const type = document.getElementById('t-recurrence').value;
+  let recurrence_days = null, recurrence_interval = null, due_date = null, season_start = null, season_end = null;
+  if (type === 'weekly') recurrence_days = [document.getElementById('t-weekly-day').value];
+  else if (type === 'biweekly') recurrence_days = [...document.querySelectorAll('#rf-biweekly input:checked')].map(cb => cb.value);
+  else if (type === 'interval') recurrence_interval = parseInt(document.getElementById('t-interval').value) || null;
+  else if (type === 'one_time') due_date = document.getElementById('t-due-date').value || null;
+  else if (type === 'seasonal') { season_start = document.getElementById('t-season-start').value || null; season_end = document.getElementById('t-season-end').value || null; }
+  showToast('Saving…');
+  try {
+    await sbPatch('lfg_tasks', { id }, {
+      title,
+      instructions: document.getElementById('t-instructions').value.trim() || null,
+      recurrence_type: type, recurrence_days, recurrence_interval, due_date, season_start, season_end,
+      is_core: document.getElementById('t-core').checked,
+      priority: parseInt(document.getElementById('t-priority').value) || 3
+    });
+    showToast('Task updated!');
+    cancelTaskEdit();
+    loadTasks();
+  } catch(e) { showToast('Could not update — try again'); console.error(e); }
+};
+
+window.cancelTaskEdit = function() {
+  window._editingTaskId = null;
+  document.getElementById('t-title').value = '';
+  document.getElementById('t-instructions').value = '';
+  document.getElementById('t-core').checked = false;
+  const btn = document.querySelector('#tab-tasks .btn-primary');
+  if (btn) { btn.textContent = 'Add Task'; btn.setAttribute('onclick', 'addTask()'); }
+  document.getElementById('task-cancel-btn').style.display = 'none';
+};
 
 window.promptComplete = function(taskId, taskTitle, idx) {
   pendingComplete = { taskId, taskTitle, idx };
