@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/png" href="lfg-logo.png">  
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LFG Admin — Lancer Farms</title>
+<link rel="icon" type="image/png" href="lfg-logo.png">
 <link rel="stylesheet" href="lfg-theme.css">
 <script>
 (function(){try{
@@ -165,9 +165,9 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
       </div>
       <button class="btn btn-primary" style="width:100%;" onclick="doAuth()">Sign In</button>
       <p style="margin-top:16px;font-size:0.72rem;opacity:0.55;">
-        <a href="/app.html" style="color:var(--ink-soft);">← Staff ops</a>
+        <a href="/lancerfarms-v2/app.html" style="color:var(--ink-soft);">← Staff ops</a>
         &nbsp;·&nbsp;
-        <a href="/" style="color:var(--ink-soft);">Farm home</a>
+        <a href="/lancerfarms-v2/" style="color:var(--ink-soft);">Farm home</a>
       </p>
     </div>
   </div>
@@ -547,19 +547,140 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 
 <div class="toast" id="toast"></div>
 
-<script type="module">
-import {
-  verifyStaffPassword, getConfig, getVisitDays,
-  getAreas, createArea, updateArea, archiveArea, buildAreaOptions,
-  getTasks, getTodaysTasks, addTask as dbAddTask, archiveTask, completeTask as dbCompleteTask,
-  getTaskCompletions,
-  getLog, addLog,
-  getReports, addReport, resolveReport,
-  getRequests, resolveRequest,
-  getInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem,
-  getComments, markCommentReviewed,
-  fmtDate, fmtTime, esc, showToast, today
-} from './lfg-db.js';
+<script>
+// ─── Inlined DB functions ─────────────────────────────────────
+const SUPABASE_URL = 'https://muecvqxsqnhkhjrabtxh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZWN2cXhzcW5oa2hqcmFidHhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNTU4MzAsImV4cCI6MjA5NjczMTgzMH0.7vOvhNxwtZ3xy1x67Vvq1BY_MsxN9J6ErkgaWklF7l4';
+const DB_HEADERS = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' };
+
+async function sbGet(table, params) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params ? '?' + params : ''}`, { headers: DB_HEADERS });
+  if (!res.ok) throw new Error(`GET ${table} failed: ${res.status}`);
+  return res.json();
+}
+async function sbPost(table, body) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:'POST', headers:{...DB_HEADERS, Prefer:'return=representation'}, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`POST ${table} failed: ${res.status}`);
+  return res.json();
+}
+async function sbPatch(table, match, body) {
+  const qs = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { method:'PATCH', headers:{...DB_HEADERS, Prefer:'return=representation'}, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`PATCH ${table} failed: ${res.status}`);
+  return res.json();
+}
+async function sbDelete(table, match) {
+  const qs = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { method:'DELETE', headers: DB_HEADERS });
+  if (!res.ok) throw new Error(`DELETE ${table} failed: ${res.status}`);
+  return true;
+}
+
+function today() { return new Date().toISOString().slice(0,10); }
+function fmtDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e) { return String(iso).slice(0,10); } }
+function fmtTime(iso) { if (!iso) return ''; try { return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); } catch(e) { return ''; } }
+function esc(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(String(s||''))); return d.innerHTML; }
+function showToast(msg, duration) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), duration||2800); }
+
+function verifyStaffPassword(pw) {
+  if (!pw || !pw.startsWith('Godisgood')) return false;
+  return /^\d{4}$/.test(pw.slice('Godisgood'.length));
+}
+
+let _configCache = null;
+async function getConfig() {
+  if (_configCache) return _configCache;
+  const rows = await sbGet('lfg_config');
+  _configCache = {};
+  rows.forEach(r => { _configCache[r.key] = r.value; });
+  return _configCache;
+}
+
+async function getVisitDays() {
+  const cfg = await getConfig();
+  try { return JSON.parse(cfg.visit_days || '["Monday","Friday"]'); } catch(e) { return ['Monday','Friday']; }
+}
+
+let _areasCache = null, _areasCacheTime = 0;
+async function getAreas(force) {
+  if (_areasCache && !force && (Date.now()-_areasCacheTime)<300000) return _areasCache;
+  _areasCache = await sbGet('lfg_growing_areas','archived_at=is.null&order=zone.asc,name.asc');
+  _areasCacheTime = Date.now();
+  return _areasCache;
+}
+async function createArea(fields) { _areasCache=null; return sbPost('lfg_growing_areas', fields); }
+async function updateArea(id, fields) { _areasCache=null; return sbPatch('lfg_growing_areas',{id},fields); }
+async function archiveArea(id) { _areasCache=null; return sbPatch('lfg_growing_areas',{id},{archived_at:new Date().toISOString()}); }
+
+function buildAreaOptions(areas, includeGeneral) {
+  const zones = {};
+  areas.forEach(a => { const z=a.zone||'General'; if(!zones[z]) zones[z]=[]; zones[z].push(a); });
+  let html = includeGeneral ? '<option value="">— Select area —</option>' : '';
+  Object.keys(zones).sort().forEach(zone => {
+    html += `<optgroup label="${esc(zone)}">`;
+    zones[zone].forEach(a => { html += `<option value="${a.id}">${esc(a.name)}${a.area_type!=='raised_bed'?' ('+a.area_type.replace('_',' ')+')':''}</option>`; });
+    html += '</optgroup>';
+  });
+  return html;
+}
+
+async function getTasks() { return sbGet('lfg_tasks','archived_at=is.null&order=is_core.desc,priority.asc,created_at.asc'); }
+async function getTaskCompletions(since) { return sbGet('lfg_task_completions',`visit_date=gte.${since}&order=completed_at.desc`); }
+async function dbAddTask(fields) { return sbPost('lfg_tasks', fields); }
+async function archiveTask(id) { return sbPatch('lfg_tasks',{id},{archived_at:new Date().toISOString()}); }
+async function dbCompleteTask(task_id, completed_by, notes) {
+  return sbPost('lfg_task_completions', { task_id, completed_by, visit_date:today(), notes:notes||null });
+}
+
+async function getTodaysTasks() {
+  const [tasks, config] = await Promise.all([getTasks(), getConfig()]);
+  const visitDays = JSON.parse(config.visit_days||'["Monday","Friday"]');
+  const todayDate = today();
+  const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
+  const todayTs = new Date(todayDate).getTime();
+  const completions = await getTaskCompletions(todayDate);
+  const completedIds = new Set(completions.filter(c=>c.visit_date===todayDate).map(c=>c.task_id));
+  const isVisitDay = visitDays.includes(todayName);
+  const due = [];
+  for (const task of tasks) {
+    const done = completedIds.has(task.id);
+    let isDue = false;
+    switch(task.recurrence_type) {
+      case 'visit': isDue = isVisitDay; break;
+      case 'weekly': case 'biweekly': isDue = (task.recurrence_days||[]).includes(todayName); break;
+      case 'interval': {
+        const interval = task.recurrence_interval||1;
+        const last = completions.filter(c=>c.task_id===task.id).sort((a,b)=>new Date(b.completed_at)-new Date(a.completed_at))[0];
+        isDue = !last || (todayTs-new Date(last.visit_date).getTime())/86400000 >= interval;
+        break;
+      }
+      case 'one_time': isDue = !done && (!task.due_date||task.due_date<=todayDate); break;
+      case 'seasonal': isDue = task.season_start<=todayDate && task.season_end>=todayDate; break;
+    }
+    if (isDue) due.push({...task, _dueToday:true, _doneToday:done, _overdue:!done&&task.recurrence_type!=='one_time'});
+  }
+  return due.sort((a,b) => { if(a.is_core!==b.is_core) return a.is_core?-1:1; if(a._doneToday!==b._doneToday) return a._doneToday?1:-1; return (a.priority||3)-(b.priority||3); });
+}
+
+async function getLog(limit) { return sbGet('lfg_log',`order=logged_at.desc&limit=${limit||30}`); }
+async function addLog(area_id, location_label, note, logged_by) {
+  return sbPost('lfg_log', { area_id:area_id||null, location_label:location_label||null, note, logged_by:logged_by||'Admin' });
+}
+async function getReports(status) { return sbGet('lfg_reports',`status=eq.${status||'open'}&order=created_at.asc`); }
+async function addReport(area_id, report_type, description, reporter_name) {
+  return sbPost('lfg_reports', { area_id:area_id||null, report_type:report_type||null, description, reporter_name:reporter_name||null });
+}
+async function resolveReport(id, resolve_note, resolved_by) {
+  return sbPatch('lfg_reports',{id},{status:'resolved',resolve_note:resolve_note||null,resolved_by:resolved_by||'Admin',resolved_at:new Date().toISOString()});
+}
+async function getRequests(status) { return sbGet('lfg_requests',`status=eq.${status||'open'}&order=created_at.asc`); }
+async function resolveRequest(id) { return sbPatch('lfg_requests',{id},{status:'resolved'}); }
+async function getInventory() { return sbGet('lfg_inventory','order=category.asc,item_name.asc'); }
+async function addInventoryItem(fields) { return sbPost('lfg_inventory',{...fields,updated_at:new Date().toISOString()}); }
+async function updateInventoryItem(id, fields) { return sbPatch('lfg_inventory',{id},{...fields,updated_at:new Date().toISOString()}); }
+async function deleteInventoryItem(id) { return sbDelete('lfg_inventory',{id}); }
+async function getComments() { return sbGet('lfg_comments','order=submitted_at.desc'); }
+async function markCommentReviewed(id) { return sbPatch('lfg_comments',{id},{status:'reviewed'}); }
 
 // ─── Admin password check ────────────────────────────────────
 // Admin password is stored in lfg_config under key 'admin_password'
