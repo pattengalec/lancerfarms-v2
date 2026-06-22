@@ -8,7 +8,7 @@
  */
 
 const SUPABASE_URL  = 'https://muecvqxsqnhkhjrabtxh.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_KhuGyR_XxDFsErQ5NApRRQ_X-NfUIz2';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZWN2cXhzcW5oa2hqcmFidHhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNTU4MzAsImV4cCI6MjA5NjczMTgzMH0.7vOvhNxwtZ3xy1x67Vvq1BY_MsxN9J6ErkgaWklF7l4';
 
 // ─── HTTP helpers ────────────────────────────────────────────
 
