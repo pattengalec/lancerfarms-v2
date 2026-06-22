@@ -400,7 +400,7 @@ body { margin:0; background:var(--bg); }
         <div class="more-item" onclick="go('screen-almanac'); loadAlmanac();">
           <svg viewBox="0 0 24 24"><path d="M3 16c2-7 7-11 9-11s7 4 9 11"/><path d="M2 18h20"/></svg>
           <div><div class="item-label">Farm Almanac</div><div class="item-sub">Live weather, sun &amp; moon</div></div>
-        </div>
+          </div>
         <div class="more-item" onclick="go('screen-inventory')">
           <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
           <div><div class="item-label">Inventory</div><div class="item-sub">Tools &amp; supplies</div></div>
@@ -1211,6 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (token && verifyStaffPassword(token)) {
     showAppShell();
   }
+  document.getElementById('login-btn').addEventListener('click', handleLogin);
   document.getElementById('login-pw').addEventListener('keydown', e => {
     if (e.key === 'Enter') handleLogin();
   });
