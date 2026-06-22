@@ -883,6 +883,7 @@ async function loadTasks() {
       box.innerHTML = '<div class="empty-block">No tasks scheduled for today.</div>';
       return;
     }
+    tasksCache = tasks;
     box.innerHTML = tasks.map((t,i) => {
       const done = t._doneToday;
       let schedLabel = '';
@@ -895,7 +896,7 @@ async function loadTasks() {
         case 'seasonal': schedLabel = 'Seasonal'; break;
       }
       return `<div class="task-item ${done ? 'done' : ''} ${t.is_core ? 'core' : ''} ${t._overdue && !done ? 'overdue' : ''}"
-        onclick="openTaskSheet(${JSON.stringify({id:t.id, title:t.title, instructions:t.instructions||'', recurrence_type:t.recurrence_type, recurrence_days:t.recurrence_days, is_core:t.is_core, _doneToday:done}).replace(/"/g,'&quot;')}, ${i})">
+        onclick="openTaskSheet(${i})">
         <div class="task-check"></div>
         <div class="task-body">
           <div class="task-title">${t.is_core ? '★ ' : ''}${esc(t.title)}</div>
@@ -911,7 +912,11 @@ async function loadTasks() {
   }
 }
 
-window.openTaskSheet = function(task, idx) {
+let tasksCache = [];
+
+window.openTaskSheet = function(idx) {
+  const task = tasksCache[idx];
+  if (!task) return;
   currentTask = task;
   document.getElementById('sheet-task-title').textContent = task.title;
   document.getElementById('sheet-schedule').textContent = scheduleLabel(task);
