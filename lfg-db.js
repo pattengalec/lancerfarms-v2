@@ -25,8 +25,8 @@ async function sbPost(table, body) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
       Prefer: 'return=representation'
     },
@@ -36,13 +36,13 @@ async function sbPost(table, body) {
   return res.json();
 }
 
-async function sbPatch(table, match, body, key = SUPABASE_ANON_KEY) {
+async function sbPatch(table, match, body) {
   const params = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
     method: 'PATCH',
     headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
       Prefer: 'return=representation'
     },
@@ -52,11 +52,14 @@ async function sbPatch(table, match, body, key = SUPABASE_ANON_KEY) {
   return res.json();
 }
 
-async function sbDelete(table, match, key = SUPABASE_ANON_KEY) {
+async function sbDelete(table, match) {
   const params = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
     method: 'DELETE',
-    headers: { apikey: key, Authorization: `Bearer ${key}` }
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+    }
   });
   if (!res.ok) throw new Error(`DELETE ${table} failed: ${res.status}`);
   return true;
