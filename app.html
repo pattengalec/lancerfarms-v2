@@ -262,7 +262,7 @@ body { margin:0; background:var(--bg); }
         <label>Your Name</label>
         <input type="text" id="login-name" placeholder="First name">
       </div>
-<button class="submit-btn" id="login-btn">Sign In</button>
+      <button class="submit-btn" onclick="handleLogin()">Sign In</button>
       <div style="text-align:center;margin-top:14px;">
         <a href="/" style="font-size:0.72rem;color:var(--ink-soft);opacity:0.6;text-decoration:none;">← Back to farm</a>
       </div>
@@ -400,7 +400,7 @@ body { margin:0; background:var(--bg); }
         <div class="more-item" onclick="go('screen-almanac'); loadAlmanac();">
           <svg viewBox="0 0 24 24"><path d="M3 16c2-7 7-11 9-11s7 4 9 11"/><path d="M2 18h20"/></svg>
           <div><div class="item-label">Farm Almanac</div><div class="item-sub">Live weather, sun &amp; moon</div></div>
-          </div>
+        </div>
         <div class="more-item" onclick="go('screen-inventory')">
           <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
           <div><div class="item-label">Inventory</div><div class="item-sub">Tools &amp; supplies</div></div>
@@ -646,14 +646,131 @@ body { margin:0; background:var(--bg); }
 
 <div class="toast" id="toast"></div>
 
-<script type="module">
-import {
-  verifyStaffPassword, getAreas, buildAreaOptions, getAreaEvents, addAreaEvent,
-  getActivePlants, getMasterPlants, addMasterPlant,
-  getTodaysTasks, completeTask, getLog, addLog,
-  getPhotos, addPhoto, getInventory, addRequest as dbAddRequest, addReport as dbAddReport,
-  fmtDate, fmtTime, esc, showToast, today
-} from './lfg-db.js';
+<script>
+// ─── Inlined DB functions (no module import needed) ──────────
+const SUPABASE_URL = 'https://muecvqxsqnhkhjrabtxh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZWN2cXhzcW5oa2hqcmFidHhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNTU4MzAsImV4cCI6MjA5NjczMTgzMH0.7vOvhNxwtZ3xy1x67Vvq1BY_MsxN9J6ErkgaWklF7l4';
+const DB_HEADERS = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' };
+
+async function sbGet(table, params) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params ? '?' + params : ''}`, { headers: DB_HEADERS });
+  if (!res.ok) throw new Error(`GET ${table} failed: ${res.status}`);
+  return res.json();
+}
+async function sbPost(table, body) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:'POST', headers:{...DB_HEADERS, Prefer:'return=representation'}, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`POST ${table} failed: ${res.status}`);
+  return res.json();
+}
+async function sbPatch(table, match, body) {
+  const qs = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { method:'PATCH', headers:{...DB_HEADERS, Prefer:'return=representation'}, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`PATCH ${table} failed: ${res.status}`);
+  return res.json();
+}
+
+const BASE_PASSWORD = 'Godisgood';
+function verifyStaffPassword(pw) {
+  if (!pw || !pw.startsWith(BASE_PASSWORD)) return false;
+  return /^\d{4}$/.test(pw.slice(BASE_PASSWORD.length));
+}
+function getSessionName() { return sessionStorage.getItem('lfg_name') || 'Staff'; }
+function today() { return new Date().toISOString().slice(0,10); }
+function dayName(date) { return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][date.getDay()]; }
+function fmtDate(iso) { if (!iso) return ''; try { return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e) { return String(iso).slice(0,10); } }
+function fmtTime(iso) { if (!iso) return ''; try { return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); } catch(e) { return ''; } }
+function esc(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(String(s??''))); return d.innerHTML; }
+function showToast(msg, duration) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), duration||2500); }
+
+let _configCache = null;
+async function getConfig() {
+  if (_configCache) return _configCache;
+  const rows = await sbGet('lfg_config');
+  _configCache = {};
+  rows.forEach(r => { _configCache[r.key] = r.value; });
+  return _configCache;
+}
+async function getVisitOverrides() { return sbGet('lfg_visit_overrides','order=original_date.asc'); }
+
+let _areasCache = null, _areasCacheTime = 0;
+async function getAreas(force) {
+  if (_areasCache && !force && (Date.now()-_areasCacheTime)<300000) return _areasCache;
+  _areasCache = await sbGet('lfg_growing_areas','archived_at=is.null&order=zone.asc,name.asc');
+  _areasCacheTime = Date.now();
+  return _areasCache;
+}
+function buildAreaOptions(areas, includeGeneral) {
+  const zones = {};
+  areas.forEach(a => { const z=a.zone||'General'; if(!zones[z]) zones[z]=[]; zones[z].push(a); });
+  let html = includeGeneral ? '<option value="">— Select area —</option>' : '';
+  Object.keys(zones).sort().forEach(zone => {
+    html += `<optgroup label="${esc(zone)}">`;
+    zones[zone].forEach(a => { html += `<option value="${a.id}">${esc(a.name)}${a.area_type!=='raised_bed'?' ('+a.area_type.replace('_',' ')+')':''}</option>`; });
+    html += '</optgroup>';
+  });
+  return html;
+}
+
+async function getAreaEvents(area_id) { return sbGet('lfg_area_events',`area_id=eq.${area_id}&order=event_date.desc`); }
+async function addAreaEvent(area_id, event_type, fields) {
+  fields = fields || {};
+  return sbPost('lfg_area_events', { area_id, event_type, event_date:fields.event_date||today(), plant_name:fields.plant_name||null, quantity:fields.quantity||null, notes:fields.notes||null, performed_by:fields.performed_by||getSessionName() });
+}
+
+async function getTasks() { return sbGet('lfg_tasks','archived_at=is.null&order=is_core.desc,priority.asc,created_at.asc'); }
+async function getTaskCompletions(since) { return sbGet('lfg_task_completions',`visit_date=gte.${since}&order=completed_at.desc`); }
+async function completeTask(task_id, completed_by, notes) {
+  return sbPost('lfg_task_completions', { task_id, completed_by, visit_date:today(), notes:notes||null });
+}
+
+async function getTodaysTasks() {
+  const [tasks, config] = await Promise.all([getTasks(), getConfig()]);
+  const overrides = await getVisitOverrides();
+  const visitDays = JSON.parse(config.visit_days||'["Monday","Friday"]');
+  const todayDate = today(), todayName = dayName(new Date()), todayTs = new Date(todayDate).getTime();
+  const override = overrides.find(o => o.replacement_date === todayDate);
+  const cancelled = overrides.find(o => o.original_date === todayDate && !overrides.find(x => x.replacement_date === todayDate));
+  const isVisitDay = override ? true : cancelled ? false : visitDays.includes(todayName);
+  const completions = await getTaskCompletions(todayDate);
+  const completedIds = new Set(completions.filter(c => c.visit_date===todayDate).map(c => c.task_id));
+  const due = [];
+  for (const task of tasks) {
+    const done = completedIds.has(task.id);
+    let isDue = false;
+    switch(task.recurrence_type) {
+      case 'visit': isDue = isVisitDay; break;
+      case 'weekly': case 'biweekly': isDue = (task.recurrence_days||[]).includes(todayName); break;
+      case 'interval': {
+        const interval = task.recurrence_interval||1;
+        const last = completions.filter(c=>c.task_id===task.id).sort((a,b)=>new Date(b.completed_at)-new Date(a.completed_at))[0];
+        isDue = !last || (todayTs-new Date(last.visit_date).getTime())/86400000 >= interval;
+        break;
+      }
+      case 'one_time': isDue = !done && (!task.due_date||task.due_date<=todayDate); break;
+      case 'seasonal': isDue = task.season_start<=todayDate && task.season_end>=todayDate; break;
+    }
+    if (isDue) due.push({...task, _dueToday:true, _doneToday:done, _overdue:!done&&task.recurrence_type!=='one_time'});
+  }
+  return due.sort((a,b) => { if(a.is_core!==b.is_core) return a.is_core?-1:1; if(a._doneToday!==b._doneToday) return a._doneToday?1:-1; return (a.priority||3)-(b.priority||3); });
+}
+
+async function getLog(limit) { return sbGet('lfg_log',`order=logged_at.desc&limit=${limit||30}`); }
+async function addLog(area_id, location_label, note, logged_by) {
+  return sbPost('lfg_log', { area_id:area_id||null, location_label:location_label||null, note, logged_by:logged_by||getSessionName() });
+}
+async function getPhotos(area_id) {
+  return sbGet('lfg_photos', area_id ? `area_id=eq.${area_id}&order=uploaded_at.desc` : `order=uploaded_at.desc&limit=60`);
+}
+async function addPhoto(area_id, caption, cloudinary_url, thumbnail_url, uploaded_by) {
+  return sbPost('lfg_photos', { area_id:area_id||null, caption:caption||null, cloudinary_url, thumbnail_url:thumbnail_url||null, uploaded_by:uploaded_by||'Guest' });
+}
+async function getInventory() { return sbGet('lfg_inventory','order=category.asc,item_name.asc'); }
+async function dbAddRequest(requester_name, request_type, area_id, note, priority) {
+  return sbPost('lfg_requests', { requester_name, request_type:request_type||null, area_id:area_id||null, note, priority:priority||'Normal' });
+}
+async function dbAddReport(area_id, report_type, description, reporter_name) {
+  return sbPost('lfg_reports', { area_id:area_id||null, report_type:report_type||null, description, reporter_name:reporter_name||null });
+}
 
 // ─── State ───────────────────────────────────────────────────
 let currentAreaId = null;
