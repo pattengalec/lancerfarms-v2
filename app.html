@@ -417,7 +417,7 @@ body { margin:0; background:var(--bg); }
           <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
           <div><div class="item-label">Report an Issue</div><div class="item-sub">Damage, pests, irrigation</div></div>
         </div>
-        <div class="more-item" onclick="window.location.href='/admin.html'">
+        <div class="more-item" onclick="window.location.href='/lancerfarms-v2/admin.html'">
           <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           <div><div class="item-label">Admin Panel</div><div class="item-sub">Manage tasks, reports &amp; data</div></div>
         </div>
@@ -867,6 +867,8 @@ window.goBack = function(fallback) {
 };
 
 // ─── Tasks ───────────────────────────────────────────────────
+let tasksCache = [];
+
 async function loadTasks() {
   const box = document.getElementById('tasks-list');
   const label = document.getElementById('tasks-date-label');
@@ -877,6 +879,7 @@ async function loadTasks() {
 
   try {
     const tasks = await getTodaysTasks();
+    tasksCache = tasks;
     const overdue = tasks.filter(t => t._overdue && !t._doneToday);
     if (overdue.length) {
       banner.style.display = '';
@@ -900,7 +903,7 @@ async function loadTasks() {
         case 'seasonal': schedLabel = 'Seasonal'; break;
       }
       return `<div class="task-item ${done ? 'done' : ''} ${t.is_core ? 'core' : ''} ${t._overdue && !done ? 'overdue' : ''}"
-        onclick="openTaskSheet(${JSON.stringify({id:t.id, title:t.title, instructions:t.instructions||'', recurrence_type:t.recurrence_type, recurrence_days:t.recurrence_days, is_core:t.is_core, _doneToday:done}).replace(/"/g,'&quot;')}, ${i})">
+        onclick="openTaskSheet(${i})">
         <div class="task-check"></div>
         <div class="task-body">
           <div class="task-title">${t.is_core ? '★ ' : ''}${esc(t.title)}</div>
@@ -916,7 +919,9 @@ async function loadTasks() {
   }
 }
 
-window.openTaskSheet = function(task, idx) {
+window.openTaskSheet = function(idx) {
+  const task = tasksCache[idx];
+  if (!task) return;
   currentTask = task;
   document.getElementById('sheet-task-title').textContent = task.title;
   document.getElementById('sheet-schedule').textContent = scheduleLabel(task);
