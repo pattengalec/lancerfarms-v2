@@ -4,11 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>LFG Farm Manual</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#2d5a1b">
+<link rel="icon" type="image/png" href="lfg-logo.png">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Source+Sans+3:wght@300;400;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<script>
+(function(){try{
+  var m = localStorage.getItem('lfg-mode');
+  if (m === 'dark') document.documentElement.setAttribute('data-mode','dark');
+}catch(e){}})();
+</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
+/* ── Manual palette — light (default) ── */
+:root, [data-mode="light"] {
   --bg:           #b5996e;
   --bg-dark:      #8b7355;
   --bg-deeper:    #6b5540;
@@ -23,15 +32,39 @@
   --border:       #7a6245;
   --card-bg:      #c9ad84;
   --card-shadow:  rgba(0,0,0,0.18);
-  --white:        #ffffff;
+  --font-head:    'IM Fell English', Georgia, serif;
+  --font-body:    'Source Sans 3', 'Helvetica Neue', sans-serif;
+  --font-mono:    'Courier Prime', monospace;
+}
+
+/* ── Manual palette — dark mode ── */
+[data-mode="dark"] {
+  --bg:           #2a1f12;
+  --bg-dark:      #1e1509;
+  --bg-deeper:    #150e05;
+  --cream:        #f0e8d4;
+  --cream-dim:    #b8a880;
+  --forest:       #7ab827;
+  --forest-mid:   #5a8818;
+  --lime:         #b8e060;
+  --lime-pale:    #d4f090;
+  --orange:       #e8922a;
+  --orange-dim:   #c47820;
+  --border:       #4a3520;
+  --card-bg:      #3a2a15;
+  --card-shadow:  rgba(0,0,0,0.4);
+  --font-head:    'IM Fell English', Georgia, serif;
+  --font-body:    'Source Sans 3', 'Helvetica Neue', sans-serif;
+  --font-mono:    'Courier Prime', monospace;
 }
 
 html, body {
   background: var(--bg);
   color: var(--forest);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* ── SCREENS ── */
@@ -46,27 +79,78 @@ html, body {
   padding: 1.25rem 1rem 1rem;
   text-align: center;
   border-bottom: 3px solid var(--lime);
+  position: relative;
 }
 .home-header .logo-text {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.6rem;
-  font-weight: 900;
+  font-family: var(--font-head);
+  font-size: 1.7rem;
+  font-weight: 400;
+  font-style: italic;
   color: var(--cream);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   line-height: 1.1;
 }
 .home-header .logo-sub {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--lime-pale);
   margin-top: 0.2rem;
+  font-family: var(--font-mono);
 }
 .home-header .logo-rule {
   width: 40px; height: 2px;
   background: var(--lime);
   margin: 0.5rem auto 0;
 }
+.home-header .manual-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lime-pale);
+  margin-top: 0.35rem;
+  font-family: var(--font-mono);
+  opacity: 0.8;
+}
+.header-controls {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.hdr-btn {
+  background: transparent;
+  border: 1px solid rgba(184,224,96,0.4);
+  color: var(--lime-pale);
+  border-radius: 20px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+.hdr-btn:hover { background: rgba(184,224,96,0.15); }
+.nav-links {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem 0;
+  flex-wrap: wrap;
+}
+.nav-links a {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lime-pale);
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.nav-links a:hover { opacity: 1; }
 
 .home-intro {
   padding: 1rem 1rem 0.5rem;
@@ -99,9 +183,10 @@ html, body {
 
 .topic-card .card-icon { font-size: 2rem; margin-bottom: 0.4rem; display: block; }
 .topic-card .card-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-family: var(--font-head);
+  font-size: 0.95rem;
+  font-weight: 400;
+  font-style: italic;
   color: var(--forest);
   line-height: 1.2;
   margin-bottom: 0.25rem;
@@ -110,6 +195,7 @@ html, body {
   font-size: 0.65rem;
   color: var(--bg-deeper);
   line-height: 1.4;
+  font-family: var(--font-body);
 }
 .topic-card .card-badge {
   display: inline-block;
@@ -122,6 +208,7 @@ html, body {
   padding: 0.15rem 0.4rem;
   border-radius: 3px;
   font-weight: 600;
+  font-family: var(--font-mono);
 }
 
 /* ── TOPIC SCREEN ── */
@@ -150,9 +237,12 @@ html, body {
   font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500;
 }
 .topic-header-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.1rem; font-weight: 700;
-  color: var(--cream); flex: 1;
+  font-family: var(--font-head);
+  font-size: 1.1rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--cream);
+  flex: 1;
 }
 .topic-header-icon { font-size: 1.3rem; }
 
@@ -170,8 +260,8 @@ html, body {
   flex-shrink: 0;
   background: none; border: none;
   color: var(--cream-dim); cursor: pointer;
-  font-family: 'Inter', sans-serif; font-size: 0.72rem; font-weight: 500;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 400;
+  letter-spacing: 0.06em; text-transform: uppercase;
   padding: 0.6rem 0.9rem;
   border-bottom: 2px solid transparent;
   white-space: nowrap;
@@ -190,6 +280,7 @@ html, body {
   font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--bg-deeper); margin-bottom: 0.6rem; margin-top: 1.25rem;
   padding-bottom: 0.3rem; border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
 }
 .section-eyebrow:first-child { margin-top: 0; }
 
@@ -204,8 +295,9 @@ html, body {
 .info-card-title {
   font-weight: 600; font-size: 0.88rem;
   color: var(--forest); margin-bottom: 0.25rem;
+  font-family: var(--font-body);
 }
-.info-card-body { font-size: 0.78rem; color: var(--bg-deeper); line-height: 1.55; }
+.info-card-body { font-size: 0.78rem; color: var(--bg-deeper); line-height: 1.55; font-family: var(--font-body); }
 .info-card-body strong { color: var(--forest); }
 
 .tip-card {
@@ -250,19 +342,20 @@ html, body {
 
 /* Form fields */
 .field { margin-bottom: 0.75rem; }
-.field label { display: block; font-size: 0.73rem; color: var(--bg-deeper); font-weight: 500; margin-bottom: 0.3rem; }
+.field label { display: block; font-size: 0.73rem; color: var(--bg-deeper); font-weight: 600; margin-bottom: 0.3rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; }
 .field input, .field select {
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 5px;
   color: var(--forest);
-  font-family: 'Inter', sans-serif;
-  font-size: 1rem; /* larger for mobile tap */
+  font-family: var(--font-body);
+  font-size: 1rem;
   padding: 0.6rem 0.75rem;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
+  transition: border-color 0.15s;
 }
 .field input:focus, .field select:focus { border-color: var(--lime); }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
@@ -417,10 +510,19 @@ html, body {
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div class="screen active" id="screen-home">
   <div class="home-header">
+    <div class="header-controls">
+      <button class="hdr-btn" onclick="toggleMode()" id="mode-btn">☀</button>
+      <a href="/app.html" class="hdr-btn" style="text-decoration:none;">← App</a>
+    </div>
     <div class="logo-text">Lancer Farms</div>
     <div class="logo-sub">&amp; Gardens</div>
     <div class="logo-rule"></div>
-    <div style="font-size:0.65rem; color:var(--lime-pale); margin-top:0.4rem; letter-spacing:0.08em;">FARM MANUAL</div>
+    <div class="manual-label">Farm Manual</div>
+    <div class="nav-links">
+      <a href="/app.html">Staff App</a>
+      <a href="/admin.html">Admin</a>
+      <a href="/data.html">Data</a>
+    </div>
   </div>
   <div class="home-intro">Select a topic to open its reference guide, calculators, and field notes.</div>
   <div class="topic-grid">
@@ -1204,65 +1306,40 @@ document.addEventListener('change', function(e) {
 });
 
 // ══════════════════════════════════════════════════════════════
-// SUPABASE CONFIG
+// SUPABASE CONFIG (entries only — no auth)
 // ══════════════════════════════════════════════════════════════
 const SUPA_URL = 'https://muecvqxsqnhkhjrabtxh.supabase.co';
-const SUPA_KEY = 'sb_publishable_KhuGyR_XxDFsErQ5NApRRQ_X-NfUIz2';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZWN2cXhzcW5oa2hqcmFidHhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNTU4MzAsImV4cCI6MjA5NjczMTgzMH0.7vOvhNxwtZ3xy1x67Vvq1BY_MsxN9J6ErkgaWklF7l4';
 
 async function supaFetch(path, options = {}) {
   const headers = {
     'apikey': SUPA_KEY,
+    'Authorization': `Bearer ${SUPA_KEY}`,
     'Content-Type': 'application/json',
     ...options.headers
   };
-  if (adminSession) headers['Authorization'] = `Bearer ${adminSession}`;
   const res = await fetch(`${SUPA_URL}/rest/v1/${path}`, { ...options, headers });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err);
-  }
+  if (!res.ok) { const err = await res.text(); throw new Error(err); }
   return res.status === 204 ? null : res.json();
 }
 
-async function supaAuthFetch(path, options = {}) {
-  const headers = { 'apikey': SUPA_KEY, 'Content-Type': 'application/json', ...options.headers };
-  const res = await fetch(`${SUPA_URL}/auth/v1/${path}`, { ...options, headers });
-  return res.json();
-}
-
 // ══════════════════════════════════════════════════════════════
-// ADMIN STATE
+// ADMIN STATE — uses v2 Godisgood+MMDD password
 // ══════════════════════════════════════════════════════════════
-let adminSession = null;
+const BASE_PW = 'Godisgood';
 let isAdmin = false;
 
-function getAdminState() {
-  try {
-    const stored = localStorage.getItem('lfg_admin_token');
-    if (stored) { adminSession = stored; isAdmin = true; }
-  } catch(e) {}
+function verifyAdminPw(pw) {
+  if (!pw || !pw.startsWith(BASE_PW)) return false;
+  return /^\d{4}$/.test(pw.slice(BASE_PW.length));
 }
 
-async function adminLogin(email, password) {
-  const data = await supaAuthFetch('token?grant_type=password', {
-    method: 'POST',
-    body: JSON.stringify({ email, password })
-  });
-  if (data.access_token) {
-    adminSession = data.access_token;
+function checkExistingSession() {
+  const token = sessionStorage.getItem('lfg_token');
+  if (token && verifyAdminPw(token)) {
     isAdmin = true;
-    try { localStorage.setItem('lfg_admin_token', adminSession); } catch(e) {}
-    return true;
+    updateAdminUI();
   }
-  return false;
-}
-
-function adminLogout() {
-  adminSession = null;
-  isAdmin = false;
-  try { localStorage.removeItem('lfg_admin_token'); } catch(e) {}
-  updateAdminUI();
-  closeModal();
 }
 
 function updateAdminUI() {
@@ -1277,10 +1354,25 @@ function updateAdminUI() {
     btn.style.background = 'transparent';
     btn.style.color = 'var(--lime-pale)';
   }
-  // Show/hide all add-entry buttons
   document.querySelectorAll('.add-entry-btn').forEach(b => {
     b.style.display = isAdmin ? 'flex' : 'none';
   });
+}
+
+// ══════════════════════════════════════════════════════════════
+// DARK MODE — matches v2 pattern
+// ══════════════════════════════════════════════════════════════
+function toggleMode() {
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-mode') === 'dark';
+  dark ? html.removeAttribute('data-mode') : html.setAttribute('data-mode', 'dark');
+  try { localStorage.setItem('lfg-mode', dark ? 'light' : 'dark'); } catch(e) {}
+  updateModeIcon();
+}
+function updateModeIcon() {
+  const dark = document.documentElement.getAttribute('data-mode') === 'dark';
+  const btn = document.getElementById('mode-btn');
+  if (btn) btn.textContent = dark ? '🌙' : '☀';
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1291,27 +1383,17 @@ function openModal(html) {
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.id = 'modal-overlay';
-    overlay.style.cssText = `
-      position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;
-      display:flex;align-items:flex-end;justify-content:center;
-      padding:0;
-    `;
+    overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:flex-end;justify-content:center;padding:0;`;
     overlay.onclick = e => { if (e.target === overlay) closeModal(); };
     document.body.appendChild(overlay);
   }
   overlay.innerHTML = `
-    <div style="
-      background:var(--card-bg);width:100%;max-width:480px;
-      border-radius:16px 16px 0 0;padding:1.25rem;
-      max-height:90vh;overflow-y:auto;
-      box-shadow:0 -4px 20px rgba(0,0,0,0.4);
-    ">
+    <div style="background:var(--card-bg);width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:1.25rem;max-height:90vh;overflow-y:auto;box-shadow:0 -4px 20px rgba(0,0,0,0.4);">
       <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1rem;"></div>
       ${html}
     </div>`;
   overlay.style.display = 'flex';
 }
-
 function closeModal() {
   const overlay = document.getElementById('modal-overlay');
   if (overlay) overlay.style.display = 'none';
@@ -1324,46 +1406,48 @@ function showLoginModal() {
   if (isAdmin) {
     openModal(`
       <div style="text-align:center;margin-bottom:1rem;">
-        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--forest);">Admin Active</div>
+        <div style="font-family:var(--font-head);font-style:italic;font-size:1.1rem;color:var(--forest);">Admin Active</div>
         <div style="font-size:0.78rem;color:var(--bg-deeper);margin-top:0.25rem;">You can add and edit manual entries.</div>
       </div>
-      <button onclick="adminLogout()" style="${btnStyle('var(--terra)')}">Sign Out</button>
+      <button onclick="doAdminLogout()" style="${btnStyle('var(--orange-dim)')}">Sign Out</button>
       <button onclick="closeModal()" style="${btnStyle('var(--bg-dark)')}">Close</button>
     `);
     return;
   }
   openModal(`
-    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--forest);margin-bottom:1rem;">Admin Login</div>
-    <div style="margin-bottom:0.75rem;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">Email</label>
-      <input id="login-email" type="email" placeholder="admin@email.com" style="${inputStyle()}">
-    </div>
+    <div style="font-family:var(--font-head);font-style:italic;font-size:1.15rem;color:var(--forest);margin-bottom:0.25rem;">Admin Sign In</div>
+    <div style="font-size:0.72rem;color:var(--bg-deeper);margin-bottom:1rem;font-family:var(--font-mono);">Staff password + your birthday MMDD</div>
     <div style="margin-bottom:1rem;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">Password</label>
-      <input id="login-pw" type="password" placeholder="••••••••" style="${inputStyle()}">
+      <label style="font-size:0.65rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;">Password</label>
+      <input id="login-pw" type="password" placeholder="e.g. Godisgood0315" style="${inputStyle()}" onkeydown="if(event.key==='Enter')doAdminLogin()">
     </div>
-    <div id="login-err" style="font-size:0.75rem;color:var(--terra);margin-bottom:0.5rem;display:none;"></div>
-    <button onclick="doLogin()" style="${btnStyle('var(--forest)')}">Sign In</button>
+    <div id="login-err" style="font-size:0.75rem;color:var(--orange-dim);margin-bottom:0.5rem;display:none;"></div>
+    <button onclick="doAdminLogin()" style="${btnStyle('var(--forest)')}">Sign In</button>
     <button onclick="closeModal()" style="${btnStyle('var(--bg-dark)')}">Cancel</button>
   `);
+  setTimeout(() => document.getElementById('login-pw')?.focus(), 100);
 }
 
-async function doLogin() {
-  const email = document.getElementById('login-email')?.value;
-  const pw    = document.getElementById('login-pw')?.value;
+function doAdminLogin() {
+  const pw = document.getElementById('login-pw')?.value;
   const errEl = document.getElementById('login-err');
-  if (!email || !pw) { showErr(errEl, 'Enter email and password.'); return; }
-  const btn = event.target;
-  btn.textContent = 'Signing in…'; btn.disabled = true;
-  const ok = await adminLogin(email, pw);
-  if (ok) {
-    closeModal();
-    updateAdminUI();
-    showToast('✓ Admin access granted');
-  } else {
-    showErr(errEl, 'Invalid credentials.');
-    btn.textContent = 'Sign In'; btn.disabled = false;
+  if (!verifyAdminPw(pw)) {
+    if (errEl) { errEl.textContent = 'Incorrect password.'; errEl.style.display = 'block'; }
+    return;
   }
+  isAdmin = true;
+  sessionStorage.setItem('lfg_token', pw);
+  closeModal();
+  updateAdminUI();
+  showToast('✓ Admin access granted');
+}
+
+function doAdminLogout() {
+  isAdmin = false;
+  sessionStorage.removeItem('lfg_token');
+  closeModal();
+  updateAdminUI();
+  showToast('Signed out');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1706,8 +1790,6 @@ function showToast(msg) {
 // ══════════════════════════════════════════════════════════════
 // PATCH openTopic to inject dynamic zones after render
 // ══════════════════════════════════════════════════════════════
-const _origOpenTopic = openTopic;
-// Override openTopic to call injectDynamicZones after render
 (function() {
   const orig = openTopic;
   window.openTopic = async function(key) {
@@ -1717,27 +1799,21 @@ const _origOpenTopic = openTopic;
 })();
 
 // ══════════════════════════════════════════════════════════════
-// INIT ADMIN STATE + HOME ADMIN BTN
+// INIT
 // ══════════════════════════════════════════════════════════════
-(function initAdmin() {
-  getAdminState();
-  // Inject admin button into home header
-  const header = document.querySelector('.home-header');
-  if (header) {
+(function init() {
+  updateModeIcon();
+  checkExistingSession();
+
+  // Inject admin button into home header controls
+  const controls = document.querySelector('.header-controls');
+  if (controls) {
     const btn = document.createElement('button');
     btn.id = 'admin-btn';
     btn.onclick = showLoginModal;
-    btn.style.cssText = `
-      position:absolute;top:0.75rem;right:0.75rem;
-      background:transparent;border:1px solid var(--lime);
-      color:var(--lime-pale);border-radius:20px;
-      padding:0.3rem 0.75rem;font-size:0.7rem;font-weight:600;
-      font-family:Inter,sans-serif;cursor:pointer;
-      -webkit-tap-highlight-color:transparent;
-    `;
+    btn.style.cssText = `background:transparent;border:1px solid rgba(184,224,96,0.4);color:var(--lime-pale);border-radius:20px;padding:0.3rem 0.6rem;font-size:0.65rem;font-weight:600;font-family:var(--font-mono);cursor:pointer;-webkit-tap-highlight-color:transparent;`;
     btn.textContent = isAdmin ? '🔓 Admin' : '🔒 Admin';
-    header.style.position = 'relative';
-    header.appendChild(btn);
+    controls.insertBefore(btn, controls.firstChild);
   }
   updateAdminUI();
 })();
