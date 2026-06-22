@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>LFG Staff — Lancer Farms</title>
 <meta name="theme-color" content="#4F7355">
-  <link rel="icon" type="image/png" href="lfg-logo.png">  
 <link rel="stylesheet" href="lfg-theme.css">
 <script>
 (function(){try{
@@ -263,7 +262,7 @@ body { margin:0; background:var(--bg); }
         <label>Your Name</label>
         <input type="text" id="login-name" placeholder="First name">
       </div>
-      <button class="submit-btn" id="login-btn">Sign In</button>
+      <button class="submit-btn" onclick="handleLogin()">Sign In</button>
       <div style="text-align:center;margin-top:14px;">
         <a href="/" style="font-size:0.72rem;color:var(--ink-soft);opacity:0.6;text-decoration:none;">← Back to farm</a>
       </div>
@@ -647,6 +646,7 @@ body { margin:0; background:var(--bg); }
 
 <div class="toast" id="toast"></div>
 
+<script src="lfg-ambient.js" defer></script>
 <script>
 // ─── Inlined DB functions (no module import needed) ──────────
 const SUPABASE_URL = 'https://muecvqxsqnhkhjrabtxh.supabase.co';
@@ -815,6 +815,7 @@ window.handleLogin = function() {
   sessionStorage.setItem('lfg_token', pw);
   sessionStorage.setItem('lfg_name', name);
   document.getElementById('more-name-label').textContent = name;
+  if (window.LFG) { LFG.sound.success(); LFG.haptic.success(); }
   showAppShell();
 };
 
@@ -837,6 +838,7 @@ function showAppShell() {
 const TAB_SCREENS = { tasks:'screen-tasks', areas:'screen-areas', log:'screen-log', more:'screen-more' };
 
 window.switchTab = function(tab) {
+  if (window.LFG) { LFG.sound.tap(); LFG.haptic.tap(); }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   Object.entries(TAB_SCREENS).forEach(([t, sid]) => {
     const s = document.getElementById(sid);
@@ -850,6 +852,7 @@ window.switchTab = function(tab) {
 };
 
 window.go = function(screenId) {
+  if (window.LFG) { LFG.sound.open(); LFG.haptic.tap(); }
   const current = document.querySelector('.screen.active');
   prevScreen = current ? current.id : null;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -858,6 +861,7 @@ window.go = function(screenId) {
 };
 
 window.goBack = function(fallback) {
+  if (window.LFG) { LFG.sound.close(); LFG.haptic.tap(); }
   const to = prevScreen || fallback || 'screen-tasks';
   go(to);
 };
@@ -884,7 +888,6 @@ async function loadTasks() {
       box.innerHTML = '<div class="empty-block">No tasks scheduled for today.</div>';
       return;
     }
-    tasksCache = tasks;
     box.innerHTML = tasks.map((t,i) => {
       const done = t._doneToday;
       let schedLabel = '';
@@ -897,7 +900,7 @@ async function loadTasks() {
         case 'seasonal': schedLabel = 'Seasonal'; break;
       }
       return `<div class="task-item ${done ? 'done' : ''} ${t.is_core ? 'core' : ''} ${t._overdue && !done ? 'overdue' : ''}"
-        onclick="openTaskSheet(${i})">
+        onclick="openTaskSheet(${JSON.stringify({id:t.id, title:t.title, instructions:t.instructions||'', recurrence_type:t.recurrence_type, recurrence_days:t.recurrence_days, is_core:t.is_core, _doneToday:done}).replace(/"/g,'&quot;')}, ${i})">
         <div class="task-check"></div>
         <div class="task-body">
           <div class="task-title">${t.is_core ? '★ ' : ''}${esc(t.title)}</div>
@@ -913,11 +916,7 @@ async function loadTasks() {
   }
 }
 
-let tasksCache = [];
-
-window.openTaskSheet = function(idx) {
-  const task = tasksCache[idx];
-  if (!task) return;
+window.openTaskSheet = function(task, idx) {
   currentTask = task;
   document.getElementById('sheet-task-title').textContent = task.title;
   document.getElementById('sheet-schedule').textContent = scheduleLabel(task);
@@ -939,6 +938,7 @@ window.openTaskSheet = function(idx) {
     completeBtn.disabled = false;
   }
   document.getElementById('task-sheet').classList.add('open');
+  if (window.LFG) { LFG.sound.open(); LFG.haptic.tap(); }
   document.getElementById('complete-name').value = sessionStorage.getItem('lfg_name') || '';
 };
 
@@ -955,6 +955,7 @@ function scheduleLabel(t) {
 }
 
 window.closeTaskSheet = function() {
+  if (window.LFG) { LFG.sound.close(); LFG.haptic.tap(); }
   document.getElementById('task-sheet').classList.remove('open');
   currentTask = null;
 };
@@ -977,6 +978,7 @@ window.confirmComplete = async function() {
   showToast('Logging…');
   try {
     await completeTask(currentTask.id, name, note);
+    if (window.LFG) { LFG.sound.complete(); LFG.haptic.complete(); }
     showToast('Task complete — thanks ' + name + '!');
     closeTaskSheet();
     loadTasks();
@@ -1119,11 +1121,12 @@ async function loadLog() {
 
 window.submitLog = async function() {
   const note = document.getElementById('log-note').value.trim();
-  if (!note) { showToast('Write a note first'); return; }
+  if (!note) { if (window.LFG) { LFG.sound.error(); LFG.haptic.error(); } showToast('Write a note first'); return; }
   const areaId = document.getElementById('log-area-select').value || null;
   showToast('Saving…');
   try {
     await addLog(areaId, areaId ? null : 'General Farm', note, sessionStorage.getItem('lfg_name') || 'Staff');
+    if (window.LFG) { LFG.sound.success(); LFG.haptic.success(); }
     showToast('Logged!');
     document.getElementById('log-note').value = '';
     loadLog();
@@ -1277,6 +1280,7 @@ window.loadAlmanac = async function() {
       try { sessionStorage.setItem('lfg-wx', JSON.stringify({ at:Date.now(), periods })); } catch(e) {}
     }
     const p = periods[0];
+    if (window.LFG) LFG.ambient.setWeather(p);
     document.getElementById('alm-temp').textContent = p.temperature + '°' + p.temperatureUnit;
     document.getElementById('alm-cond').textContent = p.shortForecast + ' · ' + p.name;
     document.getElementById('alm-wind').textContent = p.windSpeed + ' ' + p.windDirection;
