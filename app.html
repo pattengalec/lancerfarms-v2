@@ -836,6 +836,7 @@ function showAppShell() {
 const TAB_SCREENS = { tasks:'screen-tasks', areas:'screen-areas', log:'screen-log', more:'screen-more' };
 
 window.switchTab = function(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   Object.entries(TAB_SCREENS).forEach(([t, sid]) => {
     const s = document.getElementById(sid);
     const b = document.getElementById('nav-' + t);
