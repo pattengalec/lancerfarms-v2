@@ -722,7 +722,7 @@ async function addAreaEvent(area_id, event_type, fields) {
   return sbPost('lfg_area_events', { area_id, event_type, event_date:fields.event_date||today(), plant_name:fields.plant_name||null, quantity:fields.quantity||null, notes:fields.notes||null, performed_by:fields.performed_by||getSessionName() });
 }
 
-async function getTasks() { return sbGet('lfg_tasks','archived_at=is.null&order=is_core.desc,priority.asc,created_at.asc'); }
+async function getTasks() { return sbGet('lfg_tasks','archived_at=is.null&order=sort_order.asc,priority.asc,created_at.asc'); }
 async function getTaskCompletions(since) { return sbGet('lfg_task_completions',`visit_date=gte.${since}&order=completed_at.desc`); }
 async function completeTask(task_id, completed_by, notes) {
   return sbPost('lfg_task_completions', { task_id, completed_by, visit_date:today(), notes:notes||null });
@@ -756,7 +756,7 @@ async function getTodaysTasks() {
     }
     if (isDue) due.push({...task, _dueToday:true, _doneToday:done, _overdue:!done&&task.recurrence_type!=='one_time'});
   }
-  return due.sort((a,b) => { if(a.is_core!==b.is_core) return a.is_core?-1:1; if(a._doneToday!==b._doneToday) return a._doneToday?1:-1; return (a.priority||3)-(b.priority||3); });
+  return due.sort((a,b) => { if(a._doneToday!==b._doneToday) return a._doneToday?1:-1; return (a.sort_order||99)-(b.sort_order||99); });
 }
 
 async function getLog(limit) { return sbGet('lfg_log',`order=logged_at.desc&limit=${limit||30}`); }
