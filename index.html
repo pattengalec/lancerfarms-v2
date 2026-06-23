@@ -1237,8 +1237,19 @@ window.submitGuestComment = async function() {
 };
 
 // ── DONATE ───────────────────────────────────────────────────
-window.openDonate = function() {
-  showToast('Donation link coming soon!');
+window.openDonate = async function() {
+  try {
+    const rows = await sbGet('lfg_config', 'key=in.(donations_enabled,donations_url)');
+    const cfg = {};
+    rows.forEach(r => { cfg[r.key] = r.value; });
+    if (cfg.donations_enabled === 'true' && cfg.donations_url) {
+      window.open(cfg.donations_url, '_blank');
+    } else {
+      showToast('Donations coming soon — check back later!');
+    }
+  } catch(e) {
+    showToast('Donations coming soon — check back later!');
+  }
 };
 
 // ── INIT ─────────────────────────────────────────────────────
