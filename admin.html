@@ -281,6 +281,12 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
             </select>
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sort Order <span style="font-weight:400;opacity:0.6;">(position in list — lower = earlier)</span></label>
+            <input type="number" id="t-sort-order" placeholder="99" min="1" max="999" value="99">
+          </div>
+        </div>
 
         <div class="recurring-fields" id="recurring-fields">
           <!-- Weekly -->
@@ -934,7 +940,8 @@ window.addTask = async function() {
       season_start,
       season_end,
       is_core: document.getElementById('t-core').checked,
-      priority: parseInt(document.getElementById('t-priority').value) || 3
+      priority: parseInt(document.getElementById('t-priority').value) || 3,
+      sort_order: parseInt(document.getElementById('t-sort-order').value) || 99
     });
     showToast('Task added!');
     document.getElementById('t-title').value = '';
@@ -993,6 +1000,7 @@ window.editTask = function(idx) {
   document.getElementById('t-instructions').value = t.instructions || '';
   document.getElementById('t-recurrence').value = t.recurrence_type || 'visit';
   document.getElementById('t-priority').value = t.priority || 3;
+  document.getElementById('t-sort-order').value = t.sort_order || 99;
   document.getElementById('t-core').checked = !!t.is_core;
   toggleRecurringFields();
   // Fill recurrence-specific fields
@@ -1041,7 +1049,8 @@ window.updateTask = async function() {
       instructions: document.getElementById('t-instructions').value.trim() || null,
       recurrence_type: type, recurrence_days, recurrence_interval, due_date, season_start, season_end,
       is_core: document.getElementById('t-core').checked,
-      priority: parseInt(document.getElementById('t-priority').value) || 3
+      priority: parseInt(document.getElementById('t-priority').value) || 3,
+      sort_order: parseInt(document.getElementById('t-sort-order').value) || 99
     });
     showToast('Task updated!');
     cancelTaskEdit();
