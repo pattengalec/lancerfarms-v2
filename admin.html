@@ -220,6 +220,22 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
       <div class="section-label">Overdue / Due Today</div>
       <div class="data-list" id="dash-tasks"><div class="empty-state"><span class="spinner"></span> Loading…</div></div>
 
+      <div class="section-label">Site Settings</div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+        <div>
+          <div style="font-size:0.9rem;font-weight:600;color:var(--ink);">Support the Farm (Donations)</div>
+          <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">Show or hide the donate button on the public guest page</div>
+          <div style="margin-top:8px;">
+            <label style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.06em;font-family:'Courier Prime',monospace;">Donation URL</label>
+            <input type="text" id="donations-url-input" placeholder="https://venmo.com/yourname" style="margin-top:4px;width:100%;background:var(--bg);border:var(--border-w) solid var(--card-border);border-radius:6px;padding:8px 10px;font-size:0.85rem;color:var(--ink);outline:none;">
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;">
+          <div id="donations-status" style="font-family:'Courier Prime',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);">—</div>
+          <button id="donations-toggle-btn" class="btn btn-ghost btn-sm" onclick="toggleDonations()" style="min-width:80px;">—</button>
+        </div>
+      </div>
+
       <div class="section-label">Recent Field Log</div>
       <div class="data-list" id="dash-log"><div class="empty-state"><span class="spinner"></span> Loading…</div></div>
     </div>
@@ -753,6 +769,7 @@ async function loadAll() {
   updateModeIcon();
   await populateAreaDropdowns();
   loadDashboard();
+  loadDonationsSettings();
   loadTasks();
   loadAreas();
   loadInventory();
@@ -816,7 +833,54 @@ async function loadDashboard() {
   } catch(e) { console.error('Dashboard load error:', e); }
 }
 
-// ─── Tasks ───────────────────────────────────────────────────
+// ─── Donations toggle ─────────────────────────────────────────
+async function loadDonationsSettings() {
+  try {
+    const cfg = await getConfig();
+    const enabled = cfg.donations_enabled === 'true';
+    const url = cfg.donations_url || '';
+    document.getElementById('donations-url-input').value = url;
+    updateDonationsUI(enabled);
+  } catch(e) {}
+}
+
+function updateDonationsUI(enabled) {
+  const status = document.getElementById('donations-status');
+  const btn = document.getElementById('donations-toggle-btn');
+  if (!status || !btn) return;
+  if (enabled) {
+    status.textContent = 'ON';
+    status.style.color = '#3a7d44';
+    btn.textContent = 'Turn Off';
+    btn.className = 'btn btn-danger btn-sm';
+  } else {
+    status.textContent = 'OFF';
+    status.style.color = 'var(--ink-soft)';
+    btn.textContent = 'Turn On';
+    btn.className = 'btn btn-success btn-sm';
+  }
+}
+
+window.toggleDonations = async function() {
+  try {
+    const cfg = await getConfig();
+    const current = cfg.donations_enabled === 'true';
+    const newVal = (!current).toString();
+    const url = document.getElementById('donations-url-input').value.trim();
+    // Save both enabled state and URL
+    const res1 = await fetch(`${SUPABASE_URL}/rest/v1/lfg_config?key=eq.donations_enabled`, {
+      method: 'PATCH', headers: {...DB_HEADERS, Prefer:'return=representation'},
+      body: JSON.stringify({ value: newVal })
+    });
+    const res2 = await fetch(`${SUPABASE_URL}/rest/v1/lfg_config?key=eq.donations_url`, {
+      method: 'PATCH', headers: {...DB_HEADERS, Prefer:'return=representation'},
+      body: JSON.stringify({ value: url })
+    });
+    _configCache = null; // bust cache
+    showToast('Donations ' + (newVal === 'true' ? 'enabled' : 'disabled'));
+    updateDonationsUI(newVal === 'true');
+  } catch(e) { showToast('Could not update settings'); }
+};
 window.toggleRecurringFields = function() {
   const type = document.getElementById('t-recurrence').value;
   const rf = document.getElementById('recurring-fields');
