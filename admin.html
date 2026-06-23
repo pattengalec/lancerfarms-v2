@@ -625,7 +625,7 @@ function buildAreaOptions(areas, includeGeneral) {
   return html;
 }
 
-async function getTasks() { return sbGet('lfg_tasks','archived_at=is.null&order=is_core.desc,priority.asc,created_at.asc'); }
+async function getTasks() { return sbGet('lfg_tasks','archived_at=is.null&order=sort_order.asc,priority.asc,created_at.asc'); }
 async function getTaskCompletions(since) { return sbGet('lfg_task_completions',`visit_date=gte.${since}&order=completed_at.desc`); }
 async function dbAddTask(fields) { return sbPost('lfg_tasks', fields); }
 async function archiveTask(id) { return sbPatch('lfg_tasks',{id},{archived_at:new Date().toISOString()}); }
