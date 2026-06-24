@@ -595,7 +595,7 @@ async function sbPost(table, body) {
 }
 async function sbPatch(table, match, body) {
   const qs = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { method:'PATCH', headers:{...DB_HEADERS, Prefer:'return=minimal'}, body: JSON.stringify(body) });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { method:'PATCH', headers:{...DB_HEADERS, Prefer:'return=representation'}, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(`PATCH ${table} failed: ${res.status}`);
   const text = await res.text();
   return text ? JSON.parse(text) : [];
@@ -659,8 +659,8 @@ async function getTasks() { return sbGet('lfg_tasks','archived_at=is.null&order=
 async function archiveTask(id) { return sbPatch('lfg_tasks',{id},{archived_at:new Date().toISOString()}); }
 async function getTaskCompletions(since) { return sbGet('lfg_task_completions',`visit_date=gte.${since}&order=completed_at.desc`); }
 async function dbAddTask(fields) { return sbPost('lfg_tasks', fields); }
-async function dbCompleteTask(task_id, completed_by, notes) {
-  return sbPost('lfg_task_completions', { task_id, completed_by, visit_date:today(), notes:notes||null });
+async function dbCompleteTask(task_id, task_title, completed_by, notes) {
+  return sbPost('lfg_task_completions', { task_id, task_title, completed_by, visit_date:today(), notes:notes||null });
 }
 
 async function getTodaysTasks() {
@@ -988,7 +988,7 @@ async function loadTasks() {
           ${t.is_core ? '<span class="badge badge-core">Core</span>' : ''}
           <button class="btn btn-success btn-sm" onclick="promptComplete('${t.id}','${esc(t.title)}',${i})">✓ Done</button>
           <button class="btn btn-ghost btn-sm" onclick="editTask(${i})">Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="archiveTaskRow('${t.id}')">Archive</button>
+          <button class="btn btn-danger btn-sm" onclick="archiveTaskRow('${t.id}')">Delete</button>
         </div>
       </div>`;
     }).join('');
@@ -1102,7 +1102,7 @@ window.confirmComplete = async function() {
   document.getElementById('name-prompt').classList.remove('visible');
   pendingComplete = null;
   try {
-    await dbCompleteTask(taskId, name, note);
+    await dbCompleteTask(taskId, taskTitle, name, note);
     showToast('Logged — completed by ' + name);
     setTimeout(loadTasks, 600);
   } catch(e) { showToast('Could not log — try again'); }
@@ -1110,10 +1110,17 @@ window.confirmComplete = async function() {
 
 window.archiveTaskRow = async function(id) {
   try {
-    await archiveTask(id);
-    showToast('Task archived');
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/lfg_tasks?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: DB_HEADERS
+    });
+    if (!res.ok) throw new Error('DELETE failed: ' + res.status);
+    showToast('Task removed');
     loadTasks();
-  } catch(e) { showToast('Could not archive'); console.error(e); }
+  } catch(e) {
+    showToast('Could not remove: ' + e.message);
+    console.error(e);
+  }
 };
 
 // ─── Areas ───────────────────────────────────────────────────
@@ -1440,16 +1447,14 @@ window.loadCompletions = async function() {
   box.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading…</div>';
   try {
     const comps = await getTaskCompletions(from);
-    const tasks = await getTasks();
-    const taskMap = Object.fromEntries(tasks.map(t => [t.id, t.title]));
     const to = document.getElementById('comp-to').value;
     const filtered = to ? comps.filter(c => c.visit_date <= to) : comps;
     if (!filtered.length) { box.innerHTML = '<div class="empty-state">No completions in this range.</div>'; return; }
     box.innerHTML = filtered.map(c => `
       <div class="data-row">
         <div class="row-main">
-          <div class="row-title">${esc(taskMap[c.task_id] || 'Unknown task')}</div>
-          <div class="row-sub">${esc(c.completed_by)} · ${fmtDate(c.visit_date)} · ${fmtTime(c.completed_at)}${c.notes ? ' · ' + esc(c.notes) : ''}</div>
+          <div class="row-title">${esc(c.task_title || 'Task')}</div>
+          <div class="row-sub">${esc(c.completed_by)} · ${fmtDate(c.visit_date)}</div>
         </div>
       </div>`).join('');
   } catch(e) { box.innerHTML = '<div class="empty-state">Could not load.</div>'; }
