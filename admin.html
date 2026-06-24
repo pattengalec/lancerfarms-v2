@@ -217,6 +217,13 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
         </div>
       </div>
 
+      <div class="section-label">Quick Links</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="/calendar.html" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none;">📅 Farm Calendar</a>
+        <a href="/app.html" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none;">← Staff App</a>
+        <a href="/data.html" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none;">📊 Data Dashboard</a>
+      </div>
+
       <div class="section-label">Overdue / Due Today</div>
       <div class="data-list" id="dash-tasks"><div class="empty-state"><span class="spinner"></span> Loading…</div></div>
 
@@ -742,7 +749,7 @@ window.doAuth = async function() {
     if (pw !== correct) { showToast('Incorrect password'); return; }
     adminPw = pw;
     sessionStorage.setItem(ADMIN_PW_KEY, pw);
-    // Store on window so lfg-db helper can use service role
+    sessionStorage.setItem('lfg_admin_token', pw);
     window._lfgAdminPw = pw;
     showMain();
   } catch(e) {
