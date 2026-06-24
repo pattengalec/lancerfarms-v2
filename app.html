@@ -991,7 +991,13 @@ window.confirmComplete = async function() {
   const note = document.getElementById('complete-note').value.trim();
   showToast('Logging…');
   try {
-    await completeTask(currentTask.id, name, note);
+    await sbPost('lfg_task_completions', {
+      task_id: currentTask.id,
+      task_title: currentTask.title,
+      completed_by: name,
+      visit_date: today(),
+      notes: note || null
+    });
     if (window.LFG) { LFG.sound.complete(); LFG.haptic.complete(); }
     showToast('Task complete — thanks ' + name + '!');
     closeTaskSheet();
