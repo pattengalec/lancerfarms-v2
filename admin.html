@@ -1101,12 +1101,11 @@ window.confirmComplete = async function() {
 };
 
 window.archiveTaskRow = async function(id) {
-  if (!confirm('Archive this task? It will no longer appear on the task list.')) return;
   try {
     await archiveTask(id);
     showToast('Task archived');
     loadTasks();
-  } catch(e) { showToast('Could not archive'); }
+  } catch(e) { showToast('Could not archive'); console.error(e); }
 };
 
 // ─── Areas ───────────────────────────────────────────────────
