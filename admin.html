@@ -597,7 +597,8 @@ async function sbPatch(table, match, body) {
   const qs = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { method:'PATCH', headers:{...DB_HEADERS, Prefer:'return=representation'}, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(`PATCH ${table} failed: ${res.status}`);
-  return res.json();
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
 }
 async function sbDelete(table, match) {
   const qs = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
@@ -658,7 +659,6 @@ async function getTasks() { return sbGet('lfg_tasks','archived_at=is.null&order=
 async function archiveTask(id) { return sbPatch('lfg_tasks',{id},{archived_at:new Date().toISOString()}); }
 async function getTaskCompletions(since) { return sbGet('lfg_task_completions',`visit_date=gte.${since}&order=completed_at.desc`); }
 async function dbAddTask(fields) { return sbPost('lfg_tasks', fields); }
-async function archiveTask(id) { return sbPatch('lfg_tasks',{id},{archived_at:new Date().toISOString()}); }
 async function dbCompleteTask(task_id, completed_by, notes) {
   return sbPost('lfg_task_completions', { task_id, completed_by, visit_date:today(), notes:notes||null });
 }
