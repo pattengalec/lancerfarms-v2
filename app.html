@@ -170,6 +170,8 @@
 
   /* ---------- misc ---------- */
   .empty{text-align:center; color:var(--ink-soft); padding:48px 24px; font-size:15px;}
+  .approve-group{font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:var(--ink-soft); margin:18px 2px 8px; font-weight:700;}
+  .approve-group:first-child{margin-top:2px;}
   .empty .ic{font-size:44px; display:block; margin-bottom:10px; opacity:.5;}
   #toast{position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
     background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:15px; z-index:120;
@@ -741,22 +743,57 @@ function addInventoryItem(){ openInvEditor(); }
 
 /* ---------- APPROVALS ---------- */
 async function refreshApproveBadge(){
-  const {count}= await sb.from('lfg_log').select('*',{count:'exact',head:true}).eq('approval_status','pending');
+  const [logs,comments,photos]= await Promise.all([
+    sb.from('lfg_log').select('*',{count:'exact',head:true}).eq('approval_status','pending'),
+    sb.from('lfg_comments').select('*',{count:'exact',head:true}).eq('status','new'),
+    sb.from('lfg_photos').select('*',{count:'exact',head:true}).eq('approval_status','pending')
+  ]);
+  const total=(logs.count||0)+(comments.count||0)+(photos.count||0);
   const b=document.getElementById('approve-badge');
-  if(count>0){ b.style.display='flex'; b.textContent=count; } else b.style.display='none';
+  if(total>0){ b.style.display='flex'; b.textContent=total; } else b.style.display='none';
 }
+function _escA(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 async function loadApprovals(){
-  const {data,error}= await sb.from('lfg_log').select('*').eq('approval_status','pending').order('logged_at',{ascending:false});
   const el=document.getElementById('approve-list');
-  if(error){ el.innerHTML='<div class="empty">Could not load</div>'; return; }
-  if(!data.length){ el.innerHTML='<div class="empty"><span class="ic">&#9989;</span>Nothing waiting. All caught up.</div>'; return; }
-  el.innerHTML=data.map(r=>(
-    '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+(r.location_label||'\u2014')+'</div><div class="inv-cat">'+r.note+' &middot; '+(r.submitted_by||'?')+'</div></div>'+
-    '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveLog(\''+r.id+'\')">&#10003;</button></div>'
-  )).join('');
+  const [logsR,commentsR,photosR]= await Promise.all([
+    sb.from('lfg_log').select('*').eq('approval_status','pending').order('logged_at',{ascending:false}),
+    sb.from('lfg_comments').select('*').eq('status','new').order('submitted_at',{ascending:false}),
+    sb.from('lfg_photos').select('*').eq('approval_status','pending').order('uploaded_at',{ascending:false})
+  ]);
+  if(logsR.error&&commentsR.error&&photosR.error){ el.innerHTML='<div class="empty">Could not load</div>'; return; }
+  const logs=logsR.data||[], comments=commentsR.data||[], photos=photosR.data||[];
+  if(!logs.length && !comments.length && !photos.length){
+    el.innerHTML='<div class="empty"><span class="ic">&#9989;</span>Nothing waiting. All caught up.</div>'; return;
+  }
+  let html='';
+  if(logs.length){
+    html+='<div class="approve-group">Field logs</div>';
+    html+=logs.map(r=>(
+      '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(r.location_label||'\u2014')+'</div><div class="inv-cat">'+_escA(r.note)+' &middot; '+_escA(r.submitted_by||'?')+'</div></div>'+
+      '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'log\',\''+r.id+'\')">&#10003;</button></div>'
+    )).join('');
+  }
+  if(comments.length){
+    html+='<div class="approve-group">Visitor notes</div>';
+    html+=comments.map(c=>(
+      '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(c.commenter_name||'Visitor')+'</div><div class="inv-cat">'+_escA(c.message)+'</div></div>'+
+      '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'comment\',\''+c.id+'\')">&#10003;</button></div>'
+    )).join('');
+  }
+  if(photos.length){
+    html+='<div class="approve-group">Photos</div>';
+    html+=photos.map(p=>(
+      '<div class="inv-row"><div class="inv-body"><img src="'+_escA(p.thumbnail_url||p.cloudinary_url)+'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;margin-right:10px;vertical-align:middle"><span class="inv-cat">'+_escA(p.caption||'(no caption)')+'</span></div>'+
+      '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'photo\',\''+p.id+'\')">&#10003;</button></div>'
+    )).join('');
+  }
+  el.innerHTML=html;
 }
-async function approveLog(id){
-  const {error}= await sb.from('lfg_log').update({approval_status:'approved'}).eq('id',id);
+async function approveItem(kind,id){
+  let error;
+  if(kind==='log'){ ({error}= await sb.from('lfg_log').update({approval_status:'approved'}).eq('id',id)); }
+  else if(kind==='comment'){ ({error}= await sb.from('lfg_comments').update({status:'reviewed'}).eq('id',id)); }
+  else if(kind==='photo'){ ({error}= await sb.from('lfg_photos').update({approval_status:'approved'}).eq('id',id)); }
   if(error){ toast('Failed'); return; }
   toast('Approved'); loadApprovals(); refreshApproveBadge();
 }
