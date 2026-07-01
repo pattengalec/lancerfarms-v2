@@ -69,6 +69,30 @@
   .soon .ic{font-size:52px; display:block; margin-bottom:14px; opacity:.5;}
   .soon h2{font-size:24px; color:var(--ink); margin-bottom:8px;}
   .soon p{font-size:15px; line-height:1.5; max-width:320px; margin:0 auto;}
+
+  /* photo gallery */
+  .see-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .photo{border-radius:14px; overflow:hidden; background:var(--card); border:1px solid var(--line); position:relative; aspect-ratio:1;}
+  .photo img{width:100%; height:100%; object-fit:cover; display:block;}
+  .photo .cap{position:absolute; left:0; right:0; bottom:0; background:linear-gradient(transparent,rgba(0,0,0,.6));
+    color:#fff; font-size:12px; padding:18px 8px 7px; line-height:1.25;}
+
+  /* comment form */
+  .cform{display:flex; flex-direction:column; gap:10px;}
+  .c-in{width:100%; border:1.5px solid var(--line-strong); border-radius:14px; padding:13px 15px;
+    font-size:16px; font-family:inherit; background:var(--card); color:var(--ink);}
+  .c-in:focus{outline:none; border-color:var(--green);}
+  .c-area{min-height:88px; resize:vertical;}
+  .c-send{min-height:52px; border-radius:14px; border:none; background:var(--green); color:#fff;
+    font-size:17px; font-weight:600;}
+  .c-send:active{background:var(--green-d);}
+  .c-send:disabled{background:var(--line-strong);}
+  .c-item{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:9px;}
+  .c-item .who{font-weight:600; font-size:14px; color:var(--green-d);}
+  .c-item .txt{font-size:15px; margin-top:3px; line-height:1.4;}
+  .c-empty{color:var(--ink-soft); font-size:14px; padding:14px 2px;}
+  .donate-btn{display:block; text-align:center; background:var(--amber); color:#3a2c08; text-decoration:none;
+    border-radius:14px; padding:14px; font-weight:600; font-size:16px; margin-top:14px;}
 </style>
 </head>
 <body>
@@ -106,11 +130,11 @@
         </button>
         <button class="tile learn" onclick="show('learn')">
           <span class="ic">&#127793;</span>
-          <span><span class="tname">Learn</span><span class="tsub">About the plants</span></span>
+          <span><span class="tname">Learn</span><span class="tsub">About the plants &middot; soon</span></span>
         </button>
         <button class="tile do" onclick="show('do')">
           <span class="ic">&#9998;</span>
-          <span><span class="tname">Do</span><span class="tsub">Plan your grow</span></span>
+          <span><span class="tname">Do</span><span class="tsub">Plan your grow &middot; soon</span></span>
         </button>
         <button class="tile share" onclick="show('share')">
           <span class="ic">&#128172;</span>
@@ -122,8 +146,9 @@
     <!-- SEE -->
     <section class="screen" id="screen-see">
       <button class="back" onclick="show('hub')">&#8592; Back</button>
-      <div class="soon"><span class="ic">&#128247;</span><h2>See</h2>
-        <p>A photo album of the farm is coming here soon &mdash; wander the beds and grounds through pictures.</p></div>
+      <h2 style="margin-bottom:4px">See</h2>
+      <p class="intro">Photos from around the farm.</p>
+      <div id="see-grid"><div class="soon"><span class="ic">&#8987;</span><p>Loading photos&hellip;</p></div></div>
     </section>
 
     <!-- LEARN -->
@@ -143,22 +168,80 @@
     <!-- SHARE -->
     <section class="screen" id="screen-share">
       <button class="back" onclick="show('hub')">&#8592; Back</button>
-      <div class="soon"><span class="ic">&#128172;</span><h2>Share</h2>
-        <p>Leave a comment for the farm. Coming soon.</p></div>
+      <h2 style="margin-bottom:4px">Share</h2>
+      <p class="intro">Leave a note for the farm. Comments appear after a quick review.</p>
+      <div class="cform">
+        <input id="c-name" class="c-in" placeholder="Your name (optional)" autocomplete="off">
+        <textarea id="c-msg" class="c-in c-area" placeholder="Your message&hellip;"></textarea>
+        <button class="c-send" id="c-send" onclick="submitComment()">Send</button>
+      </div>
+      <div id="c-donate" style="display:none"></div>
+      <h3 style="font-size:16px; margin:24px 0 10px">Recent notes</h3>
+      <div id="c-list"><div class="soon" style="padding:24px"><span class="ic">&#8987;</span><p>Loading&hellip;</p></div></div>
     </section>
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+var SUPABASE_URL='https://muecvqxsqnhkhjrabtxh.supabase.co';
+var SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZWN2cXhzcW5oa2hqcmFidHhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNTU4MzAsImV4cCI6MjA5NjczMTgzMH0.7vOvhNxwtZ3xy1x67Vvq1BY_MsxN9J6ErkgaWklF7l4';
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 var TITLES={hub:'Lancer Farms',see:'See',learn:'Learn',do:'Do',share:'Share'};
 function show(scr){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
   var el=document.getElementById('screen-'+scr); if(el) el.classList.add('active');
   document.getElementById('bar-title').textContent=TITLES[scr]||'Lancer Farms';
   document.querySelector('main').scrollTop=0;
+  if(scr==='see') loadPhotos();
+  if(scr==='share') loadComments();
 }
 function openMenu(){ document.getElementById('panel').classList.add('show'); document.getElementById('scrim').classList.add('show'); }
 function closeMenu(){ document.getElementById('panel').classList.remove('show'); document.getElementById('scrim').classList.remove('show'); }
+
+/* ---------- SEE: approved photo gallery ---------- */
+var photosLoaded=false;
+async function loadPhotos(force){
+  if(photosLoaded && !force) return;
+  var el=document.getElementById('see-grid');
+  var res = await sb.from('lfg_photos').select('*').eq('approval_status','approved').order('uploaded_at',{ascending:false});
+  if(res.error){ el.innerHTML='<div class="soon"><p>Couldn\u2019t load photos right now.</p></div>'; return; }
+  var data=res.data||[];
+  if(!data.length){ el.innerHTML='<div class="soon"><span class="ic">&#128247;</span><p>No photos yet \u2014 check back soon.</p></div>'; el.className=''; return; }
+  el.className='see-grid';
+  el.innerHTML=data.map(function(p){
+    return '<div class="photo"><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy" alt="'+esc(p.caption||'Farm photo')+'">'+
+      (p.caption?'<div class="cap">'+esc(p.caption)+'</div>':'')+'</div>';
+  }).join('');
+  photosLoaded=true;
+}
+
+/* ---------- SHARE: comments (moderated) ---------- */
+async function loadComments(){
+  var el=document.getElementById('c-list');
+  var res = await sb.from('lfg_comments').select('*').eq('status','reviewed').order('submitted_at',{ascending:false}).limit(50);
+  if(res.error){ el.innerHTML='<div class="c-empty">Couldn\u2019t load notes right now.</div>'; return; }
+  var data=res.data||[];
+  if(!data.length){ el.innerHTML='<div class="c-empty">No notes yet. Be the first to leave one.</div>'; return; }
+  el.innerHTML=data.map(function(c){
+    return '<div class="c-item"><div class="who">'+esc(c.commenter_name||'Visitor')+'</div><div class="txt">'+esc(c.message)+'</div></div>';
+  }).join('');
+}
+async function submitComment(){
+  var msg=document.getElementById('c-msg').value.trim();
+  if(!msg){ return; }
+  var name=document.getElementById('c-name').value.trim() || 'Visitor';
+  var btn=document.getElementById('c-send'); btn.disabled=true; btn.textContent='Sending\u2026';
+  var res = await sb.from('lfg_comments').insert({commenter_name:name, message:msg, status:'new'});
+  btn.disabled=false; btn.textContent='Send';
+  if(res.error){ btn.textContent='Try again'; setTimeout(function(){btn.textContent='Send';},1500); return; }
+  document.getElementById('c-msg').value='';
+  document.getElementById('c-name').value='';
+  var el=document.getElementById('c-list');
+  el.insertAdjacentHTML('afterbegin','<div class="c-item" style="border-color:var(--amber)"><div class="who">Thanks!</div><div class="txt">Your note was sent and will appear after a quick review.</div></div>');
+}
 
 var LANGS=['en','es','pt'], LNAMES={en:'English',es:'Espa\u00f1ol',pt:'Portugu\u00eas'}, LSHORT={en:'EN',es:'ES',pt:'PT'};
 function applyLangLabels(){
