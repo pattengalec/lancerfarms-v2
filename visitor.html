@@ -177,6 +177,7 @@
   .c-empty{color:var(--ink-soft); font-size:14px; padding:14px 2px;}
   .donate-btn{display:block; text-align:center; background:var(--amber); color:#3a2c08; text-decoration:none;
     border-radius:14px; padding:14px; font-weight:600; font-size:16px; margin-top:14px;}
+  .donate-note{font-size:12px; color:var(--ink-soft); line-height:1.45; margin-top:9px; text-align:center; padding:0 4px;}
 </style>
 </head>
 <body>
@@ -294,7 +295,7 @@ function show(scr){
   document.getElementById('bar-title').textContent=TITLES[scr]||'Lancer Farms';
   document.querySelector('main').scrollTop=0;
   if(scr==='see') loadPhotos();
-  if(scr==='share') loadComments();
+  if(scr==='share'){ loadComments(); loadDonation(); }
   if(scr==='learn') openLearn();
   if(scr==='do') openDo();
 }
@@ -319,6 +320,20 @@ async function loadPhotos(force){
 }
 
 /* ---------- SHARE: comments (moderated) ---------- */
+async function loadDonation(){
+  var box=document.getElementById('c-donate');
+  if(!box) return;
+  box.style.display='none'; box.innerHTML='';
+  var res = await sb.from('lfg_settings').select('value').eq('key','donation').maybeSingle();
+  if(res.error || !res.data) return;
+  var d=res.data.value||{};
+  if(!d.enabled || !d.url) return;              // off OR no url -> stays invisible
+  box.innerHTML =
+    '<a class="donate-btn" href="'+esc(d.url)+'" target="_blank" rel="noopener">'+esc(d.label||'Support the developer')+'</a>'+
+    (d.note?'<div class="donate-note">'+esc(d.note)+'</div>':'');
+  box.style.display='block';
+}
+
 async function loadComments(){
   var el=document.getElementById('c-list');
   var res = await sb.from('lfg_comments').select('*').eq('status','reviewed').order('submitted_at',{ascending:false}).limit(50);
