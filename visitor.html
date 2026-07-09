@@ -77,6 +77,54 @@
   .photo .cap{position:absolute; left:0; right:0; bottom:0; background:linear-gradient(transparent,rgba(0,0,0,.6));
     color:#fff; font-size:12px; padding:18px 8px 7px; line-height:1.25;}
 
+
+  /* ---------- LEARN: knowledge base ---------- */
+  .learn-search{width:100%; border:1.5px solid var(--line-strong); border-radius:14px; padding:12px 15px;
+    font-size:16px; font-family:inherit; background:var(--card); color:var(--ink); margin-bottom:12px;}
+  .learn-search:focus{outline:none; border-color:var(--green);}
+  .cat-chips{display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:12px; -webkit-overflow-scrolling:touch;}
+  .cat-chip{flex:0 0 auto; border:1.5px solid var(--line-strong); background:var(--card); color:var(--ink-soft);
+    border-radius:999px; padding:7px 14px; font-size:13px; font-weight:600; white-space:nowrap;}
+  .cat-chip.on{background:var(--green-d); color:#fff; border-color:var(--green-d);}
+  .plant-row{display:flex; align-items:center; gap:13px; width:100%; text-align:left; border:1px solid var(--line);
+    background:var(--card); border-radius:14px; padding:10px 12px; margin-bottom:9px;}
+  .plant-row:active{background:var(--paper);}
+  .plant-thumb{flex:0 0 auto; width:48px; height:48px; border-radius:11px; background:var(--green);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;}
+  .plant-thumb img{width:100%; height:100%; object-fit:cover;}
+  .plant-thumb .lf{font-size:24px;}
+  .plant-row .nm{font-family:'Fraunces',serif; font-weight:600; font-size:17px; line-height:1.15;}
+  .plant-row .bt{font-size:12.5px; color:var(--ink-soft); font-style:italic; margin-top:1px;}
+  .plant-tag{margin-left:auto; flex:0 0 auto; font-size:11px; text-transform:uppercase; letter-spacing:.5px;
+    color:var(--ink-soft); background:var(--paper); border:1px solid var(--line); border-radius:999px; padding:3px 9px;}
+  .learn-empty{color:var(--ink-soft); font-size:14px; padding:20px 2px; text-align:center;}
+
+  /* plant detail */
+  .pd-hero{width:100%; aspect-ratio:16/10; border-radius:18px; overflow:hidden; margin-bottom:14px;
+    background:linear-gradient(135deg,var(--green),var(--green-d)); display:flex; align-items:center; justify-content:center;}
+  .pd-hero img{width:100%; height:100%; object-fit:cover;}
+  .pd-hero .ph{color:rgba(255,255,255,.9); text-align:center; font-size:13px; padding:14px;}
+  .pd-hero .ph .lf{font-size:46px; display:block; margin-bottom:6px;}
+  .pd-title{font-size:27px; line-height:1.1;}
+  .pd-common{font-size:14px; color:var(--ink-soft); margin-top:2px;}
+  .pd-bot{font-size:14.5px; font-style:italic; color:var(--ink-soft); margin-top:2px;}
+  .pd-badge{display:inline-block; margin-top:9px; font-size:12px; font-weight:600; text-transform:uppercase;
+    letter-spacing:.5px; color:var(--green-d); background:#e7efe0; border-radius:999px; padding:4px 11px;}
+  .pd-summary{font-size:16px; line-height:1.5; margin:15px 0 6px;}
+  .fact-group{margin-top:18px;}
+  .fact-h{font-family:'Fraunces',serif; font-size:17px; font-weight:600; margin-bottom:8px;
+    padding-bottom:5px; border-bottom:1.5px solid var(--line);}
+  .fact{display:flex; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:14.5px;}
+  .fact:last-child{border-bottom:none;}
+  .fact .k{flex:0 0 42%; color:var(--ink-soft); font-weight:600;}
+  .fact .v{flex:1 1 auto;}
+  .blessing{background:#f6f3e6; border:1px solid var(--line-strong); border-left:4px solid var(--amber);
+    border-radius:12px; padding:12px 15px; margin-top:16px; font-size:15px; font-style:italic; line-height:1.5;}
+  .grow-nudge{display:block; width:100%; text-align:center; background:var(--amber); color:#3a2c08; border:none;
+    border-radius:14px; padding:15px; font-weight:600; font-size:16px; margin:22px 0 6px;}
+  .grow-nudge:active{filter:brightness(.95);}
+  .grow-nudge small{display:block; font-weight:400; font-size:12.5px; opacity:.8; margin-top:2px;}
+
   /* comment form */
   .cform{display:flex; flex-direction:column; gap:10px;}
   .c-in{width:100%; border:1.5px solid var(--line-strong); border-radius:14px; padding:13px 15px;
@@ -153,9 +201,17 @@
 
     <!-- LEARN -->
     <section class="screen" id="screen-learn">
-      <button class="back" onclick="show('hub')">&#8592; Back</button>
-      <div class="soon"><span class="ic">&#127793;</span><h2>Learn</h2>
-        <p>A knowledge base about every plant on the farm &mdash; what it is and how it grows &mdash; is coming here soon.</p></div>
+      <!-- list sub-view -->
+      <div id="learn-list-view">
+        <button class="back" onclick="show('hub')">&#8592; Back</button>
+        <h2 style="margin-bottom:4px">Learn</h2>
+        <p class="intro">Every plant growing on the farm &mdash; what it is, and how it grows.</p>
+        <input id="learn-search" class="learn-search" placeholder="Search plants&hellip;" autocomplete="off" oninput="renderPlantList()">
+        <div class="cat-chips" id="learn-chips"></div>
+        <div id="learn-list"><div class="learn-empty">Loading plants&hellip;</div></div>
+      </div>
+      <!-- detail sub-view -->
+      <div id="learn-detail-view" style="display:none"></div>
     </section>
 
     <!-- DO -->
@@ -197,6 +253,7 @@ function show(scr){
   document.querySelector('main').scrollTop=0;
   if(scr==='see') loadPhotos();
   if(scr==='share') loadComments();
+  if(scr==='learn') openLearn();
 }
 function openMenu(){ document.getElementById('panel').classList.add('show'); document.getElementById('scrim').classList.add('show'); }
 function closeMenu(){ document.getElementById('panel').classList.remove('show'); document.getElementById('scrim').classList.remove('show'); }
@@ -242,6 +299,102 @@ async function submitComment(){
   var el=document.getElementById('c-list');
   el.insertAdjacentHTML('afterbegin','<div class="c-item" style="border-color:var(--amber)"><div class="who">Thanks!</div><div class="txt">Your note was sent and will appear after a quick review.</div></div>');
 }
+
+/* ---------- LEARN: knowledge base ---------- */
+var plantsCache=null, learnCat='All', LEAF='\uD83C\uDF31';
+async function loadPlants(){
+  if(plantsCache) return plantsCache;
+  var res = await sb.from('lfg_master_plants').select('*').eq('approval_status','approved').order('plant_name',{ascending:true});
+  if(res.error){ return null; }
+  plantsCache = res.data||[];
+  return plantsCache;
+}
+async function openLearn(){
+  showLearnList();               // always land on the list
+  var data = await loadPlants();
+  if(data===null){ document.getElementById('learn-list').innerHTML='<div class="learn-empty">Couldn\u2019t load plants right now.</div>'; return; }
+  renderChips(data);
+  renderPlantList();
+}
+function showLearnList(){
+  document.getElementById('learn-detail-view').style.display='none';
+  document.getElementById('learn-list-view').style.display='block';
+  document.getElementById('bar-title').textContent='Learn';
+  document.querySelector('main').scrollTop=0;
+}
+function renderChips(data){
+  var cats=['All'].concat(Array.from(new Set(data.map(function(p){return p.category;}))).sort());
+  document.getElementById('learn-chips').innerHTML = cats.map(function(c){
+    return '<button class="cat-chip'+(c===learnCat?' on':'')+'" onclick="setLearnCat(\''+c.replace(/'/g,"\\'")+'\')">'+esc(c)+'</button>';
+  }).join('');
+}
+function setLearnCat(c){ learnCat=c; if(plantsCache) renderChips(plantsCache); renderPlantList(); }
+function renderPlantList(){
+  if(!plantsCache) return;
+  var q=(document.getElementById('learn-search').value||'').trim().toLowerCase();
+  var list=plantsCache.filter(function(p){
+    if(learnCat!=='All' && p.category!==learnCat) return false;
+    if(!q) return true;
+    return (p.plant_name||'').toLowerCase().indexOf(q)>-1
+        || (p.common_name||'').toLowerCase().indexOf(q)>-1
+        || (p.botanical_name||'').toLowerCase().indexOf(q)>-1
+        || (p.category||'').toLowerCase().indexOf(q)>-1;
+  });
+  var el=document.getElementById('learn-list');
+  if(!list.length){ el.innerHTML='<div class="learn-empty">No plants match that.</div>'; return; }
+  el.innerHTML=list.map(function(p){
+    var thumb = p.stock_image_url
+      ? '<img src="'+esc(p.stock_image_url)+'" loading="lazy" alt="">'
+      : '<span class="lf">'+LEAF+'</span>';
+    return '<button class="plant-row" onclick="openPlant(\''+p.id+'\')">'+
+      '<span class="plant-thumb">'+thumb+'</span>'+
+      '<span><span class="nm">'+esc(p.plant_name)+'</span>'+
+      (p.botanical_name?'<span class="bt">'+esc(p.botanical_name)+'</span>':'')+'</span>'+
+      '<span class="plant-tag">'+esc(p.category||'')+'</span></button>';
+  }).join('');
+}
+function factRow(k,v){ return v ? '<div class="fact"><span class="k">'+esc(k)+'</span><span class="v">'+esc(v)+'</span></div>' : ''; }
+function openPlant(id){
+  var p=(plantsCache||[]).find(function(x){return x.id===id;});
+  if(!p) return;
+  var perennial = (p.days_to_maturity==null);
+  var hero = p.stock_image_url
+    ? '<img src="'+esc(p.stock_image_url)+'" alt="'+esc(p.plant_name)+'">'
+    : '<div class="ph"><span class="lf">'+LEAF+'</span>Photo coming soon</div>';
+  var about = factRow('Common name',p.common_name)+factRow('Botanical name',p.botanical_name)+
+              factRow('Category',p.category)+factRow('Common uses',p.common_uses);
+  var grow = factRow('How to plant',p.preferred_method)+
+             factRow('When (Zone 9b)',p.planting_windows)+
+             factRow('USDA zones',p.zone_ranges)+
+             (perennial ? factRow('Type','Perennial \u2014 see grow plan for its seasonal cycle')
+                        : factRow('Days to harvest', p.days_to_maturity+' days'))+
+             (p.spacing_inches!=null ? factRow('Spacing', p.spacing_inches+'\u2033 apart') : '')+
+             factRow('Soil / media',p.growth_media)+
+             factRow('Watering',p.watering_plans)+
+             factRow('Best temp',p.optimum_temp_range)+
+             factRow('Cold handling',p.cold_handling);
+  var html =
+    '<button class="back" onclick="showLearnList()">&#8592; All plants</button>'+
+    '<div class="pd-hero">'+hero+'</div>'+
+    '<h2 class="pd-title">'+esc(p.plant_name)+'</h2>'+
+    (p.common_name && p.common_name!==p.plant_name ? '<div class="pd-common">'+esc(p.common_name)+'</div>' : '')+
+    (p.botanical_name?'<div class="pd-bot">'+esc(p.botanical_name)+'</div>':'')+
+    (p.category?'<span class="pd-badge">'+esc(p.category)+'</span>':'')+
+    (p.summary?'<p class="pd-summary">'+esc(p.summary)+'</p>':'')+
+    (about?'<div class="fact-group"><div class="fact-h">About</div>'+about+'</div>':'')+
+    (grow?'<div class="fact-group"><div class="fact-h">How to grow</div>'+grow+'</div>':'')+
+    (p.blessing?'<div class="blessing">'+esc(p.blessing)+'</div>':'')+
+    '<button class="grow-nudge" onclick="goDo(\''+p.id+'\')">Ready to grow your own?<small>Get a grow plan for '+esc(p.plant_name)+'</small></button>'+
+    (p.source_url?'<div style="text-align:center;margin-top:6px"><a href="'+esc(p.source_url)+'" target="_blank" rel="noopener" style="color:var(--ink-soft);font-size:13px">Source</a></div>':'');
+  var dv=document.getElementById('learn-detail-view');
+  dv.innerHTML=html;
+  document.getElementById('learn-list-view').style.display='none';
+  dv.style.display='block';
+  document.getElementById('bar-title').textContent=p.plant_name;
+  document.querySelector('main').scrollTop=0;
+}
+/* Do integration lands in the next build step; for now route to the Do screen. */
+function goDo(id){ show('do'); }
 
 var LANGS=['en','es','pt'], LNAMES={en:'English',es:'Espa\u00f1ol',pt:'Portugu\u00eas'}, LSHORT={en:'EN',es:'ES',pt:'PT'};
 function applyLangLabels(){
