@@ -78,6 +78,42 @@
     color:#fff; font-size:12px; padding:18px 8px 7px; line-height:1.25;}
 
 
+
+  /* ---------- DO: grow plan ---------- */
+  .grow-plan-head{margin-bottom:6px;}
+  .gp-type{display:inline-block; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.5px;
+    color:var(--green-d); background:#e7efe0; border-radius:999px; padding:4px 11px; margin-top:6px;}
+  .gp-type.peren{color:#8a5a00; background:#fff3e0;}
+  .calc-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:15px; margin-bottom:13px;}
+  .calc-h{font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin-bottom:11px; display:flex; align-items:center; gap:8px;}
+  .calc-h .ic{font-size:19px;}
+  .calc-in-row{display:flex; gap:9px; margin-bottom:11px;}
+  .calc-field{flex:1; min-width:0;}
+  .calc-field label{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:4px; font-weight:600;}
+  .calc-field input{width:100%; border:1.5px solid var(--line-strong); border-radius:10px; padding:10px;
+    font-size:16px; font-family:inherit; background:var(--paper); color:var(--ink);}
+  .calc-field input:focus{outline:none; border-color:var(--green);}
+  .calc-out{background:#eef3e9; border-radius:12px; padding:12px 14px; font-size:15px; line-height:1.55;}
+  .calc-out b{color:var(--green-d); font-size:19px;}
+  .calc-note{font-size:12.5px; color:var(--ink-soft); margin-top:9px; line-height:1.45;}
+  /* timeline / cycle strip */
+  .tl{margin:4px 0 2px;}
+  .tl-stage{display:flex; gap:12px; padding:9px 0 9px 15px; border-left:2px solid var(--leaf);
+    margin-left:6px; position:relative;}
+  .tl-stage:last-child{border-left-color:transparent;}
+  .tl-stage:before{content:''; position:absolute; left:-6px; top:13px; width:11px; height:11px;
+    border-radius:50%; background:var(--green); border:2px solid var(--paper);}
+  .tl-stage .sd{flex:0 0 96px; font-size:12.5px; color:var(--ink-soft); line-height:1.3;}
+  .tl-stage .sd .cd{display:block; color:var(--green-d); font-weight:600;}
+  .tl-stage .sl{font-size:14.5px; font-weight:600;}
+  .tl-stage .sn{font-size:12.5px; color:var(--ink-soft);}
+  .harvest-callout{background:#fff3e0; border:1px solid var(--amber); border-radius:14px; padding:13px 15px; margin:14px 0;}
+  .harvest-callout .k{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#8a5a00; font-weight:700;}
+  .harvest-callout .v{font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:#3a2c08; margin-top:2px;}
+  .do-share{display:block; width:100%; text-align:center; background:var(--green); color:#fff; border:none;
+    border-radius:14px; padding:14px; font-weight:600; font-size:16px; margin:18px 0 4px;}
+  .do-share:active{background:var(--green-d);}
+
   /* ---------- LEARN: knowledge base ---------- */
   .learn-search{width:100%; border:1.5px solid var(--line-strong); border-radius:14px; padding:12px 15px;
     font-size:16px; font-family:inherit; background:var(--card); color:var(--ink); margin-bottom:12px;}
@@ -182,7 +218,7 @@
         </button>
         <button class="tile do" onclick="show('do')">
           <span class="ic">&#9998;</span>
-          <span><span class="tname">Do</span><span class="tsub">Plan your grow &middot; soon</span></span>
+          <span><span class="tname">Do</span><span class="tsub">Plan your grow</span></span>
         </button>
         <button class="tile share" onclick="show('share')">
           <span class="ic">&#128172;</span>
@@ -216,9 +252,15 @@
 
     <!-- DO -->
     <section class="screen" id="screen-do">
-      <button class="back" onclick="show('hub')">&#8592; Back</button>
-      <div class="soon"><span class="ic">&#9998;</span><h2>Do</h2>
-        <p>Pick a plant and get a tailored grow plan &mdash; a planting-to-harvest timeline with the numbers worked out for your space. Coming soon.</p></div>
+      <div id="do-list-view">
+        <button class="back" onclick="show('hub')">&#8592; Back</button>
+        <h2 style="margin-bottom:4px">Do</h2>
+        <p class="intro">Pick a plant and get a grow plan &mdash; the numbers worked out for your space.</p>
+        <input id="do-search" class="learn-search" placeholder="Search plants&hellip;" autocomplete="off" oninput="renderDoList()">
+        <div class="cat-chips" id="do-chips"></div>
+        <div id="do-list"><div class="learn-empty">Loading plants&hellip;</div></div>
+      </div>
+      <div id="do-detail-view" style="display:none"></div>
     </section>
 
     <!-- SHARE -->
@@ -254,6 +296,7 @@ function show(scr){
   if(scr==='see') loadPhotos();
   if(scr==='share') loadComments();
   if(scr==='learn') openLearn();
+  if(scr==='do') openDo();
 }
 function openMenu(){ document.getElementById('panel').classList.add('show'); document.getElementById('scrim').classList.add('show'); }
 function closeMenu(){ document.getElementById('panel').classList.remove('show'); document.getElementById('scrim').classList.remove('show'); }
@@ -394,7 +437,201 @@ function openPlant(id){
   document.querySelector('main').scrollTop=0;
 }
 /* Do integration lands in the next build step; for now route to the Do screen. */
-function goDo(id){ show('do'); }
+var pendingDoId=null;
+function goDo(id){ pendingDoId=id; show('do'); }
+
+/* ---------- DO: grow plan (Option 2: annuals get calculators, perennials get seasonal view) ---------- */
+var doCat='All', doPlant=null;
+async function openDo(){
+  showDoList();
+  var data = await loadPlants();
+  if(data===null){ document.getElementById('do-list').innerHTML='<div class="learn-empty">Couldn\u2019t load plants right now.</div>'; return; }
+  renderDoChips(data);
+  renderDoList();
+  if(pendingDoId){ var t=pendingDoId; pendingDoId=null; openDoPlant(t); }
+}
+function showDoList(){
+  document.getElementById('do-detail-view').style.display='none';
+  document.getElementById('do-list-view').style.display='block';
+  document.getElementById('bar-title').textContent='Do';
+  document.querySelector('main').scrollTop=0;
+}
+function renderDoChips(data){
+  var cats=['All'].concat(Array.from(new Set(data.map(function(p){return p.category;}))).sort());
+  document.getElementById('do-chips').innerHTML=cats.map(function(c){
+    return '<button class="cat-chip'+(c===doCat?' on':'')+'" onclick="setDoCat(\''+c.replace(/'/g,"\\'")+'\')">'+esc(c)+'</button>';
+  }).join('');
+}
+function setDoCat(c){ doCat=c; if(plantsCache) renderDoChips(plantsCache); renderDoList(); }
+function renderDoList(){
+  if(!plantsCache) return;
+  var q=(document.getElementById('do-search').value||'').trim().toLowerCase();
+  var list=plantsCache.filter(function(p){
+    if(doCat!=='All' && p.category!==doCat) return false;
+    if(!q) return true;
+    return (p.plant_name||'').toLowerCase().indexOf(q)>-1 || (p.common_name||'').toLowerCase().indexOf(q)>-1
+        || (p.botanical_name||'').toLowerCase().indexOf(q)>-1 || (p.category||'').toLowerCase().indexOf(q)>-1;
+  });
+  var el=document.getElementById('do-list');
+  if(!list.length){ el.innerHTML='<div class="learn-empty">No plants match that.</div>'; return; }
+  el.innerHTML=list.map(function(p){
+    var tag = (p.days_to_maturity==null) ? 'perennial' : (p.days_to_maturity+'d');
+    return '<button class="plant-row" onclick="openDoPlant(\''+p.id+'\')">'+
+      '<span class="plant-thumb"><span class="lf">'+LEAF+'</span></span>'+
+      '<span><span class="nm">'+esc(p.plant_name)+'</span><span class="bt">'+esc(p.category||'')+'</span></span>'+
+      '<span class="plant-tag">'+tag+'</span></button>';
+  }).join('');
+}
+
+/* --- date helpers --- */
+function todayStr(){ var d=new Date(); return d.toISOString().slice(0,10); }
+function addDays(str,n){ var d=new Date(str+'T00:00:00'); if(isNaN(d)) return null; d.setDate(d.getDate()+n); return d; }
+function fmtDate(d){ if(!d) return '\u2014'; return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
+
+function openDoPlant(id){
+  var p=(plantsCache||[]).find(function(x){return x.id===id;});
+  if(!p) return;
+  doPlant=p;
+  var perennial=(p.days_to_maturity==null);
+  var dv=document.getElementById('do-detail-view');
+  dv.innerHTML = perennial ? perennialPlan(p) : annualPlan(p);
+  document.getElementById('do-list-view').style.display='none';
+  dv.style.display='block';
+  document.getElementById('bar-title').textContent=p.plant_name;
+  document.querySelector('main').scrollTop=0;
+  if(!perennial) recomputeAnnual();
+}
+
+/* ---------- ANNUAL plan: 4 calculators + dated stage timeline ---------- */
+function annualPlan(p){
+  var st=(p.stage_timeline&&p.stage_timeline.stages)?p.stage_timeline.stages:[];
+  var tl=st.map(function(s){
+    return '<div class="tl-stage" data-start="'+s.start_day+'">'+
+      '<div class="sd">day '+s.start_day+(s.end_day&&s.end_day!==s.start_day?'\u2013'+s.end_day:'')+
+        '<span class="cd" data-stagedate="'+s.start_day+'"></span></div>'+
+      '<div><div class="sl">'+esc(s.label)+'</div></div></div>';
+  }).join('');
+  return ''+
+  '<button class="back" onclick="showDoList()">&#8592; All plants</button>'+
+  '<div class="grow-plan-head"><h2 class="pd-title">'+esc(p.plant_name)+'</h2>'+
+    '<span class="gp-type">Annual \u00b7 grow plan</span></div>'+
+  '<p class="calc-note" style="margin-top:8px">Enter your bed size once \u2014 the calculators below all update. Nothing is saved; this is just for planning.</p>'+
+  // shared bed inputs
+  '<div class="calc-card"><div class="calc-h"><span class="ic">\uD83D\uDCCF</span>Your bed</div>'+
+    '<div class="calc-in-row">'+
+      '<div class="calc-field"><label>Length (ft)</label><input id="do-L" type="number" inputmode="decimal" value="4" min="0" oninput="recomputeAnnual()"></div>'+
+      '<div class="calc-field"><label>Width (ft)</label><input id="do-W" type="number" inputmode="decimal" value="2" min="0" oninput="recomputeAnnual()"></div>'+
+      '<div class="calc-field"><label>Depth (in)</label><input id="do-D" type="number" inputmode="decimal" value="12" min="0" oninput="recomputeAnnual()"></div>'+
+    '</div>'+
+  '</div>'+
+  // spacing / sun
+  '<div class="calc-card"><div class="calc-h"><span class="ic">\uD83C\uDF31</span>Spacing &amp; sun</div>'+
+    '<div class="calc-out" id="do-out-space"></div>'+
+    '<div class="calc-note">Recommended spacing for '+esc(p.plant_name)+': <b style="font-size:13px">'+(p.spacing_inches!=null?p.spacing_inches+'\u2033':'\u2014')+'</b>. Most edibles want full sun (6+ hrs/day).</div>'+
+  '</div>'+
+  // soil
+  '<div class="calc-card"><div class="calc-h"><span class="ic">\uD83E\uDEA3</span>Soil to fill the bed</div>'+
+    '<div class="calc-out" id="do-out-soil"></div>'+
+    '<div class="calc-note">Media: '+esc(p.growth_media||'well-draining raised-bed mix')+'.</div>'+
+  '</div>'+
+  // water
+  '<div class="calc-card"><div class="calc-h"><span class="ic">\uD83D\uDCA7</span>Water per week</div>'+
+    '<div class="calc-in-row"><div class="calc-field"><label>Inches / week</label>'+
+      '<input id="do-IN" type="number" inputmode="decimal" value="1" min="0" step="0.25" oninput="recomputeAnnual()"></div>'+
+      '<div class="calc-field" style="flex:2"><label>&nbsp;</label><div class="calc-out" id="do-out-water" style="padding:10px 12px"></div></div>'+
+    '</div>'+
+    '<div class="calc-note">Guide: '+esc(p.watering_plans||'~1\u20131.5 in/week')+'. 1 inch over 1 sq ft \u2248 0.62 gal.</div>'+
+  '</div>'+
+  // harvest date
+  '<div class="calc-card"><div class="calc-h"><span class="ic">\uD83D\uDCC5</span>Harvest date</div>'+
+    '<div class="calc-in-row"><div class="calc-field"><label>'+esc(p.transplant_flag?'Transplant / start date':'Sow date')+'</label>'+
+      '<input id="do-START" type="date" oninput="recomputeAnnual()"></div></div>'+
+    '<div class="calc-out" id="do-out-harvest"></div>'+
+    (tl?'<div class="tl" style="margin-top:12px">'+tl+'</div>':'')+
+  '</div>'+
+  '<button class="do-share" onclick="sharePlan()">Share / save this plan</button>';
+}
+function num(id){ var v=parseFloat((document.getElementById(id)||{}).value); return isNaN(v)?0:v; }
+function recomputeAnnual(){
+  var p=doPlant; if(!p) return;
+  var L=num('do-L'), W=num('do-W'), D=num('do-D'), inWk=num('do-IN');
+  var area=L*W;
+  // spacing
+  var sp=p.spacing_inches;
+  var spaceHtml;
+  if(sp && L>0 && W>0){
+    var perRow=Math.floor((L*12)/sp), rows=Math.floor((W*12)/sp);
+    var count=Math.max(0, perRow*rows);
+    spaceHtml='About <b>'+count+'</b> plant'+(count===1?'':'s')+' fit in a '+L+'\u00d7'+W+' ft bed at '+sp+'\u2033 spacing.';
+  } else { spaceHtml='Enter a bed size to see how many fit.'; }
+  document.getElementById('do-out-space').innerHTML=spaceHtml;
+  // soil
+  var cuft=area*(D/12);
+  var bags=Math.ceil(cuft/1.5);
+  document.getElementById('do-out-soil').innerHTML = area>0
+    ? '<b>'+cuft.toFixed(1)+'</b> cubic feet of soil<br><span style="font-size:13.5px;color:var(--ink-soft)">\u2248 '+bags+' bag'+(bags===1?'':'s')+' (1.5 cu ft each)</span>'
+    : 'Enter a bed size.';
+  // water
+  var gal=area*inWk*0.623;
+  document.getElementById('do-out-water').innerHTML = area>0 ? '<b style="font-size:17px">'+gal.toFixed(1)+'</b> gal/wk' : '\u2014';
+  // harvest date
+  var startEl=document.getElementById('do-START'); if(startEl && !startEl.value){ startEl.value=todayStr(); }
+  var start=startEl?startEl.value:todayStr();
+  var st=(p.stage_timeline&&p.stage_timeline.stages)?p.stage_timeline.stages:[];
+  var harvestStage=st.filter(function(s){return s.key==='harvest';})[0];
+  var hDay=harvestStage?harvestStage.start_day:p.days_to_maturity;
+  var hDate=addDays(start,hDay||0);
+  document.getElementById('do-out-harvest').innerHTML = hDate
+    ? 'First harvest around <b style="font-size:17px">'+hDate.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})+'</b><br><span style="font-size:13px;color:var(--ink-soft)">~'+(hDay||p.days_to_maturity)+' days from '+(p.transplant_flag?'transplant':'sowing')+'</span>'
+    : 'Pick a start date.';
+  // stage dates
+  document.querySelectorAll('#do-detail-view [data-stagedate]').forEach(function(n){
+    var d=addDays(start, parseInt(n.getAttribute('data-stagedate'),10));
+    n.textContent = d?fmtDate(d):'';
+  });
+}
+
+/* ---------- PERENNIAL plan: seasonal cycle + harvest window + care ---------- */
+function perennialPlan(p){
+  var cyc=(p.stage_timeline&&p.stage_timeline.cycle)?p.stage_timeline.cycle:[];
+  var strip=cyc.map(function(s){
+    return '<div class="tl-stage"><div class="sd">'+esc(s.season||'')+'</div>'+
+      '<div><div class="sl">'+esc(s.phase||'')+'</div>'+(s.note?'<div class="sn">'+esc(s.note)+'</div>':'')+'</div></div>';
+  }).join('');
+  var hw=(p.stage_timeline&&p.stage_timeline.harvest_window)?p.stage_timeline.harvest_window:'seasonal';
+  var care=doFact('Plant during (9b)',p.planting_windows)+doFact('Planting distance',p.spacing_inches!=null?p.spacing_inches+'\u2033 apart':'')+
+           doFact('Soil / media',p.growth_media)+doFact('Watering',p.watering_plans)+
+           doFact('Best temp',p.optimum_temp_range)+doFact('Cold handling',p.cold_handling);
+  return ''+
+  '<button class="back" onclick="showDoList()">&#8592; All plants</button>'+
+  '<div class="grow-plan-head"><h2 class="pd-title">'+esc(p.plant_name)+'</h2>'+
+    '<span class="gp-type peren">Perennial \u00b7 seasonal cycle</span></div>'+
+  '<p class="calc-note" style="margin-top:8px">A '+esc(p.plant_name.toLowerCase())+' grows over years, not one season \u2014 so here\u2019s its yearly cycle and when it bears, instead of a from-seed countdown.</p>'+
+  '<div class="harvest-callout"><div class="k">Harvest window</div><div class="v">'+esc(hw)+'</div></div>'+
+  '<div class="calc-card"><div class="calc-h"><span class="ic">\uD83D\uDD01</span>Yearly cycle</div><div class="tl">'+strip+'</div></div>'+
+  '<div class="calc-card"><div class="calc-h"><span class="ic">\uD83C\uDF31</span>Care at a glance</div>'+
+    '<div class="fact-group" style="margin-top:0">'+care+'</div></div>'+
+  '<button class="do-share" onclick="sharePlan()">Share / save this plan</button>';
+}
+function doFact(k,v){ return v ? '<div class="fact"><span class="k">'+esc(k)+'</span><span class="v">'+esc(v)+'</span></div>' : ''; }
+
+/* ---------- share (native sheet, falls back to print) ---------- */
+function sharePlan(){
+  var p=doPlant; if(!p) return;
+  var lines=['Grow plan \u2014 '+p.plant_name+' ('+(p.botanical_name||'')+')'];
+  if(p.days_to_maturity==null){
+    lines.push('Perennial \u00b7 harvest: '+((p.stage_timeline||{}).harvest_window||'seasonal'));
+    lines.push('Plant during: '+(p.planting_windows||''));
+  } else {
+    lines.push('~'+p.days_to_maturity+' days to harvest \u00b7 space '+p.spacing_inches+'\u2033');
+    lines.push('Plant during: '+(p.planting_windows||''));
+    lines.push('Water: '+(p.watering_plans||''));
+  }
+  lines.push('\u2014 Lancer Farms & Gardens');
+  var text=lines.join('\n');
+  if(navigator.share){ navigator.share({title:p.plant_name+' grow plan', text:text}).catch(function(){}); }
+  else { window.print(); }
+}
 
 var LANGS=['en','es','pt'], LNAMES={en:'English',es:'Espa\u00f1ol',pt:'Portugu\u00eas'}, LSHORT={en:'EN',es:'ES',pt:'PT'};
 function applyLangLabels(){
