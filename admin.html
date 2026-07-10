@@ -1396,13 +1396,13 @@ async function reviewClick(e){
     if(kind==='photo'){
       if(act==='save'){ const f=_rvPhotoFields(id); if(!f) return; await sbPatch('lfg_photos',{id},f); showToast('Saved'); return; }
       if(act==='approve'){ const f=_rvPhotoFields(id)||{}; f.approval_status='approved'; await sbPatch('lfg_photos',{id},f); showToast('Approved'); }
-      if(act==='delete'){ if(!confirm('Delete this photo permanently?')) return; await sbDelete('lfg_photos',{id}); showToast('Deleted'); }
+      if(act==='delete'){ if(!confirm('Remove this photo from the site? (hidden, not permanently erased)')) return; await sbPatch('lfg_photos',{id},{approval_status:'rejected'}); showToast('Removed'); }
     } else if(kind==='comment'){
       if(act==='approve'){ await sbPatch('lfg_comments',{id},{status:'reviewed'}); showToast('Approved'); }
-      if(act==='delete'){ if(!confirm('Delete this note?')) return; await sbDelete('lfg_comments',{id}); showToast('Deleted'); }
+      if(act==='delete'){ if(!confirm('Remove this note?')) return; await sbPatch('lfg_comments',{id},{status:'rejected'}); showToast('Removed'); }
     } else if(kind==='log'){
       if(act==='approve'){ await sbPatch('lfg_log',{id},{approval_status:'approved'}); showToast('Approved'); }
-      if(act==='delete'){ if(!confirm('Delete this log?')) return; await sbDelete('lfg_log',{id}); showToast('Deleted'); }
+      if(act==='delete'){ if(!confirm('Remove this log?')) return; await sbPatch('lfg_log',{id},{approval_status:'rejected'}); showToast('Removed'); }
     }
     loadReview();
   }catch(x){ showToast('Action failed'); }
