@@ -10,7 +10,7 @@
 <script>
 (function(){try{
   var m = localStorage.getItem('lfg-mode');
-  if (m === 'dark') document.documentElement.setAttribute('data-mode','dark');
+  /* mode toggle removed — manual is dark-only, matching the site */
 }catch(e){}})();
 </script>
 <style>
@@ -75,7 +75,7 @@ html, body {
 #screen-home { background: var(--bg); }
 
 .home-header {
-  background: var(--forest);
+  background: #3E5C42;
   padding: 1.25rem 1rem 1rem;
   text-align: center;
   border-bottom: 3px solid var(--lime);
@@ -155,7 +155,7 @@ html, body {
 .home-intro {
   padding: 1rem 1rem 0.5rem;
   font-size: 0.78rem;
-  color: var(--bg-deeper);
+  color: var(--cream);
   text-align: center;
   font-style: italic;
 }
@@ -193,7 +193,7 @@ html, body {
 }
 .topic-card .card-desc {
   font-size: 0.65rem;
-  color: var(--bg-deeper);
+  color: var(--cream);
   line-height: 1.4;
   font-family: var(--font-body);
 }
@@ -203,7 +203,7 @@ html, body {
   font-size: 0.55rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: var(--forest);
+  background: #3E5C42;
   color: var(--lime-pale);
   padding: 0.15rem 0.4rem;
   border-radius: 3px;
@@ -215,7 +215,7 @@ html, body {
 .topic-screen { background: var(--bg); }
 
 .topic-header {
-  background: var(--forest);
+  background: #3E5C42;
   padding: 0 0 0;
   position: sticky;
   top: 0;
@@ -252,7 +252,7 @@ html, body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  background: var(--forest);
+  background: #3E5C42;
   border-top: 1px solid var(--forest-mid);
 }
 .subtab-strip::-webkit-scrollbar { display: none; }
@@ -278,7 +278,7 @@ html, body {
 /* ── SHARED COMPONENTS ── */
 .section-eyebrow {
   font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--bg-deeper); margin-bottom: 0.6rem; margin-top: 1.25rem;
+  color: var(--cream); margin-bottom: 0.6rem; margin-top: 1.25rem;
   padding-bottom: 0.3rem; border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
 }
@@ -297,11 +297,11 @@ html, body {
   color: var(--forest); margin-bottom: 0.25rem;
   font-family: var(--font-body);
 }
-.info-card-body { font-size: 0.78rem; color: var(--bg-deeper); line-height: 1.55; font-family: var(--font-body); }
+.info-card-body { font-size: 0.78rem; color: var(--cream); line-height: 1.55; font-family: var(--font-body); }
 .info-card-body strong { color: var(--forest); }
 
 .tip-card {
-  background: #ECF0DE;
+  background: #2E3A2C;
   border-left: 3px solid var(--lime);
   border-radius: 0 6px 6px 0;
   padding: 0.7rem 0.9rem;
@@ -330,7 +330,7 @@ html, body {
   margin-bottom: 1rem;
 }
 .calc-card-head {
-  background: var(--forest);
+  background: #3E5C42;
   padding: 0.65rem 1rem;
   font-size: 0.68rem;
   letter-spacing: 0.1em;
@@ -342,7 +342,7 @@ html, body {
 
 /* Form fields */
 .field { margin-bottom: 0.75rem; }
-.field label { display: block; font-size: 0.73rem; color: var(--bg-deeper); font-weight: 600; margin-bottom: 0.3rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; }
+.field label { display: block; font-size: 0.73rem; color: var(--cream); font-weight: 600; margin-bottom: 0.3rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; }
 .field input, .field select {
   width: 100%;
   background: var(--bg);
@@ -359,12 +359,12 @@ html, body {
 }
 .field input:focus, .field select:focus { border-color: var(--lime); }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-.unit-hint { font-size: 0.62rem; color: var(--bg-deeper); margin-top: 0.2rem; }
+.unit-hint { font-size: 0.62rem; color: var(--cream); margin-top: 0.2rem; }
 
 /* Result boxes */
 .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 0.75rem 0; }
 .result-box {
-  background: var(--forest);
+  background: #3E5C42;
   border-radius: 6px;
   padding: 0.65rem 0.5rem;
   text-align: center;
@@ -380,7 +380,7 @@ html, body {
 .amend-row:last-child { border-bottom: none; }
 .amend-name { font-size: 0.85rem; font-weight: 600; color: var(--forest); }
 .amend-dose { font-family: 'Courier Prime', monospace; font-size: 0.75rem; color: var(--orange-dim); margin: 0.1rem 0; }
-.amend-why { font-size: 0.73rem; color: var(--bg-deeper); line-height: 1.45; }
+.amend-why { font-size: 0.73rem; color: var(--cream); line-height: 1.45; }
 
 /* Badges */
 .badge {
@@ -398,19 +398,19 @@ html, body {
 .step { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; align-items: flex-start; }
 .step-num {
   flex-shrink: 0; width: 1.5rem; height: 1.5rem;
-  background: var(--forest); color: var(--lime-pale);
+  background: #3E5C42; color: var(--lime-pale);
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-size: 0.7rem; font-weight: 700; font-family: 'Courier Prime', monospace;
   margin-top: 0.1rem;
 }
-.step-text { font-size: 0.8rem; color: var(--bg-deeper); line-height: 1.5; }
+.step-text { font-size: 0.8rem; color: var(--cream); line-height: 1.5; }
 .step-text strong { color: var(--forest); }
 
 /* Checklist */
 .checklist-item {
   display: flex; align-items: flex-start; gap: 0.6rem;
   padding: 0.5rem 0; border-bottom: 1px solid var(--border);
-  font-size: 0.8rem; color: var(--bg-deeper);
+  font-size: 0.8rem; color: var(--cream);
   cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .checklist-item:last-child { border-bottom: none; }
@@ -419,12 +419,12 @@ html, body {
   accent-color: var(--forest); margin-top: 0.1rem;
   cursor: pointer;
 }
-.checklist-item.checked { color: var(--bg); text-decoration: line-through; }
+.checklist-item.checked { color: var(--cream-dim); text-decoration: line-through; }
 
 /* Plan rows */
 .plan-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
 .plan-row:last-child { border-bottom: none; }
-.plan-key { color: var(--bg-deeper); }
+.plan-key { color: var(--cream); }
 .plan-val { font-family: 'Courier Prime', monospace; color: var(--forest); text-align: right; font-size: 0.78rem; }
 .plan-val.highlight { color: var(--orange-dim); font-weight: 700; }
 
@@ -436,7 +436,7 @@ html, body {
 .seg-perlite { background: #aaaaaa; }
 .seg-native  { background: #8B6914; }
 .mix-legend  { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.63rem; color: var(--bg-deeper); }
+.legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.63rem; color: var(--cream); }
 .legend-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
 /* Ref cards */
@@ -456,8 +456,8 @@ html, body {
 .ref-card-npk  { font-family: 'Courier Prime', monospace; font-size: 0.7rem; color: var(--lime-pale); margin-top: 0.1rem; }
 .ref-card-body { padding: 0.75rem 0.9rem; }
 .ref-row { margin-bottom: 0.55rem; }
-.ref-row-label { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bg-deeper); margin-bottom: 0.1rem; }
-.ref-row-text  { font-size: 0.78rem; color: var(--bg-deeper); line-height: 1.45; }
+.ref-row-label { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream); margin-bottom: 0.1rem; }
+.ref-row-text  { font-size: 0.78rem; color: var(--cream); line-height: 1.45; }
 .ref-row-text strong { color: var(--forest); }
 .caution-text  { font-size: 0.75rem; color: #8b3010; line-height: 1.45; }
 
@@ -478,7 +478,7 @@ html, body {
 /* Bottom home button */
 .home-fab {
   position: fixed; bottom: 1.25rem; right: 1.25rem;
-  background: var(--forest);
+  background: #3E5C42;
   color: var(--lime-pale);
   border: 2px solid var(--lime);
   border-radius: 50px;
@@ -497,7 +497,7 @@ html, body {
 /* Coming soon */
 .coming-soon {
   text-align: center; padding: 2.5rem 1rem;
-  color: var(--bg-deeper); font-size: 0.85rem;
+  color: var(--cream); font-size: 0.85rem;
 }
 .coming-soon .cs-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
 .coming-soon h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--forest); margin-bottom: 0.4rem; }
@@ -512,7 +512,7 @@ html, body {
 <div class="screen active" id="screen-home">
   <div class="home-header">
     <div class="header-controls">
-      <button class="hdr-btn" onclick="toggleMode()" id="mode-btn">☀</button>
+      
   <a href="/app.html" class="hdr-btn" style="text-decoration:none;">← App</a>
     </div>
     <div class="logo-text">Lancer Farms</div>
@@ -1001,12 +1001,12 @@ const TOPICS = {
             <div class="field"><label>Note</label>
               <textarea id="r-note" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--forest);font-family:Inter,sans-serif;font-size:0.9rem;padding:0.6rem;outline:none;resize:vertical;" placeholder="What did you observe?"></textarea>
             </div>
-            <button onclick="saveObs()" style="width:100%;background:var(--forest);color:var(--cream);border:none;border-radius:6px;padding:0.75rem;font-family:Inter,sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:0.25rem;">Save to Local Log</button>
+            <button onclick="saveObs()" style="width:100%;background:#3E5C42;color:var(--cream);border:none;border-radius:6px;padding:0.75rem;font-family:Inter,sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:0.25rem;">Save to Local Log</button>
             <div id="r-saved" style="margin-top:0.5rem;font-size:0.75rem;color:var(--forest);"></div>
           </div>
         </div>
         <div class="section-eyebrow">Saved Notes (This Session)</div>
-        <div id="obs-log" style="font-size:0.78rem;color:var(--bg-deeper);">No notes saved yet this session.</div>
+        <div id="obs-log" style="font-size:0.78rem;color:var(--cream);">No notes saved yet this session.</div>
       `,
       'Bed Status': () => `
         <div class="section-eyebrow">LFG Bed Reference</div>
@@ -1103,7 +1103,7 @@ function saveObs() {
   if (logEl) {
     logEl.innerHTML = obsLog.slice().reverse().map(e =>
       `<div class="info-card" style="margin-bottom:0.5rem;">
-        <div style="font-size:0.65rem;color:var(--bg-deeper);margin-bottom:0.2rem;">${e.date} · ${e.bed} · ${e.cat}</div>
+        <div style="font-size:0.65rem;color:var(--cream);margin-bottom:0.2rem;">${e.date} · ${e.bed} · ${e.cat}</div>
         <div style="font-size:0.8rem;color:var(--forest);">${e.note}</div>
       </div>`).join('');
   }
@@ -1408,7 +1408,7 @@ function showLoginModal() {
     openModal(`
       <div style="text-align:center;margin-bottom:1rem;">
         <div style="font-family:var(--font-head);font-style:italic;font-size:1.1rem;color:var(--forest);">Admin Active</div>
-        <div style="font-size:0.78rem;color:var(--bg-deeper);margin-top:0.25rem;">You can add and edit manual entries.</div>
+        <div style="font-size:0.78rem;color:var(--cream);margin-top:0.25rem;">You can add and edit manual entries.</div>
       </div>
       <button onclick="doAdminLogout()" style="${btnStyle('var(--orange-dim)')}">Sign Out</button>
       <button onclick="closeModal()" style="${btnStyle('var(--bg-dark)')}">Close</button>
@@ -1417,9 +1417,9 @@ function showLoginModal() {
   }
   openModal(`
     <div style="font-family:var(--font-head);font-style:italic;font-size:1.15rem;color:var(--forest);margin-bottom:0.25rem;">Admin Sign In</div>
-    <div style="font-size:0.72rem;color:var(--bg-deeper);margin-bottom:1rem;font-family:var(--font-mono);">Staff password + your birthday MMDD</div>
+    <div style="font-size:0.72rem;color:var(--cream);margin-bottom:1rem;font-family:var(--font-mono);">Staff password + your birthday MMDD</div>
     <div style="margin-bottom:1rem;">
-      <label style="font-size:0.65rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;">Password</label>
+      <label style="font-size:0.65rem;color:var(--cream);display:block;margin-bottom:0.3rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;">Password</label>
       <input id="login-pw" type="password" placeholder="e.g. Godisgood0315" style="${inputStyle()}" onkeydown="if(event.key==='Enter')doAdminLogin()">
     </div>
     <div id="login-err" style="font-size:0.75rem;color:var(--orange-dim);margin-bottom:0.5rem;display:none;"></div>
@@ -1462,10 +1462,10 @@ function showAddEntryModal(topic, tab, defaultSection = '') {
 
   openModal(`
     <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--forest);margin-bottom:0.25rem;">Add Entry</div>
-    <div style="font-size:0.72rem;color:var(--bg-deeper);margin-bottom:1rem;">${topicDef.title} → ${tab}</div>
+    <div style="font-size:0.72rem;color:var(--cream);margin-bottom:1rem;">${topicDef.title} → ${tab}</div>
 
     <div style="margin-bottom:0.75rem;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">Entry Type</label>
+      <label style="font-size:0.73rem;color:var(--cream);display:block;margin-bottom:0.3rem;">Entry Type</label>
       <select id="ae-type" onchange="toggleNewSection()" style="${inputStyle()}">
         <option value="card">New card in existing section</option>
         <option value="section">New section + card</option>
@@ -1473,7 +1473,7 @@ function showAddEntryModal(topic, tab, defaultSection = '') {
     </div>
 
     <div id="ae-existing-section" style="margin-bottom:0.75rem;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">Add under section</label>
+      <label style="font-size:0.73rem;color:var(--cream);display:block;margin-bottom:0.3rem;">Add under section</label>
       <select id="ae-section" style="${inputStyle()}">
         ${sectionOptions.map(s=>`<option value="${s}"${s===defaultSection?' selected':''}>${s || '(top of tab)'}</option>`).join('')}
         <option value="__new__">+ New section…</option>
@@ -1481,26 +1481,26 @@ function showAddEntryModal(topic, tab, defaultSection = '') {
     </div>
 
     <div id="ae-new-section" style="margin-bottom:0.75rem;display:none;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">New Section Name</label>
+      <label style="font-size:0.73rem;color:var(--cream);display:block;margin-bottom:0.3rem;">New Section Name</label>
       <input id="ae-newsec-val" type="text" placeholder="e.g. 🧪 New Treatments" style="${inputStyle()}">
     </div>
 
     <div style="margin-bottom:0.75rem;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">Title *</label>
+      <label style="font-size:0.73rem;color:var(--cream);display:block;margin-bottom:0.3rem;">Title *</label>
       <input id="ae-title" type="text" placeholder="Entry title" style="${inputStyle()}">
     </div>
 
     <div style="margin-bottom:0.75rem;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">Subtitle / NPK / Category</label>
+      <label style="font-size:0.73rem;color:var(--cream);display:block;margin-bottom:0.3rem;">Subtitle / NPK / Category</label>
       <input id="ae-subtitle" type="text" placeholder="Optional" style="${inputStyle()}">
     </div>
 
     <div style="margin-bottom:0.75rem;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">Main Description *</label>
+      <label style="font-size:0.73rem;color:var(--cream);display:block;margin-bottom:0.3rem;">Main Description *</label>
       <textarea id="ae-body" rows="3" placeholder="What this entry covers…" style="${inputStyle()}resize:vertical;"></textarea>
     </div>
 
-    <div style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--bg-deeper);margin-bottom:0.5rem;">Detail Fields (optional)</div>
+    <div style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--cream);margin-bottom:0.5rem;">Detail Fields (optional)</div>
     ${[1,2,3,4].map(n=>`
       <div style="display:grid;grid-template-columns:1fr 2fr;gap:0.4rem;margin-bottom:0.4rem;">
         <input id="ae-f${n}l" type="text" placeholder="Label ${n}" style="${inputStyle()}font-size:0.78rem;">
@@ -1508,12 +1508,12 @@ function showAddEntryModal(topic, tab, defaultSection = '') {
       </div>`).join('')}
 
     <div style="margin-bottom:0.75rem;margin-top:0.5rem;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">⚠️ Caution / Warning (optional)</label>
+      <label style="font-size:0.73rem;color:var(--cream);display:block;margin-bottom:0.3rem;">⚠️ Caution / Warning (optional)</label>
       <input id="ae-caution" type="text" placeholder="Any warnings or cautions" style="${inputStyle()}">
     </div>
 
     <div style="margin-bottom:1rem;">
-      <label style="font-size:0.73rem;color:var(--bg-deeper);display:block;margin-bottom:0.3rem;">Badge</label>
+      <label style="font-size:0.73rem;color:var(--cream);display:block;margin-bottom:0.3rem;">Badge</label>
       <select id="ae-badge" style="${inputStyle()}">
         <option value="">None</option>
         <option value="bio">Biological</option>
@@ -1748,7 +1748,7 @@ async function injectDynamicZones(topic) {
       <button class="add-entry-btn" onclick="showAddEntryModal('${topic}','${tab}')"
         style="display:${isAdmin?'flex':'none'};align-items:center;gap:0.5rem;
           width:100%;margin-top:1rem;padding:0.75rem 1rem;
-          background:var(--forest);color:var(--lime-pale);
+          background:#3E5C42;color:var(--lime-pale);
           border:1px dashed var(--lime);border-radius:8px;
           font-family:Inter,sans-serif;font-size:0.82rem;font-weight:600;
           cursor:pointer;justify-content:center;
@@ -1781,7 +1781,7 @@ function showToast(msg) {
   if (!t) {
     t = document.createElement('div');
     t.id = 'toast';
-    t.style.cssText = `position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:var(--forest);color:var(--lime-pale);padding:0.6rem 1.2rem;border-radius:20px;font-size:0.8rem;font-weight:600;z-index:2000;transition:opacity 0.3s;`;
+    t.style.cssText = `position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:#3E5C42;color:var(--lime-pale);padding:0.6rem 1.2rem;border-radius:20px;font-size:0.8rem;font-weight:600;z-index:2000;transition:opacity 0.3s;`;
     document.body.appendChild(t);
   }
   t.textContent = msg; t.style.opacity = '1';
