@@ -356,7 +356,7 @@
     <section class="screen" id="screen-photos">
       <div class="pad">
         <p class="screen-h">Farm album. Add a photo &mdash; it posts after review.</p>
-        <input type="file" id="photo-file" accept="image/*" capture="environment" style="display:none" onchange="uploadPhoto(this)">
+        <input type="file" id="photo-file" accept="image/*" multiple style="display:none" onchange="uploadPhoto(this)">
         <div id="photo-grid"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
       </div>
     </section>
@@ -821,21 +821,31 @@ async function loadPhotos(){
   )).join('');
 }
 async function uploadPhoto(input){
-  const file=input.files&&input.files[0]; if(!file) return;
-  toast('Uploading\u2026');
-  const fd=new FormData(); fd.append('file',file); fd.append('upload_preset',UPLOAD_PRESET);
-  let url,thumb;
-  try{
-    const res=await fetch('https://api.cloudinary.com/v1_1/'+CLOUD_NAME+'/image/upload',{method:'POST',body:fd});
-    const j=await res.json();
-    if(!j.secure_url) throw new Error('no url');
-    url=j.secure_url; thumb=url.replace('/upload/','/upload/w_400,h_400,c_fill/');
-  }catch(e){ toast('Upload failed'); input.value=''; return; }
-  const caption=prompt('Add a caption? (optional)')||null;
-  const {error}= await sb.from('lfg_photos').insert({cloudinary_url:url, thumbnail_url:thumb, caption:caption, uploaded_by:'staff', approval_status:'pending', submitted_by:'staff'});
+  const files=input.files; if(!files||!files.length) return;
+  const list=Array.prototype.slice.call(files);
+  const caption = (list.length===1)
+    ? (prompt('Add a caption? (optional)')||null)
+    : (prompt('Add a caption for these '+list.length+' photos? (optional)')||null);
+  const rows=[]; let ok=0, fail=0;
+  for(let i=0;i<list.length;i++){
+    toast('Uploading '+(i+1)+' of '+list.length+'\u2026');
+    const fd=new FormData(); fd.append('file',list[i]); fd.append('upload_preset',UPLOAD_PRESET);
+    try{
+      const res=await fetch('https://api.cloudinary.com/v1_1/'+CLOUD_NAME+'/image/upload',{method:'POST',body:fd});
+      const j=await res.json();
+      if(!j.secure_url) throw new Error('no url');
+      const url=j.secure_url, thumb=url.replace('/upload/','/upload/w_400,h_400,c_fill/');
+      rows.push({cloudinary_url:url, thumbnail_url:thumb, caption:caption, uploaded_by:'staff', approval_status:'pending', submitted_by:'staff'});
+      ok++;
+    }catch(e){ fail++; }
+  }
   input.value='';
+  if(!rows.length){ toast('Upload failed'); return; }
+  const {error}= await sb.from('lfg_photos').insert(rows);
   if(error){ toast('Saved to cloud but not linked'); return; }
-  toast('Photo added \u2014 pending review'); loadPhotos();
+  let msg = ok+' photo'+(ok===1?'':'s')+' added \u2014 pending review';
+  if(fail) msg += ' ('+fail+' failed)';
+  toast(msg); loadPhotos();
 }
 </script>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
