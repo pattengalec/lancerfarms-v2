@@ -181,6 +181,10 @@
   .donate-btn{display:block; text-align:center; background:var(--amber); color:#3a2c08; text-decoration:none;
     border-radius:14px; padding:14px; font-weight:600; font-size:16px; margin-top:14px;}
   .donate-note{font-size:12px; color:var(--ink-soft); line-height:1.45; margin-top:9px; text-align:center; padding:0 4px;}
+
+  .ph-filters{display:flex;gap:8px;margin:0 0 12px;}
+  .ph-filters select{flex:1;min-width:0;background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:9px;font-size:14px;font-family:inherit;}
+  .photo .cap b{color:var(--accent-2);font-weight:600;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
 <script src="i18n.js"></script>
@@ -242,6 +246,7 @@
       <button class="back" onclick="show('hub')">&#8592; <span data-i18n="back">Back</span></button>
       <h2 style="margin-bottom:4px" data-i18n="tile.see">See</h2>
       <p class="intro" data-i18n="see.intro">Photos from around the farm.</p>
+      <div id="see-filters" class="ph-filters"></div>
       <div id="see-grid"><div class="soon"><span class="ic">&#8987;</span><p data-i18n="loading.photos">Loading photos&hellip;</p></div></div>
     </section>
 
@@ -314,19 +319,41 @@ function closeMenu(){ document.getElementById('panel').classList.remove('show');
 
 /* ---------- SEE: approved photo gallery ---------- */
 var photosLoaded=false;
+var seePhotos=[], seeAreaMap={};
+function _capW(x){ x=String(x||''); return x?x.charAt(0).toUpperCase()+x.slice(1):''; }
 async function loadPhotos(force){
   if(photosLoaded && !force) return;
   var el=document.getElementById('see-grid');
   var res = await sb.from('lfg_photos').select('*').eq('approval_status','approved').order('uploaded_at',{ascending:false});
-  if(res.error){ el.innerHTML='<div class="soon"><p>Couldn\u2019t load photos right now.</p></div>'; return; }
-  var data=res.data||[];
-  if(!data.length){ el.innerHTML='<div class="soon"><span class="ic">&#128247;</span><p>No photos yet \u2014 check back soon.</p></div>'; el.className=''; return; }
-  el.className='see-grid';
-  el.innerHTML=data.map(function(p){
-    return '<div class="photo"><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy" alt="'+esc(p.caption||'Farm photo')+'">'+
-      (p.caption?'<div class="cap">'+esc(p.caption)+'</div>':'')+'</div>';
+  if(res.error){ el.innerHTML='<div class="soon"><p>Couldn’t load photos right now.</p></div>'; return; }
+  seePhotos=res.data||[];
+  var fb=document.getElementById('see-filters');
+  if(!seePhotos.length){ el.innerHTML='<div class="soon"><span class="ic">&#128247;</span><p>No photos yet — check back soon.</p></div>'; el.className=''; if(fb) fb.innerHTML=''; return; }
+  try{ var ar=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null); seeAreaMap={}; (ar.data||[]).forEach(function(a){ seeAreaMap[a.id]=a; }); }catch(e){}
+  buildSeeFilters(); applySeeFilter(); photosLoaded=true;
+}
+function buildSeeFilters(){
+  var fb=document.getElementById('see-filters'); if(!fb) return;
+  var present={}, hasNone=false; seePhotos.forEach(function(p){ if(p.area_id) present[p.area_id]=1; else hasNone=true; });
+  var opts='<option value="">All areas</option>'+(hasNone?'<option value="__none__">General</option>':'');
+  Object.keys(present).forEach(function(id){ if(seeAreaMap[id]) opts+='<option value="'+id+'">'+esc(seeAreaMap[id].name)+'</option>'; });
+  var types={}; seePhotos.forEach(function(p){ if(p.subject_type) types[p.subject_type]=1; });
+  var topts='<option value="">All types</option>'+Object.keys(types).map(function(t){ return '<option value="'+t+'">'+_capW(t)+'</option>'; }).join('');
+  fb.innerHTML='<select id="sf-area" onchange="applySeeFilter()">'+opts+'</select><select id="sf-type" onchange="applySeeFilter()">'+topts+'</select>';
+}
+function applySeeFilter(){
+  var fa=(document.getElementById('sf-area')||{}).value||'', ft=(document.getElementById('sf-type')||{}).value||'';
+  var list=seePhotos;
+  if(fa==='__none__') list=list.filter(function(p){return !p.area_id;}); else if(fa) list=list.filter(function(p){return p.area_id===fa;});
+  if(ft) list=list.filter(function(p){return p.subject_type===ft;});
+  var el=document.getElementById('see-grid'); el.className='see-grid';
+  if(!list.length){ el.innerHTML='<div class="soon"><p>No photos match.</p></div>'; return; }
+  el.innerHTML=list.map(function(p){
+    var area=p.area_id?((seeAreaMap[p.area_id]||{}).name||''):'General';
+    var meta=[area, p.subject_type?_capW(p.subject_type):''].filter(Boolean).join(' · ');
+    var capLine=(meta||p.caption)?'<div class="cap">'+(meta?'<b>'+esc(meta)+'</b>':'')+(p.caption?(meta?'<br>':'')+esc(p.caption):'')+'</div>':'';
+    return '<div class="photo"><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy" alt="'+esc(p.caption||'Farm photo')+'">'+capLine+'</div>';
   }).join('');
-  photosLoaded=true;
 }
 
 /* ---------- SHARE: comments (moderated) ---------- */
