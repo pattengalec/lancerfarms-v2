@@ -185,6 +185,21 @@
   .ph-filters{display:flex;gap:8px;margin:0 0 12px;}
   .ph-filters select{flex:1;min-width:0;background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:9px;font-size:14px;font-family:inherit;}
   .photo .cap b{color:var(--accent-2);font-weight:600;}
+
+  .see-add{display:block;width:100%;text-align:center;background:var(--green);color:#1B1B17;border:none;border-radius:14px;padding:13px;font-weight:600;font-size:15px;margin:0 0 12px;cursor:pointer;}
+  .vs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:flex-end;justify-content:center;}
+  .vs-sheet{background:var(--card);width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;}
+  .vs-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);font-weight:600;}
+  .vs-x{background:none;border:0;color:var(--ink-soft);font-size:26px;line-height:1;cursor:pointer;}
+  #vsub-list{overflow-y:auto;padding:8px 16px;flex:1;}
+  .vs-card{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .vs-card img{width:64px;height:64px;border-radius:10px;object-fit:cover;flex:0 0 auto;}
+  .vs-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+  .vs-fields select,.vs-fields input{width:100%;min-width:0;background:var(--card);color:var(--ink);border:1.5px solid var(--line-strong);border-radius:8px;padding:8px;font-size:14px;font-family:inherit;}
+  .vs-actions{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line);}
+  .vs-btn{flex:1;border:none;border-radius:12px;padding:13px;font-weight:600;font-size:15px;cursor:pointer;font-family:inherit;}
+  .vs-btn.go{background:var(--green);color:#1B1B17;}
+  .vs-btn.cancel{background:transparent;color:var(--ink);border:1.5px solid var(--line-strong);}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
 <script src="i18n.js"></script>
@@ -246,6 +261,8 @@
       <button class="back" onclick="show('hub')">&#8592; <span data-i18n="back">Back</span></button>
       <h2 style="margin-bottom:4px" data-i18n="tile.see">See</h2>
       <p class="intro" data-i18n="see.intro">Photos from around the farm.</p>
+      <button class="see-add" onclick="document.getElementById('vphoto-file').click()">📷 Add a photo</button>
+      <input type="file" id="vphoto-file" accept="image/*" multiple style="display:none" onchange="vsubPick(this)">
       <div id="see-filters" class="ph-filters"></div>
       <div id="see-grid"><div class="soon"><span class="ic">&#8987;</span><p data-i18n="loading.photos">Loading photos&hellip;</p></div></div>
     </section>
@@ -321,6 +338,53 @@ function closeMenu(){ document.getElementById('panel').classList.remove('show');
 var photosLoaded=false;
 var seePhotos=[], seeAreaMap={};
 function _capW(x){ x=String(x||''); return x?x.charAt(0).toUpperCase()+x.slice(1):''; }
+var VCLOUD='ddbsuxerb', VPRESET='lfg-photos';
+var vsubFiles=[], vsubURLs=[];
+function vTypeOptions(){ return '<option value="">What is it?</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option>'; }
+function vsubPick(input){
+  var files=input.files; if(!files||!files.length) return;
+  vsubFiles=Array.prototype.slice.call(files);
+  vsubURLs.forEach(function(u){URL.revokeObjectURL(u);}); vsubURLs=[];
+  var html='';
+  vsubFiles.forEach(function(f,i){
+    var u=URL.createObjectURL(f); vsubURLs.push(u);
+    html+='<div class="vs-card"><img src="'+u+'"><div class="vs-fields"><select class="vs-type">'+vTypeOptions()+'</select><input class="vs-cap" placeholder="Caption (optional)" autocomplete="off"></div></div>';
+  });
+  document.getElementById('vsub-list').innerHTML=html;
+  document.getElementById('vsub-title').textContent='Add '+vsubFiles.length+' photo'+(vsubFiles.length===1?'':'s');
+  document.getElementById('vsub').style.display='flex';
+}
+function vsubClose(){
+  document.getElementById('vsub').style.display='none';
+  vsubURLs.forEach(function(u){URL.revokeObjectURL(u);}); vsubURLs=[]; vsubFiles=[];
+  var inp=document.getElementById('vphoto-file'); if(inp) inp.value='';
+}
+async function vsubSubmit(){
+  if(!vsubFiles.length) return;
+  var types=document.querySelectorAll('#vsub-list .vs-type');
+  var caps=document.querySelectorAll('#vsub-list .vs-cap');
+  var btn=document.getElementById('vsub-go'); btn.disabled=true;
+  var rows=[], ok=0;
+  for(var i=0;i<vsubFiles.length;i++){
+    btn.textContent='Uploading '+(i+1)+' of '+vsubFiles.length+'…';
+    var fd=new FormData(); fd.append('file',vsubFiles[i]); fd.append('upload_preset',VPRESET);
+    try{
+      var res=await fetch('https://api.cloudinary.com/v1_1/'+VCLOUD+'/image/upload',{method:'POST',body:fd});
+      var j=await res.json();
+      if(!j.secure_url) throw new Error('no url');
+      var url=j.secure_url, thumb=url.replace('/upload/','/upload/w_400,h_400,c_fill/');
+      rows.push({cloudinary_url:url, thumbnail_url:thumb, caption:(caps[i].value.trim()||null), subject_type:(types[i].value||null), approval_status:'pending', uploaded_by:'visitor', submitted_by:'visitor'});
+      ok++;
+    }catch(e){}
+  }
+  btn.disabled=false; btn.textContent='Submit';
+  if(!rows.length){ alert('Upload failed — please try again.'); return; }
+  var r=await sb.from('lfg_photos').insert(rows);
+  vsubClose();
+  if(r.error){ alert('Could not submit right now.'); return; }
+  alert('Thanks! Your photo'+(ok===1?'':'s')+' will appear after review.');
+}
+
 async function loadPhotos(force){
   if(photosLoaded && !force) return;
   var el=document.getElementById('see-grid');
@@ -729,6 +793,7 @@ function refreshBarTitle(){
 }
 window.onLangChange=function(l){ refreshBarTitle(); };
 </script>
+<div id="vsub" class="vs-overlay" style="display:none"><div class="vs-sheet"><div class="vs-head"><span id="vsub-title">Add photos</span><button class="vs-x" onclick="vsubClose()">&times;</button></div><div id="vsub-list"></div><div class="vs-actions"><button class="vs-btn cancel" onclick="vsubClose()">Cancel</button><button class="vs-btn go" id="vsub-go" onclick="vsubSubmit()">Submit</button></div></div></div>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
 </body>
 </html>
