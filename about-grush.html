@@ -6,6 +6,7 @@
 <title>grush — what it is</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="i18n.js"></script>
 <style>
   :root{
     --graphite:#23262B; --graphite-2:#2A2E33; --bone:#F0EDE6;
@@ -31,9 +32,13 @@
   .lead{font-size:19px; color:var(--bone);}
   .deploy{margin-top:22px; padding:20px 22px; border:1px solid var(--line);
     border-radius:12px; background:var(--graphite-2);}
-  .deploy strong{color:var(--bone);}
   .deploy a{color:var(--moss); font-weight:600; text-decoration:underline; text-underline-offset:2px;}
-  .foot{margin-top:50px; padding-top:20px; border-top:1px solid var(--line);
+  .ag-lang{display:flex; gap:16px; justify-content:center; margin-top:46px;}
+  .ag-lang button{background:none; border:0; padding:0; font:inherit; font-size:13px;
+    letter-spacing:.5px; color:var(--steel); cursor:pointer;}
+  .ag-lang button:hover{color:var(--bone);}
+  .ag-lang button.on{color:var(--oxblood); font-weight:600;}
+  .foot{margin-top:26px; padding-top:20px; border-top:1px solid var(--line);
     text-align:center; font-size:13px; color:#8a8f96;}
   .foot a{color:#8a8f96;}
 </style>
@@ -65,22 +70,34 @@
     </svg>
   </div>
 
-  <p class="kicker">a management platform for growing spaces</p>
+  <p class="kicker" data-i18n="ag.kicker">a management platform for growing spaces</p>
 
-  <p class="lead">grush turns the daily work of running a growing space &mdash; a garden, a farm, a controlled-environment grow &mdash; into something simple enough to use with dirt on your hands.</p>
+  <p class="lead" data-i18n="ag.lead">grush turns the daily work of running a growing space &mdash; a garden, a farm, a controlled-environment grow &mdash; into something simple enough to use with dirt on your hands.</p>
 
-  <p>Tasks, plantings, harvests, inventory, and records become a tap-not-type system anyone on the ground can run. Over time, that daily work turns into real data: what was planted, when, where, and how it did.</p>
+  <p data-i18n="ag.body">Tasks, plantings, harvests, inventory, and records become a tap-not-type system anyone on the ground can run. Over time, that daily work turns into real data: what was planted, when, where, and how it did.</p>
 
-  <h2>Deployments</h2>
-  <p>Every place that runs grush is a deployment &mdash; branded as its own, running on the same engine underneath.</p>
+  <h2 data-i18n="ag.deployments">Deployments</h2>
+  <p data-i18n="ag.deploy_desc">Every place that runs grush is a deployment &mdash; branded as its own, running on the same engine underneath.</p>
 
   <div class="deploy">
-    <strong>Lancer Farms</strong> is a live deployment of grush &mdash; a working teaching garden in Riverside, California.
-    <div style="margin-top:10px"><a href="index.html">&#8592;&nbsp;Back to Lancer Farms</a></div>
+    <p style="margin:0" data-i18n="ag.deploy_card">Lancer Farms is a live deployment of grush &mdash; a working teaching garden in Riverside, California.</p>
+    <div style="margin-top:10px"><a href="index.html">&#8592;&nbsp;<span data-i18n="ag.back">Back to Lancer Farms</span></a></div>
+  </div>
+
+  <div class="ag-lang">
+    <button data-lang="en" onclick="agLang('en')">EN</button>
+    <button data-lang="es" onclick="agLang('es')">ES</button>
+    <button data-lang="fr" onclick="agLang('fr')">FR</button>
+    <button data-lang="pt" onclick="agLang('pt')">PT</button>
   </div>
 
   <div class="foot">grush &middot; <a href="https://getgrush.com">Grush Ventures</a></div>
 
 </div>
+<script>
+function agLang(l){ if(typeof applyI18n==='function') applyI18n(l); markLang(l); }
+function markLang(l){ document.querySelectorAll('.ag-lang button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-lang')===l); }); }
+window.addEventListener('load', function(){ var l=localStorage.getItem('lfg_lang')||'en'; if(typeof applyI18n==='function') applyI18n(l); markLang(l); });
+</script>
 </body>
 </html>
