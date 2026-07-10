@@ -212,6 +212,7 @@
   .photo-cell .cap{position:absolute; left:0; right:0; bottom:0; background:linear-gradient(transparent,rgba(0,0,0,.6)); color:#fff; font-size:12px; padding:16px 8px 6px;}
   .photo-cell.pending::after{content:'Pending'; position:absolute; top:6px; right:6px; background:var(--amber); color:#3a2c08; font-size:11px; font-weight:700; padding:2px 7px; border-radius:8px;}
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -837,5 +838,6 @@ async function uploadPhoto(input){
   toast('Photo added \u2014 pending review'); loadPhotos();
 }
 </script>
+<a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
 </body>
 </html>
