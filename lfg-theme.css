@@ -6,23 +6,23 @@
 
 /* ── Light mode (default) ──────────────────────────────── */
 :root, [data-mode="light"] {
-  --bg:        #F2EFE8;
+  --bg:        #F4F1E8;
   --surface:   #FFFFFF;
-  --surface2:  #FBFAF6;
-  --mist:      #ECE7DD;
-  --ink:       #23262B;
-  --ink-soft:  #6B6760;
-  --accent:    #8F2228;
-  --accent-2:  #B4A71D;
-  --on-accent: #F2EFE8;
+  --surface2:  #FBFAF4;
+  --mist:      #ECE7DA;
+  --ink:       #2A2620;
+  --ink-soft:  #5E574C;
+  --accent:    #47654A;
+  --accent-2:  #7E9A6E;
+  --on-accent: #F4F1E8;
   --alert:     #B5651D;
   --on-alert:  #FDF1E8;
   --card:      #FFFFFF;
-  --card-border: #E4DFD3;
+  --card-border: #E0DAC9;
 
-  --cat-explore: #3C6E78;
-  --cat-act:     #B5651D;
-  --cat-manage:  #8F2228;
+  --cat-explore: #4E8A93;
+  --cat-act:     #C9973F;
+  --cat-manage:  #47654A;
   --cat-entry:   #8C6A3F;
 
   --font-head: Georgia, serif;
@@ -34,23 +34,23 @@
 
 /* ── Dark mode (manual toggle) ──────────────────────────── */
 [data-mode="dark"] {
-  --bg:        #23262B;
-  --surface:   #2A2E33;
-  --surface2:  #23262B;
-  --mist:      #33383E;
-  --ink:       #F0EDE6;
-  --ink-soft:  #A8A39A;
-  --accent:    #C34044;
-  --accent-2:  #CDBE4A;
-  --on-accent: #1B1B1F;
+  --bg:        #24231E;
+  --surface:   #2E2C26;
+  --surface2:  #24231E;
+  --mist:      #33312A;
+  --ink:       #F0EDE2;
+  --ink-soft:  #A8A296;
+  --accent:    #7E9A6E;
+  --accent-2:  #A8B89A;
+  --on-accent: #1B1B17;
   --alert:     #C97A4A;
   --on-alert:  #FDF1E8;
-  --card:      #2E3237;
-  --card-border: #3E434A;
+  --card:      #2E2C26;
+  --card-border: #45423A;
 
-  --cat-explore: #5FA0B0;
-  --cat-act:     #C97A4A;
-  --cat-manage:  #C34044;
+  --cat-explore: #5FA0A8;
+  --cat-act:     #C9973F;
+  --cat-manage:  #7E9A6E;
   --cat-entry:   #A8784F;
 
   --font-head: Georgia, serif;
