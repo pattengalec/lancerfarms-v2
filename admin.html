@@ -75,7 +75,7 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 .btn-danger { background:linear-gradient(180deg, color-mix(in srgb,var(--alert) 100%,white 8%), var(--alert)); color:var(--on-alert); border-color:color-mix(in srgb,var(--alert) 100%,black 14%); font-size:0.78rem; padding:7px 13px; }
 .btn-danger:hover { transform:translateY(-1px); }
 
-.btn-success { background:linear-gradient(180deg,#4a9355,#3a7d44); color:#fff; border-color:#2e6537; font-size:0.78rem; padding:7px 13px; }
+.btn-success { background:linear-gradient(180deg,#5B7A50,#47654A); color:#fff; border-color:#35503A; font-size:0.78rem; padding:7px 13px; }
 .btn-success:hover { transform:translateY(-1px); }
 
 .btn-ghost { background:transparent; color:var(--ink); border:1px solid color-mix(in srgb,var(--ink) 22%,transparent); font-size:0.78rem; padding:7px 13px; }
@@ -101,7 +101,7 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 .badge-done    { background:var(--card-border); color:var(--ink-soft); }
 .badge-urgent  { background:var(--alert); color:var(--on-alert); }
 .badge-routine { background:var(--surface); border:1px solid var(--card-border); color:var(--ink-soft); }
-.badge-core    { background:#2d6a4f; color:#fff; }
+.badge-core    { background:#3A5A4A; color:#fff; }
 .badge-visit   { background:var(--accent-2); color:#fff; }
 
 /* ── RECURRING FIELDS ── */
@@ -864,7 +864,7 @@ function updateDonationsUI(enabled) {
   if (!status || !btn) return;
   if (enabled) {
     status.textContent = 'ON';
-    status.style.color = '#3a7d44';
+    status.style.color = '#47654A';
     btn.textContent = 'Turn Off';
     btn.className = 'btn btn-danger btn-sm';
   } else {
