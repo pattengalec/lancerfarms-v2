@@ -6,24 +6,24 @@
 
 /* ── Light mode (default) ──────────────────────────────── */
 :root, [data-mode="light"] {
-  --bg:        #F4F1E8;
-  --surface:   #FFFFFF;
-  --surface2:  #FBFAF4;
-  --mist:      #ECE7DA;
-  --ink:       #2A2620;
-  --ink-soft:  #5E574C;
-  --accent:    #47654A;
-  --accent-2:  #7E9A6E;
-  --on-accent: #F4F1E8;
-  --alert:     #B5651D;
+  --bg:        #2A2620;
+  --surface:   #34302A;
+  --surface2:  #2F2B25;
+  --mist:      #3A362E;
+  --ink:       #F0EDE2;
+  --ink-soft:  #B0A99C;
+  --accent:    #7E9A6E;
+  --accent-2:  #A8B89A;
+  --on-accent: #1B1B17;
+  --alert:     #C97A4A;
   --on-alert:  #FDF1E8;
-  --card:      #FFFFFF;
-  --card-border: #E0DAC9;
+  --card:      #34302A;
+  --card-border: #45423A;
 
-  --cat-explore: #4E8A93;
+  --cat-explore: #5FA0A8;
   --cat-act:     #C9973F;
-  --cat-manage:  #47654A;
-  --cat-entry:   #8C6A3F;
+  --cat-manage:  #7E9A6E;
+  --cat-entry:   #A8784F;
 
   --font-head: Georgia, serif;
   --font-body: 'Source Sans 3', 'Helvetica Neue', sans-serif;
@@ -34,18 +34,18 @@
 
 /* ── Dark mode (manual toggle) ──────────────────────────── */
 [data-mode="dark"] {
-  --bg:        #24231E;
-  --surface:   #2E2C26;
-  --surface2:  #24231E;
-  --mist:      #33312A;
+  --bg:        #2A2620;
+  --surface:   #34302A;
+  --surface2:  #2F2B25;
+  --mist:      #3A362E;
   --ink:       #F0EDE2;
-  --ink-soft:  #A8A296;
+  --ink-soft:  #B0A99C;
   --accent:    #7E9A6E;
   --accent-2:  #A8B89A;
   --on-accent: #1B1B17;
   --alert:     #C97A4A;
   --on-alert:  #FDF1E8;
-  --card:      #2E2C26;
+  --card:      #34302A;
   --card-border: #45423A;
 
   --cat-explore: #5FA0A8;
