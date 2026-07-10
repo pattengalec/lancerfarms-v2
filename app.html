@@ -251,7 +251,7 @@
   <button class="menu-item" onclick="go('inventory');closeMenu()"><span class="ic">&#128230;</span> Inventory</button>
   <button class="menu-item" onclick="go('photos');closeMenu()"><span class="ic">&#128247;</span> Photos</button>
   <div class="menu-label">Apps</div>
-  <button class="menu-item" onclick="toast('Manual coming soon')"><span class="ic">&#128214;</span> Farm manual</button>
+  <button class="menu-item" onclick="location.href='/manual.html'"><span class="ic">&#128214;</span> Farm manual</button>
   <button class="menu-item admin-only" onclick="go('approvals');closeMenu()"><span class="ic">&#9989;</span> Approval queue <span class="badge" id="approve-badge" style="display:none">0</span></button>
   <div class="menu-label">Language</div>
   <button class="menu-item" onclick="cycleLang()"><span class="ic">&#127760;</span> <span id="menu-lang">English</span></button>
@@ -286,7 +286,7 @@
             <span class="ic">&#128247;</span>
             <span class="tname">Photos</span><span class="tsub">Farm album</span>
           </button>
-          <button class="tile n" onclick="toast('Manual coming soon')">
+          <button class="tile n" onclick="location.href='/manual.html'">
             <span class="ic">&#128214;</span>
             <span class="tname">Manual</span><span class="tsub">Guides &amp; reference</span>
           </button>
