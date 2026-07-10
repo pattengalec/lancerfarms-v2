@@ -8,10 +8,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&family=Yellowtail&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#23262B; --ink-soft:#5F5A52; --paper:#F2EFE8; --card:#FBFAF6;
-    --line:#E4DFD3; --line-strong:#C9C2B4;
-    --green:#8F2228; --green-d:#23262B; --leaf:#B4A71D;
-    --amber:#B4A71D;
+    --ink:#2A2620; --ink-soft:#5E574C; --paper:#F4F1E8; --card:#FBFAF4;
+    --line:#E0DAC9; --line-strong:#C3BBA6;
+    --green:#47654A; --green-d:#2A2620; --leaf:#7E9A6E;
+    --amber:#C9973F;
     --shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -59,22 +59,22 @@
   .tiny{margin-top:22px; font-size:12px; color:var(--ink-soft); opacity:.7;}
   .mbg{display:block; font-family:Georgia,serif; font-style:italic; font-size:12px;
     letter-spacing:0; text-transform:none; opacity:.85; margin-top:10px;}
-  .grush-sig{font-family:'Yellowtail',cursive; font-style:normal; font-size:20px; line-height:1;}
+  .grush-sig{font-family:'Yellowtail',cursive; font-style:normal; font-size:20px; line-height:1; text-decoration:underline; text-underline-offset:2px; cursor:pointer;}
   #splash .grush-sig{color:#C34044;}
-  #hero .grush-sig{color:var(--green);}
+  #hero .grush-sig{color:#8F2228;}
 </style>
 </head>
 <body>
 
 <div id="splash">
   <div class="mark">L</div>
-  <div class="wm">Lancer Farms<span class="mbg">managed by <span class="grush-sig">grush</span></span></div>
+  <div class="wm">Lancer Farms<span class="mbg">managed by <a href="about-grush.html" class="grush-sig">grush</a></span></div>
 </div>
 
 <div id="hero">
   <div class="mark">L</div>
   <h1>Lancer Farms</h1>
-  <div class="sub"><span class="mbg" style="margin-top:2px">managed by <span class="grush-sig">grush</span></span></div>
+  <div class="sub"><span class="mbg" style="margin-top:2px">managed by <a href="about-grush.html" class="grush-sig">grush</a></span></div>
   <button class="role-btn role-staff" onclick="chooseRole('staff')">
     <span class="ic">&#127793;</span>
     <span>Staff<small>Log work, tasks &amp; supplies</small></span>
