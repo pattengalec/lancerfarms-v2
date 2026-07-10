@@ -228,6 +228,10 @@
   .pr-btn{flex:1;border:none;border-radius:12px;padding:13px;font-weight:600;font-size:15px;cursor:pointer;font-family:inherit;}
   .pr-btn.go{background:var(--green);color:var(--on-accent);}
   .pr-btn.cancel{background:transparent;color:var(--ink);border:1.5px solid var(--line-strong);}
+
+  .ph-filters{display:flex;gap:8px;margin:0 0 12px;}
+  .ph-filters select{flex:1;min-width:0;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:9px;font-size:14px;font-family:inherit;}
+  .photo-cell .cap b{color:var(--accent-2);font-weight:600;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
 </head>
@@ -374,6 +378,7 @@
       <div class="pad">
         <p class="screen-h">Farm album. Add a photo &mdash; it posts after review.</p>
         <input type="file" id="photo-file" accept="image/*" multiple style="display:none" onchange="reviewPhotos(this)">
+        <div id="photo-filters" class="ph-filters"></div>
         <div id="photo-grid"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
       </div>
     </section>
@@ -800,8 +805,13 @@ async function loadApprovals(){
   }
   if(photos.length){
     html+='<div class="approve-group">Photos</div>';
+    const _apSel='flex:1;min-width:0;font-size:13px;padding:6px;background:var(--paper);color:var(--ink);border:1px solid var(--line-strong);border-radius:6px';
     html+=photos.map(p=>(
-      '<div class="inv-row"><div class="inv-body"><img src="'+_escA(p.thumbnail_url||p.cloudinary_url)+'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;margin-right:10px;vertical-align:middle"><span class="inv-cat">'+_escA(p.caption||'(no caption)')+'</span></div>'+
+      '<div class="inv-row" style="align-items:flex-start"><div class="inv-body">'+
+        '<div style="display:flex;align-items:center;gap:8px"><img src="'+_escA(p.thumbnail_url||p.cloudinary_url)+'" style="width:44px;height:44px;border-radius:8px;object-fit:cover"><span class="inv-cat">'+_escA(p.caption||'(no caption)')+'</span></div>'+
+        '<div style="display:flex;gap:6px;margin-top:8px"><select class="ap-area" data-id="'+p.id+'" style="'+_apSel+'">'+areaOptionsHTML(p.area_id)+'</select>'+
+        '<select class="ap-type" data-id="'+p.id+'" style="'+_apSel+'">'+typeOptionsHTML(p.subject_type)+'</select></div>'+
+      '</div>'+
       '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'photo\',\''+p.id+'\')">&#10003;</button></div>'
     )).join('');
   }
@@ -811,7 +821,11 @@ async function approveItem(kind,id){
   let error;
   if(kind==='log'){ ({error}= await sb.from('lfg_log').update({approval_status:'approved'}).eq('id',id)); }
   else if(kind==='comment'){ ({error}= await sb.from('lfg_comments').update({status:'reviewed'}).eq('id',id)); }
-  else if(kind==='photo'){ ({error}= await sb.from('lfg_photos').update({approval_status:'approved'}).eq('id',id)); }
+  else if(kind==='photo'){
+    const _ar=document.querySelector('.ap-area[data-id="'+id+'"]'), _ty=document.querySelector('.ap-type[data-id="'+id+'"]');
+    const _upd={approval_status:'approved'}; if(_ar) _upd.area_id=_ar.value||null; if(_ty) _upd.subject_type=_ty.value||null;
+    ({error}= await sb.from('lfg_photos').update(_upd).eq('id',id));
+  }
   if(error){ toast('Failed'); return; }
   toast('Approved'); loadApprovals(); refreshApproveBadge();
 }
@@ -828,29 +842,52 @@ async function loadPhotos(){
   const el=document.getElementById('photo-grid');
   if(error){ el.innerHTML='<div class="empty">Could not load photos</div>'; return; }
   const isAdmin=document.body.classList.contains('is-admin');
-  const visible=(data||[]).filter(p=>isAdmin || p.approval_status==='approved');
-  if(!visible.length){ el.innerHTML='<div class="empty"><span class="ic">&#128247;</span>No photos yet. Add the first.</div>'; return; }
-  el.className='photo-grid';
-  el.innerHTML=visible.map(p=>(
-    '<div class="photo-cell'+(p.approval_status==='pending'?' pending':'')+'">'+
-    '<img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy">'+
-    (p.caption?'<div class="cap">'+esc(p.caption)+'</div>':'')+'</div>'
-  )).join('');
+  albumPhotos=(data||[]).filter(p=>isAdmin || p.approval_status==='approved');
+  if(!state.areas||!state.areas.length){ try{ const r=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null); state.areas=r.data||[]; }catch(e){} }
+  albumAreaMap={}; (state.areas||[]).forEach(function(a){ albumAreaMap[a.id]=a.name; });
+  buildAlbumFilters(); applyAlbumFilter();
+}
+let albumPhotos=[], albumAreaMap={};
+function _capW(x){ x=String(x||''); return x?x.charAt(0).toUpperCase()+x.slice(1):''; }
+function buildAlbumFilters(){
+  const fb=document.getElementById('photo-filters'); if(!fb) return;
+  let ao='<option value="">All areas</option><option value="__none__">General / whole farm</option>';
+  const g={}; (state.areas||[]).forEach(function(a){ const z=a.zone||'Other'; (g[z]=g[z]||[]).push(a); });
+  Object.keys(g).forEach(function(z){ ao+='<optgroup label="'+esc(z)+'">'; g[z].forEach(function(a){ ao+='<option value="'+a.id+'">'+esc(a.name)+'</option>'; }); ao+='</optgroup>'; });
+  fb.innerHTML='<select id="pf-area" onchange="applyAlbumFilter()">'+ao+'</select><select id="pf-type" onchange="applyAlbumFilter()"><option value="">All types</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option></select>';
+}
+function applyAlbumFilter(){
+  const fa=(document.getElementById('pf-area')||{}).value||'', ft=(document.getElementById('pf-type')||{}).value||'';
+  let list=albumPhotos;
+  if(fa==='__none__') list=list.filter(function(p){return !p.area_id;}); else if(fa) list=list.filter(function(p){return p.area_id===fa;});
+  if(ft) list=list.filter(function(p){return p.subject_type===ft;});
+  const el=document.getElementById('photo-grid'); el.className='photo-grid';
+  if(!list.length){ el.innerHTML='<div class="empty">No photos match.</div>'; return; }
+  el.innerHTML=list.map(function(p){
+    const area=p.area_id?(albumAreaMap[p.area_id]||''):'General';
+    const meta=[area, p.subject_type?_capW(p.subject_type):''].filter(Boolean).join(' · ');
+    const capLine=(meta||p.caption)?'<div class="cap">'+(meta?'<b>'+esc(meta)+'</b>':'')+(p.caption?(meta?'<br>':'')+esc(p.caption):'')+'</div>':'';
+    return '<div class="photo-cell'+(p.approval_status==='pending'?' pending':'')+'"><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy">'+capLine+'</div>';
+  }).join('');
 }
 let reviewFiles=[], reviewURLs=[];
-function areaOptionsHTML(){
-  let h='<option value="">General / whole farm</option>';
+function _selA(v,sel){ return (String(sel==null?'':sel)===String(v))?' selected':''; }
+function areaOptionsHTML(sel){
+  let h='<option value=""'+_selA('',sel)+'>General / whole farm</option>';
   const groups={};
   (state.areas||[]).forEach(function(a){ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
   Object.keys(groups).forEach(function(z){
     h+='<optgroup label="'+esc(z)+'">';
-    groups[z].forEach(function(a){ h+='<option value="'+a.id+'">'+esc(a.name)+'</option>'; });
+    groups[z].forEach(function(a){ h+='<option value="'+a.id+'"'+_selA(a.id,sel)+'>'+esc(a.name)+'</option>'; });
     h+='</optgroup>';
   });
   return h;
 }
-function typeOptionsHTML(){
-  return '<option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature (nonliving)</option>';
+function typeOptionsHTML(sel){
+  return '<option value=""'+_selA('',sel)+'>Type…</option>'+
+    '<option value="plant"'+_selA('plant',sel)+'>Plant</option>'+
+    '<option value="creature"'+_selA('creature',sel)+'>Creature</option>'+
+    '<option value="feature"'+_selA('feature',sel)+'>Feature (nonliving)</option>';
 }
 async function reviewPhotos(input){
   const files=input.files; if(!files||!files.length) return;
