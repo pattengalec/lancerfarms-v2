@@ -93,7 +93,7 @@ lancerfarms-v2/
 ## Backend — Supabase
 
 **Project:** `muecvqxsqnhkhjrabtxh` (Cottages Project, repurposed)  
-**URL:** `https://muecvqxsqnhkhjrabtxh.supabase.co`
+**URL:** `https://gblizuknnvguxyxfequh.supabase.co`
 
 ### Tables (all prefixed `lfg_`)
 
