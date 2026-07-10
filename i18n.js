@@ -21,7 +21,8 @@ window.I18N = {
       'share.intro':'Leave a note for the farm. Comments appear after a quick review.',
       'share.recent':'Recent notes',
       'ph.search':'Search plants…','ph.name':'Your name (optional)','ph.msg':'Your message…',
-      'loading.photos':'Loading photos…','loading.plants':'Loading plants…'
+      'loading.photos':'Loading photos…','loading.plants':'Loading plants…',
+      'ag.kicker':'a management platform for growing spaces','ag.lead':'grush turns the daily work of running a growing space — a garden, a farm, a controlled-environment grow — into something simple enough to use with dirt on your hands.','ag.body':'Tasks, plantings, harvests, inventory, and records become a tap-not-type system anyone on the ground can run. Over time, that daily work turns into real data: what was planted, when, where, and how it did.','ag.deployments':'Deployments','ag.deploy_desc':'Every place that runs grush is a deployment — branded as its own, running on the same engine underneath.','ag.deploy_card':'Lancer Farms is a live deployment of grush — a working teaching garden in Riverside, California.','ag.back':'Back to Lancer Farms'
     },
     es: {
       'role.staff':'Personal','role.staff_sub':'Registra trabajo, tareas e insumos',
@@ -41,7 +42,8 @@ window.I18N = {
       'share.intro':'Deja una nota para la granja. Los comentarios aparecen tras una revisión rápida.',
       'share.recent':'Notas recientes',
       'ph.search':'Buscar plantas…','ph.name':'Tu nombre (opcional)','ph.msg':'Tu mensaje…',
-      'loading.photos':'Cargando fotos…','loading.plants':'Cargando plantas…'
+      'loading.photos':'Cargando fotos…','loading.plants':'Cargando plantas…',
+      'ag.kicker':'una plataforma de gestión para espacios de cultivo','ag.lead':'grush convierte el trabajo diario de manejar un espacio de cultivo —un jardín, una granja, un cultivo en ambiente controlado— en algo lo bastante sencillo como para usarse con las manos en la tierra.','ag.body':'Tareas, siembras, cosechas, inventario y registros se vuelven un sistema de tocar, no escribir, que cualquiera puede usar en el campo. Con el tiempo, ese trabajo diario se convierte en datos reales: qué se sembró, cuándo, dónde y cómo resultó.','ag.deployments':'Implementaciones','ag.deploy_desc':'Cada lugar que usa grush es una implementación: con su propia marca, pero funcionando con el mismo motor por debajo.','ag.deploy_card':'Lancer Farms es una implementación activa de grush: un jardín-huerto educativo en Riverside, California.','ag.back':'Volver a Lancer Farms'
     },
     fr: {
       'role.staff':'Personnel','role.staff_sub':'Consigner travaux, tâches et fournitures',
@@ -61,7 +63,8 @@ window.I18N = {
       'share.intro':'Laissez un mot à la ferme. Les commentaires apparaissent après une brève vérification.',
       'share.recent':'Mots récents',
       'ph.search':'Rechercher des plantes…','ph.name':'Votre nom (facultatif)','ph.msg':'Votre message…',
-      'loading.photos':'Chargement des photos…','loading.plants':'Chargement des plantes…'
+      'loading.photos':'Chargement des photos…','loading.plants':'Chargement des plantes…',
+      'ag.kicker':'une plateforme de gestion pour les espaces de culture','ag.lead':'grush transforme le travail quotidien de gestion d’un espace de culture — un jardin, une ferme, une culture en milieu contrôlé — en quelque chose d’assez simple pour s’utiliser les mains dans la terre.','ag.body':'Tâches, semis, récoltes, inventaire et registres deviennent un système où l’on touche plutôt que l’on tape, utilisable par n’importe qui sur le terrain. Avec le temps, ce travail quotidien se transforme en données réelles : ce qui a été planté, quand, où et comment ça a poussé.','ag.deployments':'Déploiements','ag.deploy_desc':'Chaque endroit qui utilise grush est un déploiement — avec sa propre image de marque, mais fonctionnant sur le même moteur en dessous.','ag.deploy_card':'Lancer Farms est un déploiement actif de grush — un jardin pédagogique à Riverside, en Californie.','ag.back':'Retour à Lancer Farms'
     },
     pt: {
       'role.staff':'Equipe','role.staff_sub':'Registre trabalho, tarefas e insumos',
@@ -81,7 +84,8 @@ window.I18N = {
       'share.intro':'Deixe um recado para a fazenda. Os comentários aparecem após uma revisão rápida.',
       'share.recent':'Recados recentes',
       'ph.search':'Buscar plantas…','ph.name':'Seu nome (opcional)','ph.msg':'Sua mensagem…',
-      'loading.photos':'Carregando fotos…','loading.plants':'Carregando plantas…'
+      'loading.photos':'Carregando fotos…','loading.plants':'Carregando plantas…',
+      'ag.kicker':'uma plataforma de gestão para espaços de cultivo','ag.lead':'o grush transforma o trabalho diário de administrar um espaço de cultivo — uma horta, uma fazenda, um cultivo em ambiente controlado — em algo simples o bastante para usar com as mãos na terra.','ag.body':'Tarefas, plantios, colheitas, estoque e registros viram um sistema de tocar, não digitar, que qualquer pessoa no campo consegue usar. Com o tempo, esse trabalho diário se transforma em dados reais: o que foi plantado, quando, onde e como se saiu.','ag.deployments':'Implantações','ag.deploy_desc':'Todo lugar que usa o grush é uma implantação — com marca própria, mas rodando no mesmo motor por baixo.','ag.deploy_card':'A Lancer Farms é uma implantação ativa do grush — uma horta-escola em Riverside, Califórnia.','ag.back':'Voltar para a Lancer Farms'
     }
   }
 };
