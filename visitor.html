@@ -180,12 +180,13 @@
   .donate-note{font-size:12px; color:var(--ink-soft); line-height:1.45; margin-top:9px; text-align:center; padding:0 4px;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
+<script src="i18n.js"></script>
 </head>
 <body>
 
 <div id="scrim" onclick="closeMenu()"></div>
 <nav id="panel">
-  <div class="phead"><h2>Menu</h2><button class="iconbtn" onclick="closeMenu()">&times;</button></div>
+  <div class="phead"><h2 data-i18n="menu.title">Menu</h2><button class="iconbtn" onclick="closeMenu()">&times;</button></div>
   <button class="menu-item" onclick="location.href='/index.html'"><span class="ic">&#127968;</span> Home</button>
   <div class="menu-label">Explore</div>
   <button class="menu-item" onclick="show('see');closeMenu()"><span class="ic">&#128247;</span> See</button>
@@ -208,49 +209,49 @@
   <main>
     <!-- HUB -->
     <section class="screen active" id="screen-hub">
-      <p class="intro">Welcome. Wander the farm, learn what grows here, and plan your own.</p>
+      <p class="intro" data-i18n="hub.intro">Welcome. Wander the farm, learn what grows here, and plan your own.</p>
       <div class="hub-grid">
         <button class="tile see" onclick="show('see')">
           <span class="ic">&#128247;</span>
-          <span><span class="tname">See</span><span class="tsub">Photos from the farm</span></span>
+          <span><span class="tname" data-i18n="tile.see">See</span><span class="tsub" data-i18n="tile.see_sub">Photos from the farm</span></span>
         </button>
         <button class="tile learn" onclick="show('learn')">
           <span class="ic">&#127793;</span>
-          <span><span class="tname">Learn</span><span class="tsub">About the plants</span></span>
+          <span><span class="tname" data-i18n="tile.learn">Learn</span><span class="tsub" data-i18n="tile.learn_sub">About the plants</span></span>
         </button>
         <button class="tile do" onclick="show('do')">
           <span class="ic">&#9998;</span>
-          <span><span class="tname">Do</span><span class="tsub">Plan your grow</span></span>
+          <span><span class="tname" data-i18n="tile.do">Do</span><span class="tsub" data-i18n="tile.do_sub">Plan your grow</span></span>
         </button>
         <button class="tile share" onclick="show('share')">
           <span class="ic">&#128172;</span>
-          <span><span class="tname">Share</span><span class="tsub">Leave a note</span></span>
+          <span><span class="tname" data-i18n="tile.share">Share</span><span class="tsub" data-i18n="tile.share_sub">Leave a note</span></span>
         </button>
       </div>
       <div class="about-farm" style="margin-top:26px;padding:16px 18px;background:var(--mist);border:1px solid var(--card-border);border-radius:var(--radius,10px)">
-        <h3 style="margin:0 0 8px;font-family:var(--font-head);font-size:1.05rem;color:var(--ink)">About Lancer Farms</h3>
-        <p style="margin:0;font-size:.9rem;line-height:1.55;color:var(--ink-soft)">Lancer Farms is a working teaching garden located on the campus of California Baptist University in Riverside, California. This website and the tools within it are independently created and maintained &mdash; they are not an official product of, affiliated with, or endorsed by California Baptist University.</p>
+        <h3 style="margin:0 0 8px;font-family:var(--font-head);font-size:1.05rem;color:var(--ink)" data-i18n="about.title">About Lancer Farms</h3>
+        <p style="margin:0;font-size:.9rem;line-height:1.55;color:var(--ink-soft)" data-i18n="about.body">Lancer Farms is a working teaching garden located on the campus of California Baptist University in Riverside, California. This website and the tools within it are independently created and maintained &mdash; they are not an official product of, affiliated with, or endorsed by California Baptist University.</p>
       </div>
     </section>
 
     <!-- SEE -->
     <section class="screen" id="screen-see">
-      <button class="back" onclick="show('hub')">&#8592; Back</button>
-      <h2 style="margin-bottom:4px">See</h2>
-      <p class="intro">Photos from around the farm.</p>
-      <div id="see-grid"><div class="soon"><span class="ic">&#8987;</span><p>Loading photos&hellip;</p></div></div>
+      <button class="back" onclick="show('hub')">&#8592; <span data-i18n="back">Back</span></button>
+      <h2 style="margin-bottom:4px" data-i18n="tile.see">See</h2>
+      <p class="intro" data-i18n="see.intro">Photos from around the farm.</p>
+      <div id="see-grid"><div class="soon"><span class="ic">&#8987;</span><p data-i18n="loading.photos">Loading photos&hellip;</p></div></div>
     </section>
 
     <!-- LEARN -->
     <section class="screen" id="screen-learn">
       <!-- list sub-view -->
       <div id="learn-list-view">
-        <button class="back" onclick="show('hub')">&#8592; Back</button>
-        <h2 style="margin-bottom:4px">Learn</h2>
-        <p class="intro">Every plant growing on the farm &mdash; what it is, and how it grows.</p>
-        <input id="learn-search" class="learn-search" placeholder="Search plants&hellip;" autocomplete="off" oninput="renderPlantList()">
+        <button class="back" onclick="show('hub')">&#8592; <span data-i18n="back">Back</span></button>
+        <h2 style="margin-bottom:4px" data-i18n="tile.learn">Learn</h2>
+        <p class="intro" data-i18n="learn.intro">Every plant growing on the farm &mdash; what it is, and how it grows.</p>
+        <input id="learn-search" class="learn-search" placeholder="Search plants&hellip;" data-i18n-ph="ph.search" autocomplete="off" oninput="renderPlantList()">
         <div class="cat-chips" id="learn-chips"></div>
-        <div id="learn-list"><div class="learn-empty">Loading plants&hellip;</div></div>
+        <div id="learn-list"><div class="learn-empty" data-i18n="loading.plants">Loading plants&hellip;</div></div>
       </div>
       <!-- detail sub-view -->
       <div id="learn-detail-view" style="display:none"></div>
@@ -259,28 +260,28 @@
     <!-- DO -->
     <section class="screen" id="screen-do">
       <div id="do-list-view">
-        <button class="back" onclick="show('hub')">&#8592; Back</button>
-        <h2 style="margin-bottom:4px">Do</h2>
-        <p class="intro">Pick a plant and get a grow plan &mdash; the numbers worked out for your space.</p>
-        <input id="do-search" class="learn-search" placeholder="Search plants&hellip;" autocomplete="off" oninput="renderDoList()">
+        <button class="back" onclick="show('hub')">&#8592; <span data-i18n="back">Back</span></button>
+        <h2 style="margin-bottom:4px" data-i18n="tile.do">Do</h2>
+        <p class="intro" data-i18n="do.intro">Pick a plant and get a grow plan &mdash; the numbers worked out for your space.</p>
+        <input id="do-search" class="learn-search" placeholder="Search plants&hellip;" data-i18n-ph="ph.search" autocomplete="off" oninput="renderDoList()">
         <div class="cat-chips" id="do-chips"></div>
-        <div id="do-list"><div class="learn-empty">Loading plants&hellip;</div></div>
+        <div id="do-list"><div class="learn-empty" data-i18n="loading.plants">Loading plants&hellip;</div></div>
       </div>
       <div id="do-detail-view" style="display:none"></div>
     </section>
 
     <!-- SHARE -->
     <section class="screen" id="screen-share">
-      <button class="back" onclick="show('hub')">&#8592; Back</button>
-      <h2 style="margin-bottom:4px">Share</h2>
-      <p class="intro">Leave a note for the farm. Comments appear after a quick review.</p>
+      <button class="back" onclick="show('hub')">&#8592; <span data-i18n="back">Back</span></button>
+      <h2 style="margin-bottom:4px" data-i18n="tile.share">Share</h2>
+      <p class="intro" data-i18n="share.intro">Leave a note for the farm. Comments appear after a quick review.</p>
       <div class="cform">
-        <input id="c-name" class="c-in" placeholder="Your name (optional)" autocomplete="off">
-        <textarea id="c-msg" class="c-in c-area" placeholder="Your message&hellip;"></textarea>
+        <input id="c-name" class="c-in" placeholder="Your name (optional)" data-i18n-ph="ph.name" autocomplete="off">
+        <textarea id="c-msg" class="c-in c-area" placeholder="Your message&hellip;" data-i18n-ph="ph.msg"></textarea>
         <button class="c-send" id="c-send" onclick="submitComment()">Send</button>
       </div>
       <div id="c-donate" style="display:none"></div>
-      <h3 style="font-size:16px; margin:24px 0 10px">Recent notes</h3>
+      <h3 style="font-size:16px; margin:24px 0 10px" data-i18n="share.recent">Recent notes</h3>
       <div id="c-list"><div class="soon" style="padding:24px"><span class="ic">&#8987;</span><p>Loading&hellip;</p></div></div>
     </section>
   </main>
@@ -297,7 +298,8 @@ var TITLES={hub:'Lancer Farms',see:'See',learn:'Learn',do:'Do',share:'Share'};
 function show(scr){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
   var el=document.getElementById('screen-'+scr); if(el) el.classList.add('active');
-  document.getElementById('bar-title').textContent=TITLES[scr]||'Lancer Farms';
+  window.curScreen=scr;
+  document.getElementById('bar-title').textContent=(scr==='hub'?'Lancer Farms':t('tile.'+scr))||'Lancer Farms';
   document.querySelector('main').scrollTop=0;
   if(scr==='see') loadPhotos();
   if(scr==='share'){ loadComments(); loadDonation(); }
@@ -382,7 +384,7 @@ async function openLearn(){
 function showLearnList(){
   document.getElementById('learn-detail-view').style.display='none';
   document.getElementById('learn-list-view').style.display='block';
-  document.getElementById('bar-title').textContent='Learn';
+  document.getElementById('bar-title').textContent=t('tile.learn');
   document.querySelector('main').scrollTop=0;
 }
 function renderChips(data){
@@ -437,7 +439,7 @@ function openPlant(id){
              factRow('Best temp',p.optimum_temp_range)+
              factRow('Cold handling',p.cold_handling);
   var html =
-    '<button class="back" onclick="showLearnList()">&#8592; All plants</button>'+
+    '<button class="back" onclick="showLearnList()">&#8592; '+t('back.allplants')+'</button>'+
     '<div class="pd-hero">'+hero+'</div>'+
     '<h2 class="pd-title">'+esc(p.plant_name)+'</h2>'+
     (p.common_name && p.common_name!==p.plant_name ? '<div class="pd-common">'+esc(p.common_name)+'</div>' : '')+
@@ -473,7 +475,7 @@ async function openDo(){
 function showDoList(){
   document.getElementById('do-detail-view').style.display='none';
   document.getElementById('do-list-view').style.display='block';
-  document.getElementById('bar-title').textContent='Do';
+  document.getElementById('bar-title').textContent=t('tile.do');
   document.querySelector('main').scrollTop=0;
 }
 function renderDoChips(data){
@@ -532,7 +534,7 @@ function annualPlan(p){
       '<div><div class="sl">'+esc(s.label)+'</div></div></div>';
   }).join('');
   return ''+
-  '<button class="back" onclick="showDoList()">&#8592; All plants</button>'+
+  '<button class="back" onclick="showDoList()">&#8592; '+t('back.allplants')+'</button>'+
   '<div class="grow-plan-head"><h2 class="pd-title">'+esc(p.plant_name)+'</h2>'+
     '<span class="gp-type">Annual \u00b7 grow plan</span></div>'+
   '<p class="calc-note" style="margin-top:8px">Enter your bed size once \u2014 the calculators below all update. Nothing is saved; this is just for planning.</p>'+
@@ -623,7 +625,7 @@ function perennialPlan(p){
            doFact('Soil / media',p.growth_media)+doFact('Watering',p.watering_plans)+
            doFact('Best temp',p.optimum_temp_range)+doFact('Cold handling',p.cold_handling);
   return ''+
-  '<button class="back" onclick="showDoList()">&#8592; All plants</button>'+
+  '<button class="back" onclick="showDoList()">&#8592; '+t('back.allplants')+'</button>'+
   '<div class="grow-plan-head"><h2 class="pd-title">'+esc(p.plant_name)+'</h2>'+
     '<span class="gp-type peren">Perennial \u00b7 seasonal cycle</span></div>'+
   '<p class="calc-note" style="margin-top:8px">A '+esc(p.plant_name.toLowerCase())+' grows over years, not one season \u2014 so here\u2019s its yearly cycle and when it bears, instead of a from-seed countdown.</p>'+
@@ -653,15 +655,21 @@ function sharePlan(){
   else { window.print(); }
 }
 
-var LANGS=['en','es','pt'], LNAMES={en:'English',es:'Espa\u00f1ol',pt:'Portugu\u00eas'}, LSHORT={en:'EN',es:'ES',pt:'PT'};
+var LANGS=['en','es','fr','pt'], LNAMES={en:'English',es:'Espa\u00f1ol',fr:'Français',pt:'Portugu\u00eas'}, LSHORT={en:'EN',es:'ES',fr:'FR',pt:'PT'};
 function applyLangLabels(){
   var l=localStorage.getItem('lfg_lang')||'en';
   document.getElementById('menu-lang').textContent=LNAMES[l];
   document.getElementById('lang-mini').textContent=LSHORT[l];
+  if(typeof applyI18n==='function') applyI18n(l);
+  refreshBarTitle();
+}
+function refreshBarTitle(){
+  var scr=window.curScreen; if(!scr) return;
+  document.getElementById('bar-title').textContent=(scr==='hub'?'Lancer Farms':t('tile.'+scr))||'Lancer Farms';
 }
 function cycleLang(){
   var l=localStorage.getItem('lfg_lang')||'en';
-  var next=LANGS[(LANGS.indexOf(l)+1)%3];
+  var next=LANGS[(LANGS.indexOf(l)+1)%LANGS.length];
   localStorage.setItem('lfg_lang',next); applyLangLabels();
 }
 window.addEventListener('load', applyLangLabels);
