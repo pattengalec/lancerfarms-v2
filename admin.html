@@ -148,6 +148,13 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 .comp-row { background:var(--surface); border:var(--border-w) solid var(--card-border); border-radius:6px; padding:10px 14px; font-size:0.8rem; display:flex; justify-content:space-between; gap:8px; }
 .comp-row .comp-who { font-weight:600; color:var(--ink); }
 .comp-row .comp-when { font-family:'Courier Prime',monospace; color:var(--ink-soft); opacity:0.75; font-size:0.7rem; }
+
+.rv-card{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line,#dcdcdc);border-radius:10px;margin-bottom:10px;background:var(--card,#fff);}
+.rv-thumb{width:72px;height:72px;border-radius:8px;object-fit:cover;flex:0 0 auto;}
+.rv-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+.rv-selects{display:flex;gap:6px;}
+.rv-card input,.rv-card select{width:100%;min-width:0;padding:7px;border:1px solid var(--line,#ccc);border-radius:6px;font-size:13px;background:var(--bg,#fff);color:var(--ink,#111);font-family:inherit;}
+.rv-actions{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
 </head>
@@ -185,7 +192,8 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
         </div>
       </div>
       <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
+        <button class="tab-btn active" onclick="switchTab('review',this);loadReview()">Review <span class="badge" id="review-count" style="display:none"></span></button>
+        <button class="tab-btn" onclick="switchTab('dashboard',this)">Dashboard</button>
         <button class="tab-btn" onclick="switchTab('tasks',this)">Tasks</button>
         <button class="tab-btn" onclick="switchTab('areas',this)">Areas</button>
         <button class="tab-btn" onclick="switchTab('inventory',this)">Inventory</button>
@@ -198,7 +206,12 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
     </div>
 
     <!-- ══ DASHBOARD ══ -->
-    <div class="tab-panel active" id="tab-dashboard">
+    <div class="tab-panel active" id="tab-review">
+      <div class="section-label">Review queue</div>
+      <div class="data-list" id="review-list"><div class="empty-state"><span class="spinner"></span> Loading…</div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-dashboard">
       <div class="stat-grid" id="stat-grid">
         <div class="stat-card" onclick="switchTab('tasks',document.querySelectorAll('.tab-btn')[1])">
           <div class="stat-num" id="stat-tasks">—</div>
@@ -783,6 +796,7 @@ window.switchTab = function(name, btn) {
 async function loadAll() {
   updateModeIcon();
   await populateAreaDropdowns();
+  loadReview();
   loadDashboard();
   loadDonationsSettings();
   loadTasks();
@@ -1329,6 +1343,70 @@ window.doResolveReport = async function(id) {
     loadDashboard();
   } catch(e) { showToast('Could not resolve'); }
 };
+
+let reviewAreas=[];
+function escAttr(s){ return esc(s).replace(/"/g,'&quot;'); }
+function reviewAreaOptions(sel){
+  let h='<option value="">General / whole farm</option>';
+  const g={}; (reviewAreas||[]).forEach(function(a){ const z=a.zone||'Other'; (g[z]=g[z]||[]).push(a); });
+  Object.keys(g).forEach(function(z){ h+='<optgroup label="'+esc(z)+'">'; g[z].forEach(function(a){ h+='<option value="'+esc(a.id)+'"'+(String(sel||'')===String(a.id)?' selected':'')+'>'+esc(a.name)+'</option>'; }); h+='</optgroup>'; });
+  return h;
+}
+function reviewTypeOptions(sel){
+  const T=[['','Type…'],['plant','Plant'],['creature','Creature'],['feature','Feature'],['selfie','Selfie']];
+  return T.map(function(t){ return '<option value="'+t[0]+'"'+(String(sel||'')===t[0]?' selected':'')+'>'+t[1]+'</option>'; }).join('');
+}
+function reviewPhotoCard(p){
+  return '<div class="rv-card" data-pid="'+escAttr(p.id)+'"><img class="rv-thumb" src="'+escAttr(p.thumbnail_url||p.cloudinary_url)+'"><div class="rv-main"><input class="rv-cap" value="'+escAttr(p.caption||'')+'" placeholder="Caption"><div class="rv-selects"><select class="rv-area">'+reviewAreaOptions(p.area_id)+'</select><select class="rv-type">'+reviewTypeOptions(p.subject_type)+'</select></div></div><div class="rv-actions"><button class="btn btn-primary btn-sm" data-kind="photo" data-act="approve" data-id="'+escAttr(p.id)+'">Approve</button><button class="btn btn-ghost btn-sm" data-kind="photo" data-act="save" data-id="'+escAttr(p.id)+'">Save</button><button class="btn btn-ghost btn-sm" data-kind="photo" data-act="delete" data-id="'+escAttr(p.id)+'">Delete</button></div></div>';
+}
+function reviewSimpleCard(kind,id,title,body){
+  return '<div class="rv-card"><div class="rv-main"><b>'+esc(title)+'</b><div>'+esc(body)+'</div></div><div class="rv-actions"><button class="btn btn-primary btn-sm" data-kind="'+kind+'" data-act="approve" data-id="'+escAttr(id)+'">Approve</button><button class="btn btn-ghost btn-sm" data-kind="'+kind+'" data-act="delete" data-id="'+escAttr(id)+'">Delete</button></div></div>';
+}
+async function loadReview(){
+  const el=document.getElementById('review-list'); if(!el) return;
+  if(!el._wired){ el._wired=1; el.addEventListener('click', reviewClick); }
+  let photos=[], notes=[], logs=[], areas=[];
+  try{
+    const r=await Promise.all([
+      sbGet('lfg_photos','approval_status=eq.pending&order=uploaded_at.desc'),
+      sbGet('lfg_comments','status=eq.new&order=submitted_at.desc'),
+      sbGet('lfg_log','approval_status=eq.pending&order=logged_at.desc'),
+      sbGet('lfg_growing_areas','select=id,name,zone&archived_at=is.null&order=zone')
+    ]);
+    photos=r[0]||[]; notes=r[1]||[]; logs=r[2]||[]; areas=r[3]||[];
+  }catch(e){ el.innerHTML='<div class="empty-state">Could not load review queue</div>'; return; }
+  reviewAreas=areas;
+  const total=photos.length+notes.length+logs.length;
+  const badge=document.getElementById('review-count'); if(badge){ badge.textContent=total||''; badge.style.display=total?'inline-flex':'none'; }
+  if(!total){ el.innerHTML='<div class="empty-state">✅ Nothing waiting — all caught up.</div>'; return; }
+  let html='';
+  if(photos.length){ html+='<div class="section-label">Photos ('+photos.length+')</div>'+photos.map(reviewPhotoCard).join(''); }
+  if(notes.length){ html+='<div class="section-label">Visitor notes ('+notes.length+')</div>'+notes.map(function(c){ return reviewSimpleCard('comment',c.id,c.commenter_name||'Visitor',c.message||''); }).join(''); }
+  if(logs.length){ html+='<div class="section-label">Field logs ('+logs.length+')</div>'+logs.map(function(x){ return reviewSimpleCard('log',x.id,x.location_label||'—',(x.note||'')+' · '+(x.submitted_by||'?')); }).join(''); }
+  el.innerHTML=html;
+}
+function _rvPhotoFields(id){
+  const card=document.querySelector('.rv-card[data-pid="'+id+'"]'); if(!card) return null;
+  return { caption:(card.querySelector('.rv-cap').value.trim()||null), area_id:(card.querySelector('.rv-area').value||null), subject_type:(card.querySelector('.rv-type').value||null) };
+}
+async function reviewClick(e){
+  const b=e.target.closest('button[data-act]'); if(!b) return;
+  const act=b.getAttribute('data-act'), kind=b.getAttribute('data-kind'), id=b.getAttribute('data-id');
+  try{
+    if(kind==='photo'){
+      if(act==='save'){ const f=_rvPhotoFields(id); if(!f) return; await sbPatch('lfg_photos',{id},f); showToast('Saved'); return; }
+      if(act==='approve'){ const f=_rvPhotoFields(id)||{}; f.approval_status='approved'; await sbPatch('lfg_photos',{id},f); showToast('Approved'); }
+      if(act==='delete'){ if(!confirm('Delete this photo permanently?')) return; await sbDelete('lfg_photos',{id}); showToast('Deleted'); }
+    } else if(kind==='comment'){
+      if(act==='approve'){ await sbPatch('lfg_comments',{id},{status:'reviewed'}); showToast('Approved'); }
+      if(act==='delete'){ if(!confirm('Delete this note?')) return; await sbDelete('lfg_comments',{id}); showToast('Deleted'); }
+    } else if(kind==='log'){
+      if(act==='approve'){ await sbPatch('lfg_log',{id},{approval_status:'approved'}); showToast('Approved'); }
+      if(act==='delete'){ if(!confirm('Delete this log?')) return; await sbDelete('lfg_log',{id}); showToast('Deleted'); }
+    }
+    loadReview();
+  }catch(x){ showToast('Action failed'); }
+}
 
 async function loadReports() {
   const box = document.getElementById('reports-list');
