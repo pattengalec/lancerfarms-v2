@@ -468,6 +468,22 @@ window.addEventListener('load', ()=>{
   const lang = localStorage.getItem('lfg_lang') || null;
   const role = localStorage.getItem('lfg_role') || null;
   if(localStorage.getItem('lfg_admin')==='1') document.body.classList.add('is-admin');
+  (function(){
+    var t=document.getElementById('bar-title'); if(!t) return;
+    var taps=0, timer=null;
+    t.addEventListener('click', function(){
+      taps++; clearTimeout(timer); timer=setTimeout(function(){ taps=0; }, 1500);
+      if(taps<5) return;
+      taps=0; clearTimeout(timer);
+      if(document.body.classList.contains('is-admin')){
+        if(confirm('Turn off admin mode on this device?')){ localStorage.removeItem('lfg_admin'); document.body.classList.remove('is-admin'); toast('Admin mode off'); }
+      } else {
+        var pin=prompt('Enter admin PIN'); if(pin===null) return;
+        if(pin==='242301'){ localStorage.setItem('lfg_admin','1'); document.body.classList.add('is-admin'); if(typeof refreshApproveBadge==='function') refreshApproveBadge(); toast('Admin mode on — open the menu for Approval queue'); }
+        else toast('Wrong PIN');
+      }
+    });
+  })();
   setTimeout(()=>{
     document.getElementById('splash').classList.add('gone');
     if(role==='staff'){ enterStaff(); }
@@ -854,7 +870,7 @@ function buildAlbumFilters(){
   let ao='<option value="">All areas</option><option value="__none__">General / whole farm</option>';
   const g={}; (state.areas||[]).forEach(function(a){ const z=a.zone||'Other'; (g[z]=g[z]||[]).push(a); });
   Object.keys(g).forEach(function(z){ ao+='<optgroup label="'+esc(z)+'">'; g[z].forEach(function(a){ ao+='<option value="'+a.id+'">'+esc(a.name)+'</option>'; }); ao+='</optgroup>'; });
-  fb.innerHTML='<select id="pf-area" onchange="applyAlbumFilter()">'+ao+'</select><select id="pf-type" onchange="applyAlbumFilter()"><option value="">All types</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option></select>';
+  fb.innerHTML='<select id="pf-area" onchange="applyAlbumFilter()">'+ao+'</select><select id="pf-type" onchange="applyAlbumFilter()"><option value="">All types</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select>';
 }
 function applyAlbumFilter(){
   const fa=(document.getElementById('pf-area')||{}).value||'', ft=(document.getElementById('pf-type')||{}).value||'';
@@ -887,7 +903,8 @@ function typeOptionsHTML(sel){
   return '<option value=""'+_selA('',sel)+'>Type…</option>'+
     '<option value="plant"'+_selA('plant',sel)+'>Plant</option>'+
     '<option value="creature"'+_selA('creature',sel)+'>Creature</option>'+
-    '<option value="feature"'+_selA('feature',sel)+'>Feature (nonliving)</option>';
+    '<option value="feature"'+_selA('feature',sel)+'>Feature (nonliving)</option>'+
+    '<option value="selfie"'+_selA('selfie',sel)+'>Selfie</option>';
 }
 async function reviewPhotos(input){
   const files=input.files; if(!files||!files.length) return;
@@ -949,7 +966,7 @@ async function uploadReviewed(){
   toast(msg); loadPhotos();
 }
 </script>
-<div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
+<div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
 </body>
 </html>
