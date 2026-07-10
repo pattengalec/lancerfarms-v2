@@ -1,1 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>grush — what it is</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --graphite:#23262B; --graphite-2:#2A2E33; --bone:#F0EDE6;
+    --oxblood:#C34044; --gold:#B4A71D; --steel:#A6ADB4; --moss:#7E9A6E;
+    --line:#3A3D43;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0;}
+  body{background:var(--graphite); color:var(--bone);
+    font-family:'Source Sans 3',system-ui,sans-serif; line-height:1.65;
+    -webkit-font-smoothing:antialiased; padding:26px 22px 64px;}
+  .wrap{max-width:600px; margin:0 auto;}
+  .back{display:inline-block; margin-bottom:36px; font-size:15px; font-weight:600;
+    color:var(--moss); text-decoration:none;}
+  .back:hover{text-decoration:underline; text-underline-offset:2px;}
+  .hero{text-align:center; margin:16px 0 6px;}
+  .hero svg{width:min(340px,82vw); height:auto;}
+  .kicker{text-align:center; font-family:Georgia,serif; font-style:italic;
+    color:var(--steel); font-size:16px; margin:0 0 46px;}
+  h2{font-family:Georgia,serif; font-weight:600; font-size:13px; letter-spacing:3px;
+    text-transform:uppercase; color:var(--gold); margin:42px 0 12px;}
+  p{font-size:17px; margin:0 0 18px; color:#E4E0D6;}
+  .lead{font-size:19px; color:var(--bone);}
+  .deploy{margin-top:22px; padding:20px 22px; border:1px solid var(--line);
+    border-radius:12px; background:var(--graphite-2);}
+  .deploy strong{color:var(--bone);}
+  .deploy a{color:var(--moss); font-weight:600; text-decoration:underline; text-underline-offset:2px;}
+  .foot{margin-top:50px; padding-top:20px; border-top:1px solid var(--line);
+    text-align:center; font-size:13px; color:#8a8f96;}
+  .foot a{color:#8a8f96;}
+</style>
+</head>
+<body>
+<div class="wrap">
 
+  <a class="back" href="index.html">&#8592;&nbsp;Lancer Farms</a>
+
+  <div class="hero">
+    <svg viewBox="0 0 360 150" role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>grush</title>
+      <desc>The grush signature in oxblood with a gold inner and steel outer keyline.</desc>
+      <defs><linearGradient id="stl" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FBFCFD"/><stop offset="0.3" stop-color="#D2D7DC"/>
+        <stop offset="0.5" stop-color="#A6ADB4"/><stop offset="0.54" stop-color="#868D95"/>
+        <stop offset="0.8" stop-color="#C6CCD2"/><stop offset="1" stop-color="#7A818A"/>
+      </linearGradient></defs>
+      <g transform="rotate(-9 180 92)">
+        <path d="M104 112 C 152 122, 218 120, 258 109 C 218 126, 152 128, 104 116 Z"
+          fill="#C34044" stroke="url(#stl)" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round"/>
+        <path d="M108 122 C 152 128, 214 126, 252 117" fill="none" stroke="url(#stl)"
+          stroke-width="1.6" stroke-linecap="round"/>
+        <text x="180" y="94" text-anchor="middle" font-family="'Yellowtail',cursive" font-size="68"
+          fill="none" stroke="url(#stl)" stroke-width="6.5" stroke-linejoin="round">grush</text>
+        <text x="180" y="94" text-anchor="middle" font-family="'Yellowtail',cursive" font-size="68"
+          fill="#C34044" stroke="#B4A71D" stroke-width="3.6" paint-order="stroke" stroke-linejoin="round">grush</text>
+      </g>
+    </svg>
+  </div>
+
+  <p class="kicker">a management platform for growing spaces</p>
+
+  <p class="lead">grush turns the daily work of running a growing space &mdash; a garden, a farm, a controlled-environment grow &mdash; into something simple enough to use with dirt on your hands.</p>
+
+  <p>Tasks, plantings, harvests, inventory, and records become a tap-not-type system anyone on the ground can run. Over time, that daily work turns into real data: what was planted, when, where, and how it did.</p>
+
+  <h2>Deployments</h2>
+  <p>Every place that runs grush is a deployment &mdash; branded as its own, running on the same engine underneath.</p>
+
+  <div class="deploy">
+    <strong>Lancer Farms</strong> is a live deployment of grush &mdash; a working teaching garden in Riverside, California.
+    <div style="margin-top:10px"><a href="index.html">&#8592;&nbsp;Back to Lancer Farms</a></div>
+  </div>
+
+  <div class="foot">grush &middot; <a href="https://getgrush.com">Grush Ventures</a></div>
+
+</div>
+</body>
+</html>
