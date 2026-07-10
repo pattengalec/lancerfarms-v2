@@ -63,6 +63,7 @@
   #splash .grush-sig{color:#C34044;}
   #hero .grush-sig{color:#C34044;}
 </style>
+<script src="i18n.js"></script>
 </head>
 <body>
 
@@ -77,18 +78,19 @@
   <div class="sub"><span class="mbg" style="margin-top:2px">managed by <a href="about-grush.html" class="grush-sig">grush</a></span></div>
   <button class="role-btn role-staff" onclick="chooseRole('staff')">
     <span class="ic">&#127793;</span>
-    <span>Staff<small>Log work, tasks &amp; supplies</small></span>
+    <span><span data-i18n="role.staff">Staff</span><small data-i18n="role.staff_sub">Log work, tasks &amp; supplies</small></span>
   </button>
   <button class="role-btn role-visitor" onclick="chooseRole('visitor')">
     <span class="ic">&#128065;</span>
-    <span>Visitor<small>Explore the farm</small></span>
+    <span><span data-i18n="role.visitor">Visitor</span><small data-i18n="role.visitor_sub">Explore the farm</small></span>
   </button>
   <div class="langrow">
     <button class="lang-pill" data-lang="en" onclick="setLang('en',this)">English</button>
     <button class="lang-pill" data-lang="es" onclick="setLang('es',this)">Espa&ntilde;ol</button>
+    <button class="lang-pill" data-lang="fr" onclick="setLang('fr',this)">Fran&ccedil;ais</button>
     <button class="lang-pill" data-lang="pt" onclick="setLang('pt',this)">Portugu&ecirc;s</button>
   </div>
-  <div class="tiny">Tap to choose &mdash; we&rsquo;ll remember next time.</div>
+  <div class="tiny" data-i18n="role.tiny">Tap to choose &mdash; we&rsquo;ll remember next time.</div>
 </div>
 
 <script>
@@ -98,6 +100,7 @@ window.addEventListener('load', function(){
   var lang = localStorage.getItem('lfg_lang') || 'en';
   var pill = document.querySelector('.lang-pill[data-lang="'+lang+'"]');
   if(pill) pill.classList.add('on');
+  if(typeof applyI18n==='function') applyI18n(lang);
 
   setTimeout(function(){
     document.getElementById('splash').classList.add('gone');
@@ -109,6 +112,7 @@ function setLang(l, el){
   localStorage.setItem('lfg_lang', l);
   document.querySelectorAll('.lang-pill').forEach(function(p){ p.classList.remove('on'); });
   if(el) el.classList.add('on');
+  if(typeof applyI18n==='function') applyI18n(l);
 }
 
 function chooseRole(r){
