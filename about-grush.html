@@ -84,20 +84,10 @@
     <div style="margin-top:10px"><a href="index.html">&#8592;&nbsp;<span data-i18n="ag.back">Back to Lancer Farms</span></a></div>
   </div>
 
-  <div class="ag-lang">
-    <button data-lang="en" onclick="agLang('en')">EN</button>
-    <button data-lang="es" onclick="agLang('es')">ES</button>
-    <button data-lang="fr" onclick="agLang('fr')">FR</button>
-    <button data-lang="pt" onclick="agLang('pt')">PT</button>
-  </div>
+  <div style="text-align:center;margin-top:46px"><span data-lang-switch></span></div>
 
   <div class="foot">grush &middot; <a href="https://getgrush.com">Grush Ventures</a></div>
 
 </div>
-<script>
-function agLang(l){ if(typeof applyI18n==='function') applyI18n(l); markLang(l); }
-function markLang(l){ document.querySelectorAll('.ag-lang button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-lang')===l); }); }
-window.addEventListener('load', function(){ var l=localStorage.getItem('lfg_lang')||'en'; if(typeof applyI18n==='function') applyI18n(l); markLang(l); });
-</script>
 </body>
 </html>

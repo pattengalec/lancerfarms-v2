@@ -105,3 +105,44 @@ function applyI18n(lang){
     var v = t(el.getAttribute('data-i18n-ph')); if(v != null) el.setAttribute('placeholder', v);
   });
 }
+
+/* ---- Unified language switcher (shared across all pages) ---- */
+function paintSwitches(l){
+  document.querySelectorAll('.lang-switch button').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-l')===l);
+  });
+}
+function setSiteLang(l){
+  applyI18n(l); paintSwitches(l);
+  if(typeof window.onLangChange==='function'){ try{ window.onLangChange(l); }catch(e){} }
+}
+function buildSwitches(){
+  var cur=localStorage.getItem('lfg_lang')||'en';
+  var codes={en:'EN',es:'ES',fr:'FR',pt:'PT'};
+  document.querySelectorAll('[data-lang-switch]').forEach(function(box){
+    if(box.getAttribute('data-built')) return;
+    box.setAttribute('data-built','1');
+    box.classList.add('lang-switch');
+    window.I18N.langs.forEach(function(l){
+      var b=document.createElement('button');
+      b.type='button'; b.textContent=codes[l]||l.toUpperCase();
+      b.setAttribute('data-l',l);
+      if(l===cur) b.classList.add('on');
+      b.addEventListener('click', function(){ setSiteLang(l); });
+      box.appendChild(b);
+    });
+  });
+}
+function injectSwitchCSS(){
+  if(document.getElementById('lang-switch-css')) return;
+  var st=document.createElement('style'); st.id='lang-switch-css';
+  st.textContent='.lang-switch{display:inline-flex;gap:2px;background:rgba(255,255,255,.06);border-radius:999px;padding:3px;vertical-align:middle;}'
+    +'.lang-switch button{border:0;background:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;letter-spacing:.3px;color:#9a978d;padding:5px 9px;border-radius:999px;line-height:1;transition:color .15s,background .15s;}'
+    +'.lang-switch button:hover{color:#F0EDE6;}'
+    +'.lang-switch button.on{background:rgba(255,255,255,.13);color:#F0EDE6;}';
+  document.head.appendChild(st);
+}
+document.addEventListener('DOMContentLoaded', function(){
+  injectSwitchCSS(); buildSwitches();
+  setSiteLang(localStorage.getItem('lfg_lang')||'en');
+});
