@@ -113,6 +113,9 @@
   .do-share{display:block; width:100%; text-align:center; background:var(--green); color:#fff; border:none;
     border-radius:14px; padding:14px; font-weight:600; font-size:16px; margin:18px 0 4px;}
   .do-share:active{background:var(--green-d);}
+  .do-actions{display:flex; gap:10px; margin:18px 0 4px;}
+  .do-actions .do-share{margin:0; flex:1;}
+  .do-share.alt{background:transparent; color:var(--green); border:1.5px solid var(--green);}
 
   /* ---------- LEARN: knowledge base ---------- */
   .learn-search{width:100%; border:1.5px solid var(--line-strong); border-radius:14px; padding:12px 15px;
@@ -571,7 +574,7 @@ function annualPlan(p){
     '<div class="calc-out" id="do-out-harvest"></div>'+
     (tl?'<div class="tl" style="margin-top:12px">'+tl+'</div>':'')+
   '</div>'+
-  '<button class="do-share" onclick="sharePlan()">Share / save this plan</button>';
+  '<div class="do-actions"><button class="do-share" onclick="printPlan()">Download / Print PDF</button><button class="do-share alt" onclick="sharePlan()">Share</button></div>';
 }
 function num(id){ var v=parseFloat((document.getElementById(id)||{}).value); return isNaN(v)?0:v; }
 function recomputeAnnual(){
@@ -633,7 +636,7 @@ function perennialPlan(p){
   '<div class="calc-card"><div class="calc-h"><span class="ic">\uD83D\uDD01</span>Yearly cycle</div><div class="tl">'+strip+'</div></div>'+
   '<div class="calc-card"><div class="calc-h"><span class="ic">\uD83C\uDF31</span>Care at a glance</div>'+
     '<div class="fact-group" style="margin-top:0">'+care+'</div></div>'+
-  '<button class="do-share" onclick="sharePlan()">Share / save this plan</button>';
+  '<div class="do-actions"><button class="do-share" onclick="printPlan()">Download / Print PDF</button><button class="do-share alt" onclick="sharePlan()">Share</button></div>';
 }
 function doFact(k,v){ return v ? '<div class="fact"><span class="k">'+esc(k)+'</span><span class="v">'+esc(v)+'</span></div>' : ''; }
 
@@ -649,10 +652,47 @@ function sharePlan(){
     lines.push('Plant during: '+(p.planting_windows||''));
     lines.push('Water: '+(p.watering_plans||''));
   }
-  lines.push('\u2014 Lancer Farms & Gardens');
+  lines.push('\u2014 Lancer Farms · managed by grush');
   var text=lines.join('\n');
   if(navigator.share){ navigator.share({title:p.plant_name+' grow plan', text:text}).catch(function(){}); }
   else { window.print(); }
+}
+
+/* ---------- Download / Print PDF: captures the fully computed plan ---------- */
+function printPlan(){
+  var p=doPlant; if(!p) return;
+  var perennial=(p.days_to_maturity==null);
+  function txt(id){ var e=document.getElementById(id); return e?e.textContent.trim():''; }
+  function val(id){ var e=document.getElementById(id); return e?(e.value||''):''; }
+  var rows=[];
+  if(!perennial){
+    rows.push(['Your bed', val('do-L')+' ft × '+val('do-W')+' ft, '+val('do-D')+' in deep']);
+    if(txt('do-out-space')) rows.push(['Spacing & sun', txt('do-out-space')]);
+    if(txt('do-out-soil')) rows.push(['Soil to fill', txt('do-out-soil')]);
+    var w=txt('do-out-water'); rows.push(['Water', val('do-IN')+' in/week'+(w?' — '+w:'')]);
+    var sd=val('do-START'); rows.push([(p.transplant_flag?'Start / transplant date':'Sow date'), sd||'—']);
+    if(txt('do-out-harvest')) rows.push(['Harvest', txt('do-out-harvest')]);
+  } else {
+    rows.push(['Type','Perennial']);
+    rows.push(['Harvest window', (p.stage_timeline||{}).harvest_window||'seasonal']);
+    if(p.planting_windows) rows.push(['Plant during', p.planting_windows]);
+  }
+  if(p.spacing_inches!=null) rows.push(['Recommended spacing', p.spacing_inches+'″']);
+  if(p.watering_plans) rows.push(['Watering guide', p.watering_plans]);
+  if(p.days_to_maturity!=null) rows.push(['Days to maturity', String(p.days_to_maturity)]);
+  var tl='';
+  document.querySelectorAll('#do-detail-view .tl-stage').forEach(function(st){
+    var d=st.querySelector('.sd'), l=st.querySelector('.sl');
+    if(l){ tl+='<tr><td class="d">'+esc(d?d.textContent.trim():'')+'</td><td>'+esc(l.textContent.trim())+'</td></tr>'; }
+  });
+  var rowsHtml=''; rows.forEach(function(r){ rowsHtml+='<tr><td class="k">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>'; });
+  var css='body{font-family:Georgia,serif;color:#23262b;margin:32px;line-height:1.5}h1{margin:0 0 2px;font-size:26px}.bot{font-style:italic;color:#6b6760}.type{color:#8f2228;font-weight:bold;letter-spacing:1px;text-transform:uppercase;font-size:12px;margin:4px 0 18px}h2{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#8f2228;border-bottom:1px solid #ddd;padding-bottom:4px;margin:22px 0 8px}table{width:100%;border-collapse:collapse;margin-bottom:8px}td{padding:6px 4px;vertical-align:top;border-bottom:1px solid #eee;font-size:14px}td.k{width:42%;color:#6b6760;font-weight:bold}td.d{width:34%;color:#6b6760}.foot{margin-top:28px;padding-top:10px;border-top:1px solid #ddd;font-size:11px;color:#8a857a;text-align:center}';
+  var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(p.plant_name)+' — grow plan</title><style>'+css+'</style></head><body><h1>'+esc(p.plant_name)+'</h1>'+(p.botanical_name?'<div class="bot">'+esc(p.botanical_name)+'</div>':'')+'<div class="type">'+(perennial?'Perennial':'Annual')+' · grow plan</div><table>'+rowsHtml+'</table>'+(tl?'<h2>Timeline</h2><table>'+tl+'</table>':'')+'<div class="foot">Lancer Farms · managed by grush · lancerfarms.com</div></body></html>';
+  var ifr=document.getElementById('lfg-print-frame'); if(ifr) ifr.parentNode.removeChild(ifr);
+  ifr=document.createElement('iframe'); ifr.id='lfg-print-frame'; ifr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(ifr);
+  var doc=ifr.contentWindow.document; doc.open(); doc.write(html); doc.close();
+  setTimeout(function(){ try{ ifr.contentWindow.focus(); ifr.contentWindow.print(); }catch(e){ window.print(); } }, 500);
 }
 
 var LANGS=['en','es','fr','pt'], LNAMES={en:'English',es:'Espa\u00f1ol',fr:'Français',pt:'Portugu\u00eas'}, LSHORT={en:'EN',es:'ES',fr:'FR',pt:'PT'};
