@@ -103,12 +103,7 @@ window.addEventListener('load', function(){
   }, 1400);
 });
 
-function setLang(l, el){
-  localStorage.setItem('lfg_lang', l);
-  document.querySelectorAll('.lang-pill').forEach(function(p){ p.classList.remove('on'); });
-  if(el) el.classList.add('on');
-  if(typeof applyI18n==='function') applyI18n(l);
-}
+
 
 function chooseRole(r){
   localStorage.setItem('lfg_role', r);
