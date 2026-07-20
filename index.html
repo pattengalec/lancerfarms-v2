@@ -91,20 +91,11 @@
 <script>
 /* Splash → role chooser (always). Language pref remembered. */
 window.addEventListener('load', function(){
-  // set language pill highlight from stored pref (default en)
-  var lang = localStorage.getItem('lfg_lang') || 'en';
-  var pill = document.querySelector('.lang-pill[data-lang="'+lang+'"]');
-  if(pill) pill.classList.add('on');
-  if(typeof applyI18n==='function') applyI18n(lang);
-
   setTimeout(function(){
     document.getElementById('splash').classList.add('gone');
     document.getElementById('hero').classList.add('show');
   }, 1400);
 });
-
-
-
 function chooseRole(r){
   localStorage.setItem('lfg_role', r);
   if(r === 'staff'){ go('/app.html'); }
