@@ -821,6 +821,7 @@ async function refreshApproveBadge(){
 function _escA(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 async function loadApprovals(){
   const el=document.getElementById('approve-list');
+  await ensurePlants();
   const [logsR,commentsR,photosR]= await Promise.all([
     sb.from('lfg_log').select('*').eq('approval_status','pending').order('logged_at',{ascending:false}),
     sb.from('lfg_comments').select('*').eq('status','new').order('submitted_at',{ascending:false}),
@@ -853,7 +854,8 @@ async function loadApprovals(){
       '<div class="inv-row" style="align-items:flex-start"><div class="inv-body">'+
         '<div style="display:flex;align-items:center;gap:8px"><img src="'+_escA(p.thumbnail_url||p.cloudinary_url)+'" style="width:44px;height:44px;border-radius:8px;object-fit:cover"><span class="inv-cat">'+_escA(p.caption||'(no caption)')+'</span></div>'+
         '<div style="display:flex;gap:6px;margin-top:8px"><select class="ap-area" data-id="'+p.id+'" style="'+_apSel+'">'+areaOptionsHTML(p.area_id)+'</select>'+
-        '<select class="ap-type" data-id="'+p.id+'" style="'+_apSel+'">'+typeOptionsHTML(p.subject_type)+'</select></div>'+
+        '<select class="ap-type" data-id="'+p.id+'" style="'+_apSel+'">'+typeOptionsHTML(p.subject_type)+'</select>'+
+        '<select class="ap-plant" data-id="'+p.id+'" style="'+_apSel+'">'+plantOptionsHTML(p.plant_id)+'</select></div>'+
       '</div>'+
       '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'photo\',\''+p.id+'\')">&#10003;</button></div>'
     )).join('');
@@ -867,6 +869,7 @@ async function approveItem(kind,id){
   else if(kind==='photo'){
     const _ar=document.querySelector('.ap-area[data-id="'+id+'"]'), _ty=document.querySelector('.ap-type[data-id="'+id+'"]');
     const _upd={approval_status:'approved'}; if(_ar) _upd.area_id=_ar.value||null; if(_ty) _upd.subject_type=_ty.value||null;
+    const _pl=document.querySelector('.ap-plant[data-id="'+id+'"]'); if(_pl) _upd.plant_id=_pl.value||null;
     ({error}= await sb.from('lfg_photos').update(_upd).eq('id',id));
   }
   if(error){ toast('Failed'); return; }
@@ -1005,14 +1008,30 @@ async function peAreaChange(){
   sel.innerHTML=areaOptionsHTML(added? added.id : (p.area_id||''))+'<option value="__addnew">&#65291; New location&hellip;</option>';
 }
 
+/* ---------- PLANT LINKS ---------- */
+let staffPlants=null;
+async function ensurePlants(){
+  if(staffPlants) return staffPlants;
+  const {data,error}= await sb.from('lfg_master_plants').select('id,plant_name').eq('approval_status','approved').order('plant_name');
+  staffPlants = error? [] : (data||[]);
+  return staffPlants;
+}
+function plantOptionsHTML(sel){
+  let h='<option value=""'+(sel?'':' selected')+'>No plant link</option>';
+  (staffPlants||[]).forEach(function(p){ h+='<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+esc(p.plant_name)+'</option>'; });
+  return h;
+}
+
 let peId=null;
-function openPhotoEdit(id){
+async function openPhotoEdit(id){
   const p=albumPhotos.find(function(x){return x.id===id;}); if(!p) return;
   peId=id;
   document.getElementById('pe-img').src=p.thumbnail_url||p.cloudinary_url;
   document.getElementById('pe-caption').value=p.caption||'';
   document.getElementById('pe-area').innerHTML=areaOptionsHTML(p.area_id||'')+'<option value="__addnew">&#65291; New location&hellip;</option>'; document.getElementById('pe-area').onchange=peAreaChange;
   document.getElementById('pe-type').innerHTML=typeOptionsHTML(p.subject_type||'');
+  await ensurePlants();
+  document.getElementById('pe-plant').innerHTML=plantOptionsHTML(p.plant_id||'');
   document.getElementById('pe-status').value=(p.approval_status==='approved')?'approved':'pending';
   document.getElementById('photo-edit').style.display='flex';
 }
@@ -1023,6 +1042,7 @@ async function savePhotoEdit(){
     caption: document.getElementById('pe-caption').value.trim()||null,
     area_id: (function(v){return (v&&v!=='__addnew')?v:null;})(document.getElementById('pe-area').value),
     subject_type: document.getElementById('pe-type').value||null,
+    plant_id: document.getElementById('pe-plant').value||null,
     approval_status: document.getElementById('pe-status').value
   };
   const {error}= await sb.from('lfg_photos').update(upd).eq('id',peId);
@@ -1112,7 +1132,7 @@ async function uploadReviewed(){
 </script>
 <div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
 
-<div id="photo-edit" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">Edit photo</span><button class="pr-x" onclick="closePhotoEdit()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><img id="pe-img" src="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px"><input id="pe-caption" placeholder="Caption (optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><select id="pe-area" style="width:100%;margin-bottom:10px"></select><select id="pe-type" style="width:100%;margin-bottom:10px"></select><select id="pe-status" style="width:100%"><option value="approved">Approved (public)</option><option value="pending">Pending (hidden)</option></select></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closePhotoEdit()">Cancel</button><button class="pr-btn go" onclick="savePhotoEdit()">Save</button></div></div></div>
+<div id="photo-edit" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">Edit photo</span><button class="pr-x" onclick="closePhotoEdit()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><img id="pe-img" src="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px"><input id="pe-caption" placeholder="Caption (optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><select id="pe-area" style="width:100%;margin-bottom:10px"></select><select id="pe-type" style="width:100%;margin-bottom:10px"></select><select id="pe-plant" style="width:100%;margin-bottom:10px"></select><select id="pe-status" style="width:100%"><option value="approved">Approved (public)</option><option value="pending">Pending (hidden)</option></select></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closePhotoEdit()">Cancel</button><button class="pr-btn go" onclick="savePhotoEdit()">Save</button></div></div></div>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
 </body>
 </html>
