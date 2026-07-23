@@ -185,6 +185,18 @@
   .ph-filters{display:flex;gap:8px;margin:0 0 12px;}
   .ph-filters select{flex:1;min-width:0;background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:9px;font-size:14px;font-family:inherit;}
   .photo .cap b{color:var(--accent-2);font-weight:600;}
+  #lightbox{position:fixed;inset:0;background:rgba(12,14,10,.94);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:18px;}
+  #lightbox.show{display:flex;}
+  #lb-img{max-width:100%;max-height:66vh;border-radius:12px;object-fit:contain;}
+  #lb-caption{color:#F0EDE6;font-size:1rem;line-height:1.45;margin-top:14px;text-align:center;max-width:520px;}
+  #lb-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px;}
+  .lb-chip{background:rgba(255,255,255,.12);color:#F0EDE6;border-radius:999px;padding:7px 13px;font-size:.85rem;}
+  .lb-link{background:var(--accent-2,#8fae7e);color:#1d1f1a;font-weight:600;cursor:pointer;}
+  .lb-dim{opacity:.65;}
+  #lb-x{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.12);border:0;color:#F0EDE6;font-size:26px;width:44px;height:44px;border-radius:50%;cursor:pointer;}
+  .lb-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.10);border:0;color:#F0EDE6;font-size:24px;width:44px;height:64px;cursor:pointer;border-radius:10px;}
+  #lb-prev{left:8px;} #lb-next{right:8px;}
+  #lb-count{position:absolute;bottom:14px;color:#F0EDE6;opacity:.55;font-size:.8rem;}
 
   .see-add{display:block;width:100%;text-align:center;background:var(--green);color:#1B1B17;border:none;border-radius:14px;padding:13px;font-weight:600;font-size:15px;margin:0 0 12px;cursor:pointer;}
   .vs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:flex-end;justify-content:center;}
@@ -393,31 +405,82 @@ async function loadPhotos(force){
   seePhotos=res.data||[];
   var fb=document.getElementById('see-filters');
   if(!seePhotos.length){ el.innerHTML='<div class="soon"><span class="ic">&#128247;</span><p>No photos yet — check back soon.</p></div>'; el.className=''; if(fb) fb.innerHTML=''; return; }
-  try{ var ar=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null); seeAreaMap={}; (ar.data||[]).forEach(function(a){ seeAreaMap[a.id]=a; }); }catch(e){}
+  try{ var ar=await sb.from('lfg_growing_areas').select('id,name,zone,area_type').is('archived_at',null); seeAreaMap={}; (ar.data||[]).forEach(function(a){ seeAreaMap[a.id]=a; }); }catch(e){}
   buildSeeFilters(); applySeeFilter(); photosLoaded=true;
+}
+function friendlyPlace(p){
+  if(!p.area_id) return 'General';
+  var a=seeAreaMap[p.area_id]; if(!a) return 'General';
+  if(a.area_type==='raised_bed') return a.zone||a.name;
+  return a.name;
 }
 function buildSeeFilters(){
   var fb=document.getElementById('see-filters'); if(!fb) return;
-  var present={}, hasNone=false; seePhotos.forEach(function(p){ if(p.area_id) present[p.area_id]=1; else hasNone=true; });
-  var opts='<option value="">All areas</option>'+(hasNone?'<option value="__none__">General</option>':'');
-  Object.keys(present).forEach(function(id){ if(seeAreaMap[id]) opts+='<option value="'+id+'">'+esc(seeAreaMap[id].name)+'</option>'; });
+  var places={}; seePhotos.forEach(function(p){ places[friendlyPlace(p)]=1; });
+  var opts='<option value="">All places</option>'+Object.keys(places).sort().map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('');
   var types={}; seePhotos.forEach(function(p){ if(p.subject_type) types[p.subject_type]=1; });
   var topts='<option value="">All types</option>'+Object.keys(types).map(function(t){ return '<option value="'+t+'">'+_capW(t)+'</option>'; }).join('');
   fb.innerHTML='<select id="sf-area" onchange="applySeeFilter()">'+opts+'</select><select id="sf-type" onchange="applySeeFilter()">'+topts+'</select>';
 }
+var seeList=[];
 function applySeeFilter(){
   var fa=(document.getElementById('sf-area')||{}).value||'', ft=(document.getElementById('sf-type')||{}).value||'';
   var list=seePhotos;
-  if(fa==='__none__') list=list.filter(function(p){return !p.area_id;}); else if(fa) list=list.filter(function(p){return p.area_id===fa;});
+  if(fa) list=list.filter(function(p){return friendlyPlace(p)===fa;});
   if(ft) list=list.filter(function(p){return p.subject_type===ft;});
+  seeList=list;
   var el=document.getElementById('see-grid'); el.className='see-grid';
   if(!list.length){ el.innerHTML='<div class="soon"><p>No photos match.</p></div>'; return; }
-  el.innerHTML=list.map(function(p){
-    var area=p.area_id?((seeAreaMap[p.area_id]||{}).name||''):'General';
-    var meta=[area, p.subject_type?_capW(p.subject_type):''].filter(Boolean).join(' · ');
+  el.innerHTML=list.map(function(p,i){
+    var meta=[friendlyPlace(p), p.subject_type?_capW(p.subject_type):''].filter(Boolean).join(' \u00b7 ');
     var capLine=(meta||p.caption)?'<div class="cap">'+(meta?'<b>'+esc(meta)+'</b>':'')+(p.caption?(meta?'<br>':'')+esc(p.caption):'')+'</div>':'';
-    return '<div class="photo"><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy" alt="'+esc(p.caption||'Farm photo')+'">'+capLine+'</div>';
+    return '<div class="photo" onclick="openLightbox('+i+')"><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy" alt="'+esc(p.caption||'Farm photo')+'">'+capLine+'</div>';
   }).join('');
+}
+
+/* ---------- LIGHTBOX ---------- */
+var lbIndex=0;
+async function openLightbox(i){
+  lbIndex=i;
+  await loadPlants();
+  renderLightbox();
+  document.getElementById('lightbox').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('show');
+  document.body.style.overflow='';
+}
+function lbNav(d){
+  if(!seeList.length) return;
+  lbIndex=(lbIndex+d+seeList.length)%seeList.length;
+  renderLightbox();
+}
+function renderLightbox(){
+  var p=seeList[lbIndex]; if(!p) return;
+  document.getElementById('lb-img').src=p.cloudinary_url||p.thumbnail_url;
+  document.getElementById('lb-img').alt=p.caption||'Farm photo';
+  document.getElementById('lb-caption').textContent=p.caption||'';
+  document.getElementById('lb-caption').style.display=p.caption?'block':'none';
+  var chips='<span class="lb-chip">\uD83D\uDCCD '+esc(friendlyPlace(p))+'</span>';
+  var plant=p.plant_id?(plantsCache||[]).find(function(x){return x.id===p.plant_id;}):null;
+  if(plant){ chips+='<span class="lb-chip lb-link" onclick="lbToPlant(\''+plant.id+'\')">\uD83C\uDF31 '+esc(plant.plant_name)+'</span>'; }
+  else if(p.subject_type){ chips+='<span class="lb-chip">'+_capW(p.subject_type)+'</span>'; }
+  if(p.uploaded_at){ try{ chips+='<span class="lb-chip lb-dim">'+new Date(p.uploaded_at).toLocaleDateString(undefined,{month:'long',year:'numeric'})+'</span>'; }catch(e){} }
+  document.getElementById('lb-chips').innerHTML=chips;
+  document.getElementById('lb-count').textContent=(lbIndex+1)+' / '+seeList.length;
+}
+async function lbToPlant(id){
+  closeLightbox(); show('learn');
+  await loadPlants(); renderChips(plantsCache); renderPlantList();
+  openPlant(id);
+}
+var _lbTX=null;
+function lbTouchStart(e){ _lbTX=e.changedTouches[0].clientX; }
+function lbTouchEnd(e){
+  if(_lbTX===null) return;
+  var dx=e.changedTouches[0].clientX-_lbTX; _lbTX=null;
+  if(dx>50) lbNav(-1); else if(dx<-50) lbNav(1);
 }
 
 /* ---------- SHARE: comments (moderated) ---------- */
@@ -794,6 +857,15 @@ function refreshBarTitle(){
 window.onLangChange=function(l){ refreshBarTitle(); };
 </script>
 <div id="vsub" class="vs-overlay" style="display:none"><div class="vs-sheet"><div class="vs-head"><span id="vsub-title">Add photos</span><button class="vs-x" onclick="vsubClose()">&times;</button></div><div id="vsub-list"></div><div class="vs-actions"><button class="vs-btn cancel" onclick="vsubClose()">Cancel</button><button class="vs-btn go" id="vsub-go" onclick="vsubSubmit()">Submit</button></div></div></div>
+<div id="lightbox" ontouchstart="lbTouchStart(event)" ontouchend="lbTouchEnd(event)" onclick="if(event.target===this)closeLightbox()">
+  <button id="lb-x" onclick="closeLightbox()">&times;</button>
+  <button class="lb-arrow" id="lb-prev" onclick="lbNav(-1)">&#8249;</button>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-caption"></div>
+  <div id="lb-chips"></div>
+  <button class="lb-arrow" id="lb-next" onclick="lbNav(1)">&#8250;</button>
+  <span id="lb-count"></span>
+</div>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
 </body>
 </html>
