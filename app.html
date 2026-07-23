@@ -883,9 +883,35 @@ function applyAlbumFilter(){
     const area=p.area_id?(albumAreaMap[p.area_id]||''):'General';
     const meta=[area, p.subject_type?_capW(p.subject_type):''].filter(Boolean).join(' · ');
     const capLine=(meta||p.caption)?'<div class="cap">'+(meta?'<b>'+esc(meta)+'</b>':'')+(p.caption?(meta?'<br>':'')+esc(p.caption):'')+'</div>':'';
-    return '<div class="photo-cell'+(p.approval_status==='pending'?' pending':'')+'"><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy">'+capLine+'</div>';
+    const adminTap=document.body.classList.contains('is-admin')?' onclick="openPhotoEdit(\''+p.id+'\')" style="cursor:pointer"':'';
+    return '<div class="photo-cell'+(p.approval_status==='pending'?' pending':'')+'"'+adminTap+'><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy">'+capLine+'</div>';
   }).join('');
 }
+let peId=null;
+function openPhotoEdit(id){
+  const p=albumPhotos.find(function(x){return x.id===id;}); if(!p) return;
+  peId=id;
+  document.getElementById('pe-img').src=p.thumbnail_url||p.cloudinary_url;
+  document.getElementById('pe-caption').value=p.caption||'';
+  document.getElementById('pe-area').innerHTML=areaOptionsHTML(p.area_id||'');
+  document.getElementById('pe-type').innerHTML=typeOptionsHTML(p.subject_type||'');
+  document.getElementById('pe-status').value=(p.approval_status==='approved')?'approved':'pending';
+  document.getElementById('photo-edit').style.display='flex';
+}
+function closePhotoEdit(){ document.getElementById('photo-edit').style.display='none'; peId=null; }
+async function savePhotoEdit(){
+  if(!peId) return;
+  const upd={
+    caption: document.getElementById('pe-caption').value.trim()||null,
+    area_id: document.getElementById('pe-area').value||null,
+    subject_type: document.getElementById('pe-type').value||null,
+    approval_status: document.getElementById('pe-status').value
+  };
+  const {error}= await sb.from('lfg_photos').update(upd).eq('id',peId);
+  if(error){ toast('Save failed'); return; }
+  closePhotoEdit(); toast('Photo updated'); loadPhotos(); refreshApproveBadge();
+}
+
 let reviewFiles=[], reviewURLs=[];
 function _selA(v,sel){ return (String(sel==null?'':sel)===String(v))?' selected':''; }
 function areaOptionsHTML(sel){
@@ -967,6 +993,8 @@ async function uploadReviewed(){
 }
 </script>
 <div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
+
+<div id="photo-edit" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">Edit photo</span><button class="pr-x" onclick="closePhotoEdit()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><img id="pe-img" src="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px"><input id="pe-caption" placeholder="Caption (optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><select id="pe-area" style="width:100%;margin-bottom:10px"></select><select id="pe-type" style="width:100%;margin-bottom:10px"></select><select id="pe-status" style="width:100%"><option value="approved">Approved (public)</option><option value="pending">Pending (hidden)</option></select></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closePhotoEdit()">Cancel</button><button class="pr-btn go" onclick="savePhotoEdit()">Save</button></div></div></div>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
 </body>
 </html>
