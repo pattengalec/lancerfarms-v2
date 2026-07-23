@@ -271,6 +271,7 @@
   <button class="menu-item" onclick="go('tasks');closeMenu()"><span class="ic">&#9745;</span> Tasks</button>
   <button class="menu-item" onclick="go('inventory');closeMenu()"><span class="ic">&#128230;</span> Inventory</button>
   <button class="menu-item" onclick="go('photos');closeMenu()"><span class="ic">&#128247;</span> Photos</button>
+  <button class="menu-item" onclick="go('areas');closeMenu()"><span class="ic">&#128205;</span> Locations</button>
   <div class="menu-label">Apps</div>
   <button class="menu-item" onclick="location.href='/manual.html'"><span class="ic">&#128214;</span> Farm manual</button>
   <button class="menu-item admin-only" onclick="go('approvals');closeMenu()"><span class="ic">&#9989;</span> Approval queue <span class="badge" id="approve-badge" style="display:none">0</span></button>
@@ -380,6 +381,32 @@
         <input type="file" id="photo-file" accept="image/*" multiple style="display:none" onchange="reviewPhotos(this)">
         <div id="photo-filters" class="ph-filters"></div>
         <div id="photo-grid"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
+      </div>
+    </section>
+
+    <!-- LOCATIONS -->
+    <section class="screen" id="screen-areas">
+      <div class="pad">
+        <p class="screen-h">Farm locations. Anyone can add; admins can rename or archive.</p>
+        <div style="background:rgba(0,0,0,.04);border-radius:14px;padding:12px;margin-bottom:14px">
+          <input id="na-name" placeholder="New location name" autocomplete="off" style="width:100%;margin-bottom:8px">
+          <div style="display:flex;gap:8px">
+            <select id="na-type" style="flex:1">
+              <option value="landmark">Landmark</option>
+              <option value="raised_bed">Raised bed</option>
+              <option value="tree">Tree</option>
+              <option value="shrub">Shrub</option>
+              <option value="ground">Ground</option>
+              <option value="container">Container</option>
+              <option value="zone">Whole zone</option>
+              <option value="other">Other</option>
+            </select>
+            <input id="na-zone" list="zone-list" placeholder="Zone" autocomplete="off" style="flex:1">
+            <datalist id="zone-list"></datalist>
+          </div>
+          <button class="add-line" style="margin-top:8px" onclick="addAreaFromForm()">&#43; Add location</button>
+        </div>
+        <div id="areas-list"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
       </div>
     </section>
 
@@ -846,7 +873,7 @@ async function approveItem(kind,id){
   toast('Approved'); loadApprovals(); refreshApproveBadge();
 }
 // wire approvals screen load
-const _go=go; go=function(s){ _go(s); if(s==='approvals') loadApprovals(); if(s==='tasks') loadTasks(); if(s==='inventory') loadInventory(); if(s==='photos') loadPhotos(); };
+const _go=go; go=function(s){ _go(s); if(s==='approvals') loadApprovals(); if(s==='areas') loadAreasScreen(); if(s==='tasks') loadTasks(); if(s==='inventory') loadInventory(); if(s==='photos') loadPhotos(); };
 
 /* ---------- PHOTOS ---------- */
 const CLOUD_NAME='ddbsuxerb', UPLOAD_PRESET='lfg-photos';
@@ -887,13 +914,104 @@ function applyAlbumFilter(){
     return '<div class="photo-cell'+(p.approval_status==='pending'?' pending':'')+'"'+adminTap+'><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy">'+capLine+'</div>';
   }).join('');
 }
+/* ---------- LOCATIONS MANAGER ---------- */
+async function loadAreasScreen(){
+  const el=document.getElementById('areas-list');
+  const [ar, ph, tk] = await Promise.all([
+    sb.from('lfg_growing_areas').select('id,name,zone,area_type,archived_at').order('zone').order('name'),
+    sb.from('lfg_photos').select('area_id'),
+    sb.from('lfg_tasks').select('area_id').is('archived_at',null)
+  ]);
+  if(ar.error){ el.innerHTML='<div class="empty">Could not load locations</div>'; return; }
+  const pc={}, tc={};
+  (ph.data||[]).forEach(function(p){ if(p.area_id) pc[p.area_id]=(pc[p.area_id]||0)+1; });
+  (tk.data||[]).forEach(function(t){ if(t.area_id) tc[t.area_id]=(tc[t.area_id]||0)+1; });
+  window._areaCounts={p:pc,t:tc};
+  const isAdmin=document.body.classList.contains('is-admin');
+  const zones=[...new Set((ar.data||[]).map(function(a){return a.zone||'Other';}))];
+  document.getElementById('zone-list').innerHTML=zones.map(function(z){return '<option value="'+esc(z)+'">';}).join('');
+  const live=(ar.data||[]).filter(function(a){return !a.archived_at;});
+  const dead=(ar.data||[]).filter(function(a){return a.archived_at;});
+  const groups={};
+  live.forEach(function(a){ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
+  let h='';
+  Object.keys(groups).forEach(function(z){
+    h+='<div class="zone-h">'+esc(z)+'</div>';
+    groups[z].forEach(function(a){
+      const np=pc[a.id]||0, nt=tc[a.id]||0;
+      h+='<div style="display:flex;align-items:center;gap:8px;min-height:48px;padding:4px 2px;border-bottom:1px solid rgba(0,0,0,.08)">'
+        +'<div style="flex:1"><div>'+esc(a.name)+'</div><div style="font-size:.75rem;opacity:.6">'+esc(a.area_type||'')+' &middot; '+np+' photo'+(np===1?'':'s')+', '+nt+' task'+(nt===1?'':'s')+'</div></div>'
+        +(isAdmin? '<button class="chip" style="min-height:40px" onclick="renameArea(\''+a.id+'\')">Rename</button>'
+        +'<button class="chip" style="min-height:40px" onclick="archiveArea(\''+a.id+'\')">Archive</button>' : '')
+        +'</div>';
+    });
+  });
+  if(isAdmin && dead.length){
+    h+='<div class="zone-h" style="margin-top:16px">Archived</div>';
+    dead.forEach(function(a){
+      h+='<div style="display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 2px;opacity:.6;border-bottom:1px solid rgba(0,0,0,.08)">'
+        +'<div style="flex:1">'+esc(a.name)+'</div>'
+        +'<button class="chip" style="min-height:40px" onclick="restoreArea(\''+a.id+'\')">Restore</button></div>';
+    });
+  }
+  el.innerHTML=h||'<div class="empty">No locations yet</div>';
+  window._areasCache=ar.data||[];
+}
+function _areaById(id){ return (window._areasCache||[]).find(function(a){return a.id===id;})||{}; }
+async function addAreaFromForm(){
+  const name=document.getElementById('na-name').value.trim();
+  const type=document.getElementById('na-type').value;
+  const zone=document.getElementById('na-zone').value.trim()||'Grounds';
+  if(!name){ toast('Name required'); return; }
+  const {error}= await sb.from('lfg_growing_areas').insert({name:name, zone:zone, area_type:type});
+  if(error){ toast('Could not add'); return; }
+  document.getElementById('na-name').value='';
+  toast('Location added'); loadAreas(); loadAreasScreen();
+}
+async function renameArea(id){
+  const nn=prompt('Rename location', _areaById(id).name||''); if(nn===null) return;
+  const name=nn.trim(); if(!name) return;
+  const {error}= await sb.from('lfg_growing_areas').update({name:name}).eq('id',id);
+  if(error){ toast('Rename failed'); return; }
+  toast('Renamed'); loadAreas(); loadAreasScreen();
+}
+async function archiveArea(id){
+  const c=window._areaCounts||{p:{},t:{}};
+  const np=c.p[id]||0, nt=c.t[id]||0;
+  const msg='Archive "'+(_areaById(id).name||'this location')+'"? It leaves all pickers. '+np+' photo(s) and '+nt+' task(s) keep their history.';
+  if(!confirm(msg)) return;
+  const {error}= await sb.from('lfg_growing_areas').update({archived_at:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('Archive failed'); return; }
+  toast('Archived'); loadAreas(); loadAreasScreen();
+}
+async function restoreArea(id){
+  const {error}= await sb.from('lfg_growing_areas').update({archived_at:null}).eq('id',id);
+  if(error){ toast('Restore failed'); return; }
+  toast('Restored'); loadAreas(); loadAreasScreen();
+}
+async function quickAddArea(){
+  const name=prompt('New location name'); if(name===null||!name.trim()) return null;
+  const zone=prompt('Zone (e.g. Grounds, Zone 2)','Grounds'); if(zone===null) return null;
+  const {data,error}= await sb.from('lfg_growing_areas').insert({name:name.trim(), zone:(zone.trim()||'Grounds'), area_type:'landmark'}).select().single();
+  if(error){ toast('Could not add'); return null; }
+  toast('Location added'); await loadAreas();
+  return data;
+}
+async function peAreaChange(){
+  const sel=document.getElementById('pe-area');
+  if(sel.value!=='__addnew') return;
+  const p=(typeof albumPhotos!=='undefined'&&albumPhotos.find(function(x){return x.id===peId;}))||{};
+  const added=await quickAddArea();
+  sel.innerHTML=areaOptionsHTML(added? added.id : (p.area_id||''))+'<option value="__addnew">&#65291; New location&hellip;</option>';
+}
+
 let peId=null;
 function openPhotoEdit(id){
   const p=albumPhotos.find(function(x){return x.id===id;}); if(!p) return;
   peId=id;
   document.getElementById('pe-img').src=p.thumbnail_url||p.cloudinary_url;
   document.getElementById('pe-caption').value=p.caption||'';
-  document.getElementById('pe-area').innerHTML=areaOptionsHTML(p.area_id||'');
+  document.getElementById('pe-area').innerHTML=areaOptionsHTML(p.area_id||'')+'<option value="__addnew">&#65291; New location&hellip;</option>'; document.getElementById('pe-area').onchange=peAreaChange;
   document.getElementById('pe-type').innerHTML=typeOptionsHTML(p.subject_type||'');
   document.getElementById('pe-status').value=(p.approval_status==='approved')?'approved':'pending';
   document.getElementById('photo-edit').style.display='flex';
@@ -903,7 +1021,7 @@ async function savePhotoEdit(){
   if(!peId) return;
   const upd={
     caption: document.getElementById('pe-caption').value.trim()||null,
-    area_id: document.getElementById('pe-area').value||null,
+    area_id: (function(v){return (v&&v!=='__addnew')?v:null;})(document.getElementById('pe-area').value),
     subject_type: document.getElementById('pe-type').value||null,
     approval_status: document.getElementById('pe-status').value
   };
