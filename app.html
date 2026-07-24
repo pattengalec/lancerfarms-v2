@@ -216,7 +216,7 @@
   .photo-cell .cap{position:absolute; left:0; right:0; bottom:0; background:linear-gradient(transparent,rgba(0,0,0,.6)); color:#fff; font-size:12px; padding:16px 8px 6px;}
   .photo-cell.pending::after{content:'Pending'; position:absolute; top:6px; right:6px; background:var(--amber); color:#3a2c08; font-size:11px; font-weight:700; padding:2px 7px; border-radius:8px;}
 
-  .pr-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+  .pr-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-end;justify-content:center;}
   .pr-sheet{background:var(--surface);width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;border:1px solid var(--line);}
   .pr-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);}
   .pr-title{font-family:Fraunces,serif;font-weight:600;font-size:17px;}
@@ -446,8 +446,9 @@
       <select id="task-area-in" class="text-in"><option value="">Anywhere / whole farm</option></select>
     </div>
     <div class="field">
-      <div class="field-label">How-to <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
-      <select id="task-howto-in" class="text-in"><option value="">No how-to card</option></select>
+      <div class="field-label">How-to steps <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional, in order)</span></div>
+      <div id="task-howto-list"></div>
+      <select id="task-howto-add" class="text-in" onchange="addHowtoToTask()"><option value="">Add a how-to card&hellip;</option></select>
     </div>
     <button class="btn-primary" onclick="saveTask()" style="margin-top:8px">Save task</button>
     <button id="task-delete-btn" class="btn-danger" onclick="deleteTask()" style="display:none">Remove task</button>
@@ -686,7 +687,7 @@ function renderTasks(list){
     else if(t._color==='bad') sub='Overdue \u2014 2 visits missed';
     else if(t._color==='warn') sub='Carried forward \u2014 1 missed';
     else sub=recurLabel(t);
-    return '<div class="task-row '+cls+'"><button class="task-check" onclick="event.stopPropagation();completeTask(\''+t.id+'\',\''+(t.title||'').replace(/\x27/g,'')+'\')"></button><div class="task-body" onclick="openTaskEditor(\''+t.id+'\')"><div class="task-title">'+esc(t.title||'Untitled')+'</div><div class="task-sub">'+sub+'</div></div>'+(t.howto_id?'<button class="chip" style="min-height:40px;align-self:center;margin-right:6px" onclick="event.stopPropagation();openHowtoView(\''+t.howto_id+'\')">&#128203;</button>':'')+'</div>';
+    return '<div class="task-row '+cls+'"><button class="task-check" onclick="event.stopPropagation();completeTask(\''+t.id+'\',\''+(t.title||'').replace(/\x27/g,'')+'\')"></button><div class="task-body" onclick="openTaskEditor(\''+t.id+'\')"><div class="task-title">'+esc(t.title||'Untitled')+'</div><div class="task-sub">'+sub+'</div></div>'+(((t.howto_ids&&t.howto_ids.length)||t.howto_id)?'<button class="chip" style="min-height:40px;align-self:center;margin-right:6px" onclick="event.stopPropagation();openHowtoTask(\''+t.id+'\')">&#128203;</button>':'')+'</div>';
   }).join('');
 }
 function recurLabel(t){ const m={visit:'Every visit',daily:'Daily',weekly:'Weekly',biweekly:'Every 2 weeks',monthly:'Monthly',interval:'Recurring',one_time:'One time',seasonal:'Seasonal'}; return m[t.recurrence_type]||'Pending'; }
@@ -712,9 +713,8 @@ async function openTaskEditor(id){
   document.getElementById('task-sheet-title').textContent = t? 'Edit task' : 'New task';
   document.getElementById('task-title-in').value = t? (t.title||'') : '';
   document.getElementById('task-area-in').value = t? (t.area_id||'') : '';
-  _hcPrev = t? (t.howto_id||'') : '';
-  const _th=document.getElementById('task-howto-in');
-  _th.innerHTML=howtoOptionsHTML(_hcPrev); _th.onchange=taskHowtoChange;
+  editHowtos = t? ((t.howto_ids&&t.howto_ids.length)? t.howto_ids.slice() : (t.howto_id?[t.howto_id]:[])) : [];
+  renderHowtoConfig();
   editRecur = t? (t.recurrence_type||'one_time') : 'one_time';
   document.querySelectorAll('.recur-chip').forEach(c=>c.classList.toggle('on', c.dataset.recur===editRecur));
   document.getElementById('task-delete-btn').style.display = t? 'block':'none';
@@ -731,11 +731,10 @@ async function saveTask(){
   const title=document.getElementById('task-title-in').value.trim();
   if(!title){ toast('Give the task a name'); return; }
   const area=document.getElementById('task-area-in').value || null;
-  const hv=document.getElementById('task-howto-in').value;
-  const howto=(hv&&hv!=='__newhowto')?hv:null;
-  const row={ title, recurrence_type:editRecur, area_id:area, howto_id:howto, created_by:'staff' };
+  const howto=editHowtos.length? editHowtos[0] : null;
+  const row={ title, recurrence_type:editRecur, area_id:area, howto_id:howto, howto_ids:editHowtos, created_by:'staff' };
   let error;
-  if(editingTaskId){ ({error}= await sb.from('lfg_tasks').update({title, recurrence_type:editRecur, area_id:area, howto_id:howto}).eq('id',editingTaskId)); }
+  if(editingTaskId){ ({error}= await sb.from('lfg_tasks').update({title, recurrence_type:editRecur, area_id:area, howto_id:howto, howto_ids:editHowtos}).eq('id',editingTaskId)); }
   else { ({error}= await sb.from('lfg_tasks').insert(row)); }
   if(error){ toast('Could not save'); return; }
   toast(editingTaskId?'Task updated':'Task added'); closeTaskEditor(); loadTasks();
@@ -1052,21 +1051,52 @@ function howtoOptionsHTML(sel){
   h+='<option value="__newhowto">&#65291; New how-to&hellip;</option>';
   return h;
 }
-function taskHowtoChange(){
-  const sel=document.getElementById('task-howto-in');
-  if(sel.value!=='__newhowto') return;
-  sel.value=_hcPrev||'';
-  openHowtoCreate();
+let editHowtos=[];
+function _htTitle(id){ const c=(howtoCards||[]).find(function(x){return x.id===id;}); return c? c.title : '(missing card)'; }
+function renderHowtoConfig(){
+  const list=document.getElementById('task-howto-list');
+  list.innerHTML=editHowtos.map(function(id,i){
+    return '<div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px">'
+      +'<span style="min-width:20px;font-weight:700;color:var(--leaf)">'+(i+1)+'</span>'
+      +'<span style="flex:1;font-size:.95rem">'+esc(_htTitle(id))+'</span>'
+      +'<button class="chip" style="min-height:36px;padding:0 10px" onclick="moveHowto('+i+',-1)">&#8593;</button>'
+      +'<button class="chip" style="min-height:36px;padding:0 10px" onclick="moveHowto('+i+',1)">&#8595;</button>'
+      +'<button class="chip" style="min-height:36px;padding:0 10px" onclick="removeHowto('+i+')">&#10005;</button>'
+      +'</div>';
+  }).join('');
+  const add=document.getElementById('task-howto-add');
+  let opts='<option value="">Add a how-to card&hellip;</option>';
+  (howtoCards||[]).forEach(function(c){ if(editHowtos.indexOf(c.id)===-1) opts+='<option value="'+c.id+'">'+esc(c.title)+'</option>'; });
+  opts+='<option value="__newhowto">&#65291; New how-to&hellip;</option>';
+  add.innerHTML=opts;
 }
-let _hcPrev='';
+function moveHowto(i,d){
+  const j=i+d; if(j<0||j>=editHowtos.length) return;
+  const t=editHowtos[i]; editHowtos[i]=editHowtos[j]; editHowtos[j]=t;
+  renderHowtoConfig();
+}
+function removeHowto(i){ editHowtos.splice(i,1); renderHowtoConfig(); }
+function addHowtoToTask(){
+  const sel=document.getElementById('task-howto-add');
+  if(!sel.value) return;
+  if(sel.value==='__newhowto'){ sel.value=''; openHowtoCreate(); return; }
+  editHowtos.push(sel.value);
+  renderHowtoConfig();
+}
+let _tsWasOpen=false;
 function openHowtoCreate(){
+  _tsWasOpen=document.getElementById('task-sheet').classList.contains('show');
+  if(_tsWasOpen){ document.getElementById('task-sheet').classList.remove('show'); document.getElementById('sheet-scrim').classList.remove('show'); }
   document.getElementById('hc-title').value='';
   document.getElementById('hc-steps').value='';
   document.getElementById('hc-materials').value='';
   document.getElementById('hc-safety').value='';
   document.getElementById('howto-create').style.display='flex';
 }
-function closeHowtoCreate(){ document.getElementById('howto-create').style.display='none'; }
+function closeHowtoCreate(){
+  document.getElementById('howto-create').style.display='none';
+  if(_tsWasOpen){ document.getElementById('task-sheet').classList.add('show'); document.getElementById('sheet-scrim').classList.add('show'); _tsWasOpen=false; }
+}
 async function saveHowtoCard(){
   const title=document.getElementById('hc-title').value.trim();
   if(!title){ toast('Give the card a title'); return; }
@@ -1080,11 +1110,12 @@ async function saveHowtoCard(){
   if(error){ toast('Could not save card'); return; }
   toast('How-to card saved');
   howtoCards=null; await ensureHowtos();
-  const sel=document.getElementById('task-howto-in');
-  if(sel){ sel.innerHTML=howtoOptionsHTML(data.id); }
+  if(Array.isArray(editHowtos)){ editHowtos.push(data.id); renderHowtoConfig(); }
   closeHowtoCreate();
 }
-async function openHowtoView(id){
+async function openHowtoView(id){ location.href='howto.html?id='+id; }
+function openHowtoTask(id){ location.href='howto.html?task='+id; }
+async function _openHowtoViewLegacy(id){
   await ensureHowtos();
   const c=(howtoCards||[]).find(function(x){return x.id===id;});
   if(!c){ toast('Card not found'); return; }

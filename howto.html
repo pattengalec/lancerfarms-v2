@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>How-to · Lancer Farms</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  color-scheme:dark;
+  --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+  --line:#45423A; --line-strong:#5A554A;
+  --green:#7E9A6E; --leaf:#A8B89A; --amber:#C9973F; --amber-bg:#4A3A22;
+  --font-head:'Fraunces',Georgia,serif; --font-body:'Source Sans 3',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);display:flex;flex-direction:column;}
+.view{display:none;flex:1;flex-direction:column;padding:22px 20px calc(20px + env(safe-area-inset-bottom));max-width:520px;width:100%;margin:0 auto;}
+.view.on{display:flex;}
+#progress{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:18px;}
+#progress div{height:100%;background:var(--green);width:0%;transition:width .3s;}
+.kicker{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;}
+h1{font-family:var(--font-head);font-size:1.7rem;line-height:1.2;margin-bottom:14px;}
+.parts{color:var(--ink-soft);font-size:.95rem;margin-bottom:16px;}
+.parts b{color:var(--leaf);}
+.safety{background:var(--amber-bg);color:var(--amber);border-radius:12px;padding:13px 14px;font-size:.95rem;line-height:1.45;margin-bottom:12px;}
+.mat-h{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin:6px 0 10px;}
+.mat{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:8px;font-size:1.02rem;cursor:pointer;}
+.mat .box{min-width:24px;height:24px;border-radius:7px;border:2px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--paper);}
+.mat.done .box{background:var(--green);border-color:var(--green);}
+.mat.done{opacity:.65;text-decoration:line-through;}
+.step-ic{font-size:64px;text-align:center;margin:7vh 0 12px;}
+.step-n{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--leaf);text-align:center;margin-bottom:12px;font-weight:700;}
+.step-t{font-size:1.35rem;line-height:1.5;text-align:center;padding:0 6px;}
+.chap-k{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);text-align:center;margin:10vh 0 10px;}
+.chap-t{font-family:var(--font-head);font-size:1.5rem;line-height:1.3;text-align:center;}
+.done-ic{font-size:78px;text-align:center;margin:12vh 0 14px;}
+.done-t{font-family:var(--font-head);font-size:1.5rem;text-align:center;margin-bottom:8px;}
+.done-s{text-align:center;color:var(--ink-soft);}
+.grow{flex:1;}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:17px;font-size:1.08rem;font-weight:700;font-family:inherit;cursor:pointer;margin-top:10px;}
+.btn.go{background:var(--green);color:#fff;}
+.btn.ghost{background:none;border:1.5px solid var(--line-strong);color:var(--ink);}
+.row{display:flex;gap:10px;margin-top:10px;}
+.row .btn{margin-top:0;}
+.err{margin:auto;text-align:center;color:var(--ink-soft);padding:30px;line-height:1.6;}
+.archive-link{margin-top:14px;text-align:center;font-size:.85rem;color:var(--ink-soft);text-decoration:underline;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div class="view on" id="v-load"><div class="err">Loading how-to&hellip;</div></div>
+
+<div class="view" id="v-cover">
+  <div class="kicker" id="c-kicker">Lancer Farms &middot; How-to</div>
+  <h1 id="c-title"></h1>
+  <div class="parts" id="c-parts" style="display:none"></div>
+  <div id="c-safety"></div>
+  <div id="c-mats"></div>
+  <div class="grow"></div>
+  <button class="btn go" onclick="startSeq()">Start &rarr;</button>
+  <div class="archive-link" id="c-archive" style="display:none" onclick="archiveCard()">Archive this card (admin)</div>
+</div>
+
+<div class="view" id="v-step">
+  <div id="progress"><div id="p-fill"></div></div>
+  <div id="step-wrap"></div>
+  <div class="grow"></div>
+  <div class="row">
+    <button class="btn ghost" onclick="nav(-1)">&larr; Back</button>
+    <button class="btn go" id="s-next" onclick="nav(1)">Next &rarr;</button>
+  </div>
+</div>
+
+<div class="view" id="v-done">
+  <div class="done-ic">&#9989;</div>
+  <div class="done-t">All steps done</div>
+  <div class="done-s" id="d-title"></div>
+  <div class="grow"></div>
+  <button class="btn ghost" onclick="showView('v-cover'); idx=-1;">Review from the start</button>
+</div>
+
+<div class="view" id="v-err"><div class="err" id="err-msg">Couldn&rsquo;t load this how-to.</div></div>
+
+<script>
+const SUPABASE_URL='https://gblizuknnvguxyxfequh.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGl6dWtubnZndXh5eGZlcXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MzE5NjIsImV4cCI6MjA5OTIwNzk2Mn0.9m3e5T4S1kL9wusD0ZJBgIkshGt_Ws55iEcBE8bbLiE';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+let cards=[], seq=[], idx=-1, coverTitle='', singleCard=null, totalSteps=0;
+
+const ICONS=[
+  [/tie|wire|twine|string|lash/i,'\u{1FAA2}'],
+  [/cut|prune|trim|snip|clip/i,'\u2702\uFE0F'],
+  [/water|irrigat|soak|hose|trickle/i,'\u{1F4A7}'],
+  [/dig|post|stake|pound|drive|hole|sledge/i,'\u{1F6E0}\uFE0F'],
+  [/plant|seed|transplant|sow/i,'\u{1F331}'],
+  [/harvest|pick|collect|gather/i,'\u{1F9FA}'],
+  [/lift|raise|drape|train|guide|thread/i,'\u{1F517}'],
+  [/check|inspect|look|test|verify|plumb/i,'\u{1F50D}'],
+  [/clean|clear|remove|weed/i,'\u{1F9F9}'],
+  [/measure|space|mark/i,'\u{1F4CF}'],
+  [/mulch|compost|soil|amend/i,'\u{1FAB4}'],
+  [/glove|wear|protect|eye/i,'\u{1F9E4}']
+];
+function iconFor(text,i){
+  for(const [re,ic] of ICONS){ if(re.test(text)) return ic; }
+  return ['\u{1F33F}','\u{1F343}','\u{1F33E}'][i%3];
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function showView(id){ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on', v.id===id)); }
+
+async function load(){
+  const qp=new URLSearchParams(location.search);
+  const taskId=qp.get('task'), cardId=qp.get('id');
+  try{
+    if(taskId){
+      const {data:t,error:te}= await sb.from('lfg_tasks').select('title,howto_ids,howto_id').eq('id',taskId).single();
+      if(te||!t) throw 0;
+      const ids=(t.howto_ids&&t.howto_ids.length)? t.howto_ids : (t.howto_id?[t.howto_id]:[]);
+      if(!ids.length){ document.getElementById('err-msg').textContent='This task has no how-to cards.'; showView('v-err'); return; }
+      const {data:cs,error:ce}= await sb.from('lfg_howto_cards').select('*').in('id',ids);
+      if(ce||!cs||!cs.length) throw 0;
+      cards = ids.map(id=>cs.find(c=>c.id===id)).filter(Boolean);
+      coverTitle = t.title;
+    } else if(cardId){
+      const {data,error}= await sb.from('lfg_howto_cards').select('*').eq('id',cardId).single();
+      if(error||!data) throw 0;
+      cards=[data]; coverTitle=data.title; singleCard=data;
+    } else {
+      document.getElementById('err-msg').textContent='No how-to specified.'; showView('v-err'); return;
+    }
+  }catch(e){ showView('v-err'); return; }
+  buildSequence(); buildCover(); showView('v-cover');
+}
+
+function buildSequence(){
+  seq=[]; totalSteps=0;
+  cards.forEach(function(c,ci){
+    if(cards.length>1) seq.push({type:'chapter', title:c.title, part:ci+1, of:cards.length});
+    (c.steps||[]).forEach(function(s){ seq.push({type:'step', text:s.text||''}); totalSteps++; });
+  });
+}
+
+function buildCover(){
+  document.title=coverTitle+' \u00b7 Lancer Farms';
+  document.getElementById('c-title').textContent=coverTitle;
+  document.getElementById('d-title').textContent=coverTitle;
+  if(cards.length>1){
+    const p=document.getElementById('c-parts');
+    p.innerHTML='<b>'+cards.length+' parts:</b> '+cards.map(c=>esc(c.title)).join(' \u2192 ');
+    p.style.display='block';
+    document.getElementById('c-kicker').textContent='Lancer Farms \u00b7 Task guide';
+  }
+  const sEl=document.getElementById('c-safety');
+  sEl.innerHTML=cards.filter(c=>c.safety_note).map(c=>'<div class="safety"><b>\u26A0 Safety:</b> '+esc(c.safety_note)+'</div>').join('');
+  const seen={}, mats=[];
+  cards.forEach(function(c){
+    (c.materials||'').split(/,|;/).map(m=>m.trim()).filter(Boolean).forEach(function(m){
+      const k=m.toLowerCase(); if(!seen[k]){ seen[k]=1; mats.push(m); }
+    });
+  });
+  const mEl=document.getElementById('c-mats');
+  if(mats.length){
+    mEl.innerHTML='<div class="mat-h">You need</div>'+mats.map(m=>
+      '<div class="mat" onclick="this.classList.toggle(\'done\')"><span class="box">\u2713</span><span>'+esc(m)+'</span></div>').join('');
+  }
+  if(singleCard && localStorage.getItem('lfg_admin')==='1' && !singleCard.archived_at){
+    document.getElementById('c-archive').style.display='block';
+  }
+}
+
+function startSeq(){ idx=0; render(); showView('v-step'); }
+function nav(d){
+  idx+=d;
+  if(idx<0){ idx=-1; showView('v-cover'); return; }
+  if(idx>=seq.length){ showView('v-done'); return; }
+  render();
+}
+function render(){
+  const it=seq[idx];
+  const stepsDone=seq.slice(0,idx+1).filter(x=>x.type==='step').length;
+  document.getElementById('p-fill').style.width=Math.round((stepsDone/Math.max(totalSteps,1))*100)+'%';
+  const w=document.getElementById('step-wrap');
+  if(it.type==='chapter'){
+    w.innerHTML='<div class="chap-k">Part '+it.part+' of '+it.of+'</div><div class="chap-t">'+esc(it.title)+'</div>';
+    document.getElementById('s-next').innerHTML='Begin \u2192';
+  }else{
+    const sn=seq.slice(0,idx+1).filter(x=>x.type==='step').length;
+    w.innerHTML='<div class="step-ic">'+iconFor(it.text,idx)+'</div>'
+      +'<div class="step-n">Step '+sn+' of '+totalSteps+'</div>'
+      +'<div class="step-t">'+esc(it.text)+'</div>';
+    document.getElementById('s-next').innerHTML=(idx===seq.length-1)?'Finish \u2713':'Next \u2192';
+  }
+}
+async function archiveCard(){
+  if(!singleCard) return;
+  if(!confirm('Archive this how-to card? Tasks keep their link; it leaves the picker.')) return;
+  const {error}= await sb.from('lfg_howto_cards').update({archived_at:new Date().toISOString()}).eq('id',singleCard.id);
+  if(error){ alert('Archive failed'); return; }
+  document.getElementById('c-archive').style.display='none';
+  alert('Card archived');
+}
+load();
+</script>
+</body>
+</html>
