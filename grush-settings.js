@@ -426,7 +426,9 @@ const GrushSettings = (() => {
     return box;
   }
 
-  /* Bounded trim pot: 240° sweep, value -1..1, center detent = 0. */
+  /* Bounded trim pot: 240° sweep, value -1..1, center detent = 0.
+     Glove-friendly relative drag: touch anywhere on the knob, drag
+     up/down; ~140px of travel spans the full range. */
   function trimKnob({ label, endLabels, value, onInput, onLand }) {
     const box = el('div', 'gk gk-trim');
     const dial = el('div', 'gk-dial');
@@ -435,55 +437,44 @@ const GrushSettings = (() => {
     face.appendChild(el('div', 'gk-dot'));
     dial.appendChild(face);
 
-    const marks = [-SWEEP / 2, 0, SWEEP / 2];         /* end + center ticks */
-    for (const m of marks) {
+    for (const m of [-SWEEP / 2, 0, SWEEP / 2]) {
       const t = el('div', 'gk-tick' + (m === 0 ? ' mid' : ''));
-      t.style.transform = `rotate(${m}deg) translateY(-38px)`;
+      t.style.transform = `rotate(${m}deg) translateY(-34px)`;
       dial.appendChild(t);
     }
-    const [lo, hi] = endLabels;
-    const mkEnd = (txt, angDeg) => {
-      const l = el('div', 'gk-tlabel', txt);
-      const rad = (angDeg - 90) * Math.PI / 180;
-      l.style.left = `calc(50% + ${Math.cos(rad) * 52}px)`;
-      l.style.top  = `calc(50% + ${Math.sin(rad) * 52}px)`;
-      dial.appendChild(l);
-    };
-    mkEnd(lo, -SWEEP / 2 - 12); mkEnd(hi, SWEEP / 2 + 12);
 
-    let ang = value * (SWEEP / 2);
-    const render = () => { face.style.transform = `rotate(${ang}deg)`; };
+    let v = value;
+    const render = () => { face.style.transform = `rotate(${v * SWEEP / 2}deg)`; };
     render();
 
-    let dragging = false, startPtr = 0, startAng = 0, raf = 0, snapped = value === 0;
-    const ptrAngle = e => {
-      const b = dial.getBoundingClientRect();
-      return Math.atan2(e.clientY - (b.top + b.height / 2), e.clientX - (b.left + b.width / 2)) * 180 / Math.PI + 90;
-    };
+    let dragging = false, startY = 0, startV = 0, raf = 0, snapped = v === 0;
     dial.addEventListener('pointerdown', e => {
       dragging = true; dial.setPointerCapture(e.pointerId);
-      startPtr = ptrAngle(e); startAng = ang;
+      startY = e.clientY; startV = v;
     });
     dial.addEventListener('pointermove', e => {
       if (!dragging) return;
       e.preventDefault();
-      let d = ptrAngle(e) - startPtr;
-      if (d > 180) d -= 360; if (d < -180) d += 360;
-      ang = Math.max(-SWEEP / 2, Math.min(SWEEP / 2, startAng + d));
-      if (Math.abs(ang) < 7) ang = 0;               /* center detent */
-      const nowSnapped = ang === 0;
+      let nv = startV + (startY - e.clientY) / 70;    /* drag up = increase */
+      nv = Math.max(-1, Math.min(1, nv));
+      if (Math.abs(nv) < 0.06) nv = 0;               /* center detent */
+      const nowSnapped = nv === 0;
       if (nowSnapped !== snapped) { snapped = nowSnapped; play('detent'); }
-      const v = +(ang / (SWEEP / 2)).toFixed(3);
-      if (!raf) raf = requestAnimationFrame(() => { raf = 0; onInput(v); render(); });
+      v = nv;
+      if (!raf) raf = requestAnimationFrame(() => { raf = 0; onInput(+v.toFixed(3)); render(); });
     });
     const settle = () => {
       if (!dragging) return; dragging = false;
-      onLand(+(ang / (SWEEP / 2)).toFixed(3)); play('toggle');
+      onLand(+v.toFixed(3)); play('toggle');
     };
     dial.addEventListener('pointerup', settle);
     dial.addEventListener('pointercancel', settle);
 
     box.appendChild(dial);
+    const ends = el('div', 'gk-ends');
+    ends.appendChild(el('span', '', endLabels[0]));
+    ends.appendChild(el('span', '', endLabels[1]));
+    box.appendChild(ends);
     box.appendChild(el('div', 'gk-name', label));
     return box;
   }
@@ -536,20 +527,17 @@ const GrushSettings = (() => {
       }
     }
 
-    let dragging = false, startPtr = 0, startAng = 0, raf = 0, lastDetent = 0;
-    const ptrAngle = e => {
-      const b = dial.getBoundingClientRect();
-      return Math.atan2(e.clientY - (b.top + b.height / 2), e.clientX - (b.left + b.width / 2)) * 180 / Math.PI + 90;
-    };
+    /* Glove-friendly relative drag: touch anywhere, drag any
+       direction — up or right increases (dx - dy blend). */
+    let dragging = false, startX = 0, startY = 0, startAng = 0, raf = 0, lastDetent = 0;
     dial.addEventListener('pointerdown', e => {
       dragging = true; dial.setPointerCapture(e.pointerId);
-      startPtr = ptrAngle(e); startAng = ang;
+      startX = e.clientX; startY = e.clientY; startAng = ang;
     });
     dial.addEventListener('pointermove', e => {
       if (!dragging) return;
       e.preventDefault();
-      let d = ptrAngle(e) - startPtr;
-      ang = startAng + d;
+      ang = startAng + ((e.clientX - startX) - (e.clientY - startY)) * 0.9;
       S.hue = Math.round(mod360(ang));
       const step = Math.floor(S.hue / 15);        /* soft detent ticks every 15° */
       if (step !== lastDetent) { lastDetent = step; play('detent'); }
@@ -661,7 +649,7 @@ const GrushSettings = (() => {
       '.gsw{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;max-width:132px;}' +
       '.gsw.compact{max-width:96px;margin:0 auto 4px;}' +
       '.gsw-leds{display:flex;width:100%;justify-content:space-around;}' +
-      '.gsw-track{position:relative;width:100%;height:26px;border-radius:6px;touch-action:none;' +
+      '.gsw-track{position:relative;width:100%;height:32px;border-radius:6px;touch-action:none;' +
         'background:color-mix(in srgb, black 28%, var(--paper,#2A2620));' +
         'border:1px solid var(--line-strong,#5A554A);box-shadow:inset 0 2px 5px rgba(0,0,0,.5);}' +
       '.gsw-thumb{position:absolute;top:2px;bottom:2px;border-radius:4px;cursor:grab;' +
@@ -675,14 +663,16 @@ const GrushSettings = (() => {
       '.gsw-labs span{opacity:.55;transition:opacity .15s,color .15s;}' +
       '.gsw-labs span.on{color:var(--green,#7E9A6E);opacity:1;font-weight:700;}' +
       /* ── rotary pots: ridged rim, smooth cap, LED pointer ── */
-      '.gs-trims{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;justify-items:center;margin:16px 0 4px;}' +
+      '.gs-trims{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;justify-items:center;margin:16px 0 4px;}' +
       '.gs-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 8px;justify-items:center;margin-top:16px;}' +
-      '.gk{display:flex;flex-direction:column;align-items:center;gap:6px;}' +
+      '.gk{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;max-width:104px;}' +
+      '.gk-hue{max-width:none;}' +
       '.gk-dial{position:relative;width:104px;height:104px;touch-action:none;}' +
       '.gk-hue .gk-dial{width:128px;height:128px;}' +
       '.gk-hue{margin:2px auto 0;}' +
-      '.gk-trim .gk-dial{width:88px;height:88px;}' +
-      '.gk-trim .gk-face{inset:11px;}' +
+      '.gk-trim .gk-dial{width:84px;height:84px;}' +
+      '.gk-ends{display:flex;justify-content:space-between;width:100%;font-size:8px;letter-spacing:.8px;color:var(--ink-soft,#B0A99C);opacity:.65;margin-top:-2px;}' +
+      '.gk-trim .gk-face{inset:10px;}' +
       '.gk-ring{position:absolute;inset:0;pointer-events:none;}' +
       '.gk-face{position:absolute;inset:14px;border-radius:50%;cursor:grab;' +
         'background:repeating-conic-gradient(' +
@@ -701,8 +691,6 @@ const GrushSettings = (() => {
       '.gk-tick{position:absolute;left:50%;top:50%;width:2px;height:7px;margin-left:-1px;margin-top:-3.5px;' +
         'background:var(--ink-soft,#B0A99C);opacity:.55;border-radius:1px;}' +
       '.gk-tick.mid{height:9px;background:var(--green,#7E9A6E);opacity:.8;}' +
-      '.gk-tlabel{position:absolute;transform:translate(-50%,-50%);font-size:8.5px;letter-spacing:.8px;' +
-        'color:var(--ink-soft,#B0A99C);opacity:.6;white-space:nowrap;}' +
       '.gk-name{font-size:10px;letter-spacing:2px;color:var(--ink-soft,#B0A99C);opacity:.85;}' +
       '.gs-gear{opacity:.55;transition:opacity .15s;}' +
       '.gs-gear:active{opacity:1;}';
