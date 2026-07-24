@@ -829,7 +829,8 @@ async function loadApprovals(){
   ]);
   if(logsR.error&&commentsR.error&&photosR.error){ el.innerHTML='<div class="empty">Could not load</div>'; return; }
   const logs=logsR.data||[], comments=commentsR.data||[], photos=photosR.data||[];
-  if(!logs.length && !comments.length && !photos.length){
+  const stubs=(staffPlants||[]).filter(function(p){return p.approval_status!=='approved';});
+  if(!logs.length && !comments.length && !photos.length && !stubs.length){
     el.innerHTML='<div class="empty"><span class="ic">&#9989;</span>Nothing waiting. All caught up.</div>'; return;
   }
   let html='';
@@ -860,7 +861,22 @@ async function loadApprovals(){
       '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'photo\',\''+p.id+'\')">&#10003;</button></div>'
     )).join('');
   }
+  if(stubs.length){
+    let pcounts={};
+    try{ const pr=await sb.from('lfg_photos').select('plant_id'); (pr.data||[]).forEach(function(x){ if(x.plant_id) pcounts[x.plant_id]=(pcounts[x.plant_id]||0)+1; }); }catch(e){}
+    html+='<div class="approve-group">Plants to complete</div>';
+    html+='<div style="font-size:.8rem;opacity:.65;margin:2px 0 8px">Name-only stubs. Fill in the plant record, then set it approved \u2014 linked photos light up automatically.</div>';
+    stubs.forEach(function(p){
+      const n=pcounts[p.id]||0;
+      html+='<div class="inv-row"><div class="inv-body"><span class="inv-cat">'+esc(p.plant_name)+'</span>'
+        +'<div style="font-size:.78rem;opacity:.6">'+n+' photo'+(n===1?'':'s')+' waiting on this plant</div></div></div>';
+    });
+  }
   el.innerHTML=html;
+  el.querySelectorAll('.ap-plant').forEach(function(s){
+    const prev=s.value;
+    s.addEventListener('change', function(){ plantSelChange(s, prev); });
+  });
 }
 async function approveItem(kind,id){
   let error;
@@ -869,7 +885,7 @@ async function approveItem(kind,id){
   else if(kind==='photo'){
     const _ar=document.querySelector('.ap-area[data-id="'+id+'"]'), _ty=document.querySelector('.ap-type[data-id="'+id+'"]');
     const _upd={approval_status:'approved'}; if(_ar) _upd.area_id=_ar.value||null; if(_ty) _upd.subject_type=_ty.value||null;
-    const _pl=document.querySelector('.ap-plant[data-id="'+id+'"]'); if(_pl) _upd.plant_id=_pl.value||null;
+    const _pl=document.querySelector('.ap-plant[data-id="'+id+'"]'); if(_pl && _pl.value!=='__newplant') _upd.plant_id=_pl.value||null;
     ({error}= await sb.from('lfg_photos').update(_upd).eq('id',id));
   }
   if(error){ toast('Failed'); return; }
@@ -1012,14 +1028,31 @@ async function peAreaChange(){
 let staffPlants=null;
 async function ensurePlants(){
   if(staffPlants) return staffPlants;
-  const {data,error}= await sb.from('lfg_master_plants').select('id,plant_name').eq('approval_status','approved').order('plant_name');
+  const {data,error}= await sb.from('lfg_master_plants').select('id,plant_name,approval_status').order('plant_name');
   staffPlants = error? [] : (data||[]);
   return staffPlants;
 }
 function plantOptionsHTML(sel){
   let h='<option value=""'+(sel?'':' selected')+'>No plant link</option>';
-  (staffPlants||[]).forEach(function(p){ h+='<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+esc(p.plant_name)+'</option>'; });
+  (staffPlants||[]).forEach(function(p){
+    const lbl=esc(p.plant_name)+(p.approval_status==='approved'?'':' (pending)');
+    h+='<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lbl+'</option>';
+  });
+  h+='<option value="__newplant">&#65291; New plant&hellip;</option>';
   return h;
+}
+async function stubPlant(){
+  const name=prompt('New plant name'); if(name===null||!name.trim()) return null;
+  const {data,error}= await sb.from('lfg_master_plants').insert({plant_name:name.trim(), approval_status:'pending'}).select().single();
+  if(error){ toast('Could not add plant'); return null; }
+  toast('Plant stub added \u2014 complete it in the approval queue');
+  staffPlants=null; await ensurePlants();
+  return data;
+}
+async function plantSelChange(sel, prev){
+  if(sel.value!=='__newplant') return;
+  const added=await stubPlant();
+  sel.innerHTML=plantOptionsHTML(added? added.id : (prev||''));
 }
 
 let peId=null;
@@ -1032,6 +1065,7 @@ async function openPhotoEdit(id){
   document.getElementById('pe-type').innerHTML=typeOptionsHTML(p.subject_type||'');
   await ensurePlants();
   document.getElementById('pe-plant').innerHTML=plantOptionsHTML(p.plant_id||'');
+  document.getElementById('pe-plant').onchange=function(){ plantSelChange(this, p.plant_id||''); };
   document.getElementById('pe-status').value=(p.approval_status==='approved')?'approved':'pending';
   document.getElementById('photo-edit').style.display='flex';
 }
@@ -1042,7 +1076,7 @@ async function savePhotoEdit(){
     caption: document.getElementById('pe-caption').value.trim()||null,
     area_id: (function(v){return (v&&v!=='__addnew')?v:null;})(document.getElementById('pe-area').value),
     subject_type: document.getElementById('pe-type').value||null,
-    plant_id: document.getElementById('pe-plant').value||null,
+    plant_id: (function(v){return (v&&v!=='__newplant')?v:null;})(document.getElementById('pe-plant').value),
     approval_status: document.getElementById('pe-status').value
   };
   const {error}= await sb.from('lfg_photos').update(upd).eq('id',peId);
