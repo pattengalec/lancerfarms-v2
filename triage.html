@@ -18,6 +18,13 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:var(--paper);color:var(--ink);font-family:var(--font-body);
   max-width:560px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));}
+#organ{position:relative;width:100%;height:34vh;min-height:210px;max-height:300px;
+  margin:-6px 0 10px;border-radius:16px;overflow:hidden;background:#1A1814;touch-action:none;}
+#cv{display:block;width:100%;height:100%;}
+.olbl{position:absolute;transform:translate(-50%,-50%);font-size:10px;font-weight:600;
+  pointer-events:none;white-space:nowrap;text-shadow:0 1px 5px rgba(0,0,0,.95);transition:opacity 1.2s;}
+.lead{position:absolute;left:12px;bottom:10px;font-size:.72rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-soft);transition:opacity .8s;}
 .top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;}
 h1{font-family:var(--font-head);font-size:1.25rem;font-weight:600;}
 .step{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--leaf);}
@@ -66,59 +73,61 @@ h1{font-family:var(--font-head);font-size:1.25rem;font-weight:600;}
 </head>
 <body>
 
+<div id="organ"><canvas id="cv"></canvas></div>
 <div class="top"><h1>Plant triage</h1><span class="step" id="step"></span></div>
 <div class="trail" id="trail"></div>
 <div id="view"></div>
 <button class="back" id="back" style="display:none">Back a step</button>
 <input type="checkbox" switch id="hpx" style="position:absolute;opacity:0;pointer-events:none" aria-hidden="true">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const T={
 start:{q:'Is it drooping or wilting?',s:'Limp and losing its shape, rather than just discoloured.',
- o:[{l:'Yes, it is wilting',x:'Soft, sagging, losing turgor',to:'soil'},
-    {l:'No, it is holding up',x:'Standing normally but something looks wrong',to:'signs'}]},
+ o:[{u:[1,6],d:[],l:'Yes, it is wilting',x:'Soft, sagging, losing turgor',to:'soil'},
+    {u:[4,5,3],d:[1],l:'No, it is holding up',x:'Standing normally but something looks wrong',to:'signs'}]},
 
 soil:{q:'Push a finger into the soil at the stem. What do you find?',
  s:'Go in to the second knuckle. This one answer splits the two opposite emergencies.',
- o:[{l:'Dry',x:'Dusty or barely damp down there',to:'a_drought'},
-    {l:'Wet or soggy',x:'Damp, heavy, maybe smells sour',to:'a_rootfail'},
-    {l:'Just moist',x:'About right, and it is still wilting',to:'base'}]},
+ o:[{u:[1],d:[6,5],l:'Dry',x:'Dusty or barely damp down there',to:'a_drought'},
+    {u:[6,5,1],d:[],l:'Wet or soggy',x:'Damp, heavy, maybe smells sour',to:'a_rootfail'},
+    {u:[6],d:[1],l:'Just moist',x:'About right, and it is still wilting',to:'base'}]},
 
 base:{q:'Look where the stem meets the soil. Is it dark, soft, or sunken?',
  s:'Squeeze it gently between two fingers.',
- o:[{l:'Yes, soft or discoloured',x:'Mushy, dark, or collapsing at the collar',to:'a_crown'},
-    {l:'No, firm and normal',x:'Solid all the way down',to:'timing'}]},
+ o:[{u:[5,6],d:[],l:'Yes, soft or discoloured',x:'Mushy, dark, or collapsing at the collar',to:'a_crown'},
+    {u:[],d:[5],l:'No, firm and normal',x:'Solid all the way down',to:'timing'}]},
 
 timing:{q:'Is it wilted all day, or only in the afternoon heat?',
  s:'Check it early morning before the sun is on it.',
- o:[{l:'Recovers by morning',x:'Only limp in the hottest part of the day',to:'a_heat'},
-    {l:'Wilted even at dawn',x:'Never recovers overnight',to:'a_vascular'}]},
+ o:[{u:[0],d:[5,6,3],l:'Recovers by morning',x:'Only limp in the hottest part of the day',to:'a_heat'},
+    {u:[6,5],d:[],l:'Wilted even at dawn',x:'Never recovers overnight',to:'a_vascular'}]},
 
 signs:{q:'Is there anything visibly on the plant?',
  s:'Check leaf undersides. Bugs, webbing, powder, sticky film, chewed edges.',
- o:[{l:'Yes, I can see something',x:'Something is on it or has been eating it',to:'what'},
-    {l:'Nothing visible',x:'Just the plant looking unwell',to:'who'}]},
+ o:[{u:[4,5],d:[3,2],l:'Yes, I can see something',x:'Something is on it or has been eating it',to:'what'},
+    {u:[],d:[4],l:'Nothing visible',x:'Just the plant looking unwell',to:'who'}]},
 
 what:{q:'What are you looking at?',s:'Pick the closest match.',
- o:[{l:'Fine webbing, speckled leaves',x:'Dusty look, tiny specks that move',to:'a_mites'},
-    {l:'Clustered bugs, sticky leaves',x:'Soft-bodied insects, shiny or sooty film',to:'a_suckers'},
-    {l:'White powder or fuzzy growth',x:'Dusty coating or mould on the surface',to:'a_fungal'},
-    {l:'Holes or chewed edges',x:'Tissue physically missing',to:'a_chewers'}]},
+ o:[{u:[4],d:[5,3],l:'Fine webbing, speckled leaves',x:'Dusty look, tiny specks that move',to:'a_mites'},
+    {u:[4],d:[5,3],l:'Clustered bugs, sticky leaves',x:'Soft-bodied insects, shiny or sooty film',to:'a_suckers'},
+    {u:[5],d:[4,3],l:'White powder or fuzzy growth',x:'Dusty coating or mould on the surface',to:'a_fungal'},
+    {u:[4],d:[5,3],l:'Holes or chewed edges',x:'Tissue physically missing',to:'a_chewers'}]},
 
 who:{q:'Who else is affected?',s:'Look down the bed and at neighbouring plants.',
- o:[{l:'Only this kind of plant',x:'Different plants nearby look fine',to:'spots'},
-    {l:'Several different kinds',x:'Whatever is growing there is struggling',to:'leaves'}]},
+ o:[{u:[4,5],d:[0,2,1],l:'Only this kind of plant',x:'Different plants nearby look fine',to:'spots'},
+    {u:[1,0,2,3,6],d:[4,5],l:'Several different kinds',x:'Whatever is growing there is struggling',to:'leaves'}]},
 
 spots:{q:'Any distinct spots, rings, or dead patches on the leaves?',
  s:'Defined marks rather than overall colour change.',
- o:[{l:'Yes, defined marks',x:'Spots, blotches, or rings',to:'a_foliar'},
-    {l:'No, just off-colour',x:'Overall pale or yellow',to:'leaves'}]},
+ o:[{u:[5],d:[3],l:'Yes, defined marks',x:'Spots, blotches, or rings',to:'a_foliar'},
+    {u:[3],d:[5],l:'No, just off-colour',x:'Overall pale or yellow',to:'leaves'}]},
 
 leaves:{q:'Which leaves look worst?',s:'Compare the top of the plant against the bottom.',
- o:[{l:'The oldest, lowest leaves',x:'Yellowing from the bottom up',to:'a_mobile'},
-    {l:'The newest growth on top',x:'Young leaves pale while old stay green',to:'a_immobile'},
-    {l:'Edges and tips, browned',x:'Crispy margins, scorched look',to:'a_salt'},
-    {l:'All over, evenly',x:'The whole plant is dull or pale together',to:'a_site'}]},
+ o:[{u:[3],d:[0,4],l:'The oldest, lowest leaves',x:'Yellowing from the bottom up',to:'a_mobile'},
+    {u:[3,6],d:[4],l:'The newest growth on top',x:'Young leaves pale while old stay green',to:'a_immobile'},
+    {u:[2,1],d:[4],l:'Edges and tips, browned',x:'Crispy margins, scorched look',to:'a_salt'},
+    {u:[0,6],d:[4,5],l:'All over, evenly',x:'The whole plant is dull or pale together',to:'a_site'}]},
 
 a_drought:{t:'urgent',n:'Water shortage',
  w:'The plant is losing water faster than the roots can supply it, and the soil is empty. This is the straightforward version and it responds fast.',
@@ -385,7 +394,105 @@ function roCheck(id,i){
       '<button class="btn" id="roback">Back to the findings</button>'+
       '<button class="btn ghost" id="restart3">Start over</button>';
     document.getElementById('roback').onclick=function(){ hap([5]); render(id); };
-    document.getElementById('restart3').onclick=function(){ hap([5]); path=[]; roState={}; render('start'); };
+    document.getElementById('restart3').onclick=function(){ hap([5]); path=[]; roState={}; 
+const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
+ {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
+const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
+ [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
+let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
+function evidence(o){
+  belHist.push(bel.slice());
+  (o.u||[]).forEach(function(i){ bel[i]+=(1-bel[i])*0.45; });
+  (o.d||[]).forEach(function(i){ bel[i]-=bel[i]*0.42; });
+}
+function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
+
+const org=document.getElementById('organ');
+const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
+rend.setPixelRatio(Math.min(devicePixelRatio,2));
+const sc=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(40,1,0.1,100); cam.position.set(0,0,7.6);
+sc.add(new THREE.AmbientLight(0xfff3e0,0.52));
+const pl=new THREE.PointLight(0xffe3ba,1.0); pl.position.set(4,6,6); sc.add(pl);
+const pl2=new THREE.PointLight(0x8fd0ff,0.45); pl2.position.set(-6,-3,2); sc.add(pl2);
+const grp=new THREE.Group(); sc.add(grp);
+const ORAD=2.0;
+function ofib(i,n){const off=2/n,y=i*off-1+off/2,r=Math.sqrt(Math.max(0,1-y*y));
+ const phi=i*Math.PI*(3-Math.sqrt(5));
+ return new THREE.Vector3(Math.cos(phi)*r*ORAD,y*ORAD,Math.sin(phi)*r*ORAD);}
+const OP7=OD.map(function(d,i){return ofib(i,7);});
+function ogeo(){const g=new THREE.IcosahedronGeometry(1,3);
+ g.userData.base=Float32Array.from(g.attributes.position.array);return g;}
+function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.base,ph=m.userData.ph||0;
+ for(let i=0;i<p.count;i++){const k=i*3,x=b[k],y=b[k+1],z=b[k+2];
+  const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
+  p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
+ p.needsUpdate=true;g.computeVertexNormals();}
+const onodes=[],olabels=[];
+OD.forEach(function(d,i){
+ const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
+  emissiveIntensity:.08,roughness:.55,metalness:.02,transparent:true,opacity:.4}));
+ m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
+ grp.add(m); onodes.push(m);
+ const el=document.createElement('div'); el.className='olbl';
+ el.style.color='#'+d.c.toString(16).padStart(6,'0'); el.textContent=d.n;
+ org.appendChild(el); olabels.push(el);});
+function otend(a,b,r){
+ const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
+ if(mid.length()<0.35){ctrl=mid.clone().add(new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(ORAD*0.75));}
+ else{ctrl=mid.clone().normalize().multiplyScalar(mid.length()+ORAD*0.42);}
+ return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,ctrl,b),20,r,6,false);}
+const oedges=[];
+for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
+ const st=OSTR[i][j];
+ const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
+  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
+   roughness:.7,transparent:true,opacity:0.04}));
+ m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
+const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
+const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
+function osize(){const w=org.clientWidth,h=org.clientHeight;
+ rend.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+window.addEventListener('resize',osize);
+let ot=0;
+function oframe(){
+ requestAnimationFrame(oframe);
+ ot=performance.now()*0.001;
+ let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
+ const spread=Math.max.apply(null,bel)-Math.min.apply(null,bel);
+ if(spread>0.12){
+   tq.setFromUnitVectors(OP7[lead].clone().normalize(),zAx);
+   grp.quaternion.slerp(tq,0.016);
+   leadEl.textContent='leaning \u2014 '+OD[lead].n;
+   leadEl.style.opacity=1;
+ }else{
+   grp.rotateY(0.0016);
+   leadEl.textContent='still open';
+   leadEl.style.opacity=.6;
+ }
+ grp.position.y=Math.sin(ot*0.3)*0.06;
+ onodes.forEach(function(m,i){
+  const b=bel[i];
+  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
+  m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
+  m.material.opacity+=(to-m.material.opacity)*0.030;
+  m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
+  m.userData.amp+=(ta-m.userData.amp)*0.02;
+  owob(m,ot,m.userData.amp);});
+ oedges.forEach(function(e){
+  const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
+  const to=b>0.62?(b-0.62)*2.1:0.03;
+  e.material.opacity+=(to-e.material.opacity)*0.025;});
+ onodes.forEach(function(m,i){
+  pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
+  const el=olabels[i];
+  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
+  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight-m.scale.x*40)+'px';
+  el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
+ rend.render(sc,cam);}
+osize(); oframe();
+
+render('start'); };
     window.scrollTo(0,0);
   };
   document.getElementById('roout').onclick=function(){ hap([6]); (roState[id]=roState[id]||{})[i]='out'; render(id); };
@@ -401,9 +508,9 @@ function render(id){
   if(n.o){
     document.getElementById('step').textContent='Step '+(path.length+1);
     v.innerHTML='<div class="q">'+esc(n.q)+'</div><div class="qs">'+esc(n.s)+'</div>'+
-      n.o.map(function(o,i){return '<button class="opt" data-to="'+o.to+'" data-l="'+esc(o.l)+'"><b>'+esc(o.l)+'</b><span>'+esc(o.x)+'</span></button>';}).join('');
+      n.o.map(function(o,i){return '<button class="opt" data-i="'+i+'" data-to="'+o.to+'" data-l="'+esc(o.l)+'"><b>'+esc(o.l)+'</b><span>'+esc(o.x)+'</span></button>';}).join('');
     v.querySelectorAll('.opt').forEach(function(b){
-      b.onclick=function(){ hap([9]); go(b.dataset.to,b.dataset.l); };
+      b.onclick=function(){ hap([9]); evidence(n.o[+b.dataset.i]); go(b.dataset.to,b.dataset.l); };
     });
   }else{
     document.getElementById('step').textContent='Finding';
@@ -416,9 +523,205 @@ function render(id){
       roBlock(id)+
       '<button class="btn" id="hsbtn">'+(fromHS?'Back to the overlooked list':'Not it? Overlooked causes')+'</button>'+
       '<button class="btn ghost" id="restart">Start over</button>';
-    document.getElementById('restart').onclick=function(){ hap([5]); path=[]; render('start'); };
+    document.getElementById('restart').onclick=function(){ hap([5]); path=[]; 
+const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
+ {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
+const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
+ [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
+let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
+function evidence(o){
+  belHist.push(bel.slice());
+  (o.u||[]).forEach(function(i){ bel[i]+=(1-bel[i])*0.45; });
+  (o.d||[]).forEach(function(i){ bel[i]-=bel[i]*0.42; });
+}
+function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
+
+const org=document.getElementById('organ');
+const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
+rend.setPixelRatio(Math.min(devicePixelRatio,2));
+const sc=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(40,1,0.1,100); cam.position.set(0,0,7.6);
+sc.add(new THREE.AmbientLight(0xfff3e0,0.52));
+const pl=new THREE.PointLight(0xffe3ba,1.0); pl.position.set(4,6,6); sc.add(pl);
+const pl2=new THREE.PointLight(0x8fd0ff,0.45); pl2.position.set(-6,-3,2); sc.add(pl2);
+const grp=new THREE.Group(); sc.add(grp);
+const ORAD=2.0;
+function ofib(i,n){const off=2/n,y=i*off-1+off/2,r=Math.sqrt(Math.max(0,1-y*y));
+ const phi=i*Math.PI*(3-Math.sqrt(5));
+ return new THREE.Vector3(Math.cos(phi)*r*ORAD,y*ORAD,Math.sin(phi)*r*ORAD);}
+const OP7=OD.map(function(d,i){return ofib(i,7);});
+function ogeo(){const g=new THREE.IcosahedronGeometry(1,3);
+ g.userData.base=Float32Array.from(g.attributes.position.array);return g;}
+function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.base,ph=m.userData.ph||0;
+ for(let i=0;i<p.count;i++){const k=i*3,x=b[k],y=b[k+1],z=b[k+2];
+  const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
+  p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
+ p.needsUpdate=true;g.computeVertexNormals();}
+const onodes=[],olabels=[];
+OD.forEach(function(d,i){
+ const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
+  emissiveIntensity:.08,roughness:.55,metalness:.02,transparent:true,opacity:.4}));
+ m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
+ grp.add(m); onodes.push(m);
+ const el=document.createElement('div'); el.className='olbl';
+ el.style.color='#'+d.c.toString(16).padStart(6,'0'); el.textContent=d.n;
+ org.appendChild(el); olabels.push(el);});
+function otend(a,b,r){
+ const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
+ if(mid.length()<0.35){ctrl=mid.clone().add(new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(ORAD*0.75));}
+ else{ctrl=mid.clone().normalize().multiplyScalar(mid.length()+ORAD*0.42);}
+ return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,ctrl,b),20,r,6,false);}
+const oedges=[];
+for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
+ const st=OSTR[i][j];
+ const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
+  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
+   roughness:.7,transparent:true,opacity:0.04}));
+ m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
+const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
+const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
+function osize(){const w=org.clientWidth,h=org.clientHeight;
+ rend.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+window.addEventListener('resize',osize);
+let ot=0;
+function oframe(){
+ requestAnimationFrame(oframe);
+ ot=performance.now()*0.001;
+ let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
+ const spread=Math.max.apply(null,bel)-Math.min.apply(null,bel);
+ if(spread>0.12){
+   tq.setFromUnitVectors(OP7[lead].clone().normalize(),zAx);
+   grp.quaternion.slerp(tq,0.016);
+   leadEl.textContent='leaning \u2014 '+OD[lead].n;
+   leadEl.style.opacity=1;
+ }else{
+   grp.rotateY(0.0016);
+   leadEl.textContent='still open';
+   leadEl.style.opacity=.6;
+ }
+ grp.position.y=Math.sin(ot*0.3)*0.06;
+ onodes.forEach(function(m,i){
+  const b=bel[i];
+  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
+  m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
+  m.material.opacity+=(to-m.material.opacity)*0.030;
+  m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
+  m.userData.amp+=(ta-m.userData.amp)*0.02;
+  owob(m,ot,m.userData.amp);});
+ oedges.forEach(function(e){
+  const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
+  const to=b>0.62?(b-0.62)*2.1:0.03;
+  e.material.opacity+=(to-e.material.opacity)*0.025;});
+ onodes.forEach(function(m,i){
+  pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
+  const el=olabels[i];
+  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
+  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight-m.scale.x*40)+'px';
+  el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
+ rend.render(sc,cam);}
+osize(); oframe();
+
+render('start'); };
     document.getElementById('hsbtn').onclick=function(){ hap([7]); showHS(); };
-    document.getElementById('restart').onclick=function(){ hap([5]); path=[]; roState={}; fromHS=false; render('start'); };
+    document.getElementById('restart').onclick=function(){ hap([5]); path=[]; roState={}; fromHS=false; 
+const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
+ {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
+const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
+ [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
+let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
+function evidence(o){
+  belHist.push(bel.slice());
+  (o.u||[]).forEach(function(i){ bel[i]+=(1-bel[i])*0.45; });
+  (o.d||[]).forEach(function(i){ bel[i]-=bel[i]*0.42; });
+}
+function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
+
+const org=document.getElementById('organ');
+const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
+rend.setPixelRatio(Math.min(devicePixelRatio,2));
+const sc=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(40,1,0.1,100); cam.position.set(0,0,7.6);
+sc.add(new THREE.AmbientLight(0xfff3e0,0.52));
+const pl=new THREE.PointLight(0xffe3ba,1.0); pl.position.set(4,6,6); sc.add(pl);
+const pl2=new THREE.PointLight(0x8fd0ff,0.45); pl2.position.set(-6,-3,2); sc.add(pl2);
+const grp=new THREE.Group(); sc.add(grp);
+const ORAD=2.0;
+function ofib(i,n){const off=2/n,y=i*off-1+off/2,r=Math.sqrt(Math.max(0,1-y*y));
+ const phi=i*Math.PI*(3-Math.sqrt(5));
+ return new THREE.Vector3(Math.cos(phi)*r*ORAD,y*ORAD,Math.sin(phi)*r*ORAD);}
+const OP7=OD.map(function(d,i){return ofib(i,7);});
+function ogeo(){const g=new THREE.IcosahedronGeometry(1,3);
+ g.userData.base=Float32Array.from(g.attributes.position.array);return g;}
+function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.base,ph=m.userData.ph||0;
+ for(let i=0;i<p.count;i++){const k=i*3,x=b[k],y=b[k+1],z=b[k+2];
+  const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
+  p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
+ p.needsUpdate=true;g.computeVertexNormals();}
+const onodes=[],olabels=[];
+OD.forEach(function(d,i){
+ const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
+  emissiveIntensity:.08,roughness:.55,metalness:.02,transparent:true,opacity:.4}));
+ m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
+ grp.add(m); onodes.push(m);
+ const el=document.createElement('div'); el.className='olbl';
+ el.style.color='#'+d.c.toString(16).padStart(6,'0'); el.textContent=d.n;
+ org.appendChild(el); olabels.push(el);});
+function otend(a,b,r){
+ const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
+ if(mid.length()<0.35){ctrl=mid.clone().add(new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(ORAD*0.75));}
+ else{ctrl=mid.clone().normalize().multiplyScalar(mid.length()+ORAD*0.42);}
+ return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,ctrl,b),20,r,6,false);}
+const oedges=[];
+for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
+ const st=OSTR[i][j];
+ const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
+  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
+   roughness:.7,transparent:true,opacity:0.04}));
+ m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
+const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
+const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
+function osize(){const w=org.clientWidth,h=org.clientHeight;
+ rend.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+window.addEventListener('resize',osize);
+let ot=0;
+function oframe(){
+ requestAnimationFrame(oframe);
+ ot=performance.now()*0.001;
+ let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
+ const spread=Math.max.apply(null,bel)-Math.min.apply(null,bel);
+ if(spread>0.12){
+   tq.setFromUnitVectors(OP7[lead].clone().normalize(),zAx);
+   grp.quaternion.slerp(tq,0.016);
+   leadEl.textContent='leaning \u2014 '+OD[lead].n;
+   leadEl.style.opacity=1;
+ }else{
+   grp.rotateY(0.0016);
+   leadEl.textContent='still open';
+   leadEl.style.opacity=.6;
+ }
+ grp.position.y=Math.sin(ot*0.3)*0.06;
+ onodes.forEach(function(m,i){
+  const b=bel[i];
+  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
+  m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
+  m.material.opacity+=(to-m.material.opacity)*0.030;
+  m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
+  m.userData.amp+=(ta-m.userData.amp)*0.02;
+  owob(m,ot,m.userData.amp);});
+ oedges.forEach(function(e){
+  const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
+  const to=b>0.62?(b-0.62)*2.1:0.03;
+  e.material.opacity+=(to-e.material.opacity)*0.025;});
+ onodes.forEach(function(m,i){
+  pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
+  const el=olabels[i];
+  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
+  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight-m.scale.x*40)+'px';
+  el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
+ rend.render(sc,cam);}
+osize(); oframe();
+
+render('start'); };
     wireRO(id);
   }
   window.scrollTo(0,0);
@@ -429,13 +732,111 @@ function showHS(){
     '<div class="q">The eight that get missed</div><div class="qs">When the plant does not fit the picture, it is usually one of these. Most are recent and physical.</div>'+
     '<div class="blk hs"><ul>'+HS.map(h=>'<li class="hrow" data-to="'+h[0]+'"><span class="n">'+esc(h[1])+'</span><span class="d">'+esc(h[2])+'</span></li>').join('')+'</ul></div>'+
     '<button class="btn ghost" id="restart2">Start over</button>';
-  document.getElementById('restart2').onclick=function(){ hap([5]); path=[]; roState={}; render('start'); };
+  document.getElementById('restart2').onclick=function(){ hap([5]); path=[]; roState={}; 
+const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
+ {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
+const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
+ [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
+let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
+function evidence(o){
+  belHist.push(bel.slice());
+  (o.u||[]).forEach(function(i){ bel[i]+=(1-bel[i])*0.45; });
+  (o.d||[]).forEach(function(i){ bel[i]-=bel[i]*0.42; });
+}
+function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
+
+const org=document.getElementById('organ');
+const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
+rend.setPixelRatio(Math.min(devicePixelRatio,2));
+const sc=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(40,1,0.1,100); cam.position.set(0,0,7.6);
+sc.add(new THREE.AmbientLight(0xfff3e0,0.52));
+const pl=new THREE.PointLight(0xffe3ba,1.0); pl.position.set(4,6,6); sc.add(pl);
+const pl2=new THREE.PointLight(0x8fd0ff,0.45); pl2.position.set(-6,-3,2); sc.add(pl2);
+const grp=new THREE.Group(); sc.add(grp);
+const ORAD=2.0;
+function ofib(i,n){const off=2/n,y=i*off-1+off/2,r=Math.sqrt(Math.max(0,1-y*y));
+ const phi=i*Math.PI*(3-Math.sqrt(5));
+ return new THREE.Vector3(Math.cos(phi)*r*ORAD,y*ORAD,Math.sin(phi)*r*ORAD);}
+const OP7=OD.map(function(d,i){return ofib(i,7);});
+function ogeo(){const g=new THREE.IcosahedronGeometry(1,3);
+ g.userData.base=Float32Array.from(g.attributes.position.array);return g;}
+function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.base,ph=m.userData.ph||0;
+ for(let i=0;i<p.count;i++){const k=i*3,x=b[k],y=b[k+1],z=b[k+2];
+  const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
+  p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
+ p.needsUpdate=true;g.computeVertexNormals();}
+const onodes=[],olabels=[];
+OD.forEach(function(d,i){
+ const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
+  emissiveIntensity:.08,roughness:.55,metalness:.02,transparent:true,opacity:.4}));
+ m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
+ grp.add(m); onodes.push(m);
+ const el=document.createElement('div'); el.className='olbl';
+ el.style.color='#'+d.c.toString(16).padStart(6,'0'); el.textContent=d.n;
+ org.appendChild(el); olabels.push(el);});
+function otend(a,b,r){
+ const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
+ if(mid.length()<0.35){ctrl=mid.clone().add(new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(ORAD*0.75));}
+ else{ctrl=mid.clone().normalize().multiplyScalar(mid.length()+ORAD*0.42);}
+ return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,ctrl,b),20,r,6,false);}
+const oedges=[];
+for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
+ const st=OSTR[i][j];
+ const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
+  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
+   roughness:.7,transparent:true,opacity:0.04}));
+ m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
+const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
+const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
+function osize(){const w=org.clientWidth,h=org.clientHeight;
+ rend.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+window.addEventListener('resize',osize);
+let ot=0;
+function oframe(){
+ requestAnimationFrame(oframe);
+ ot=performance.now()*0.001;
+ let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
+ const spread=Math.max.apply(null,bel)-Math.min.apply(null,bel);
+ if(spread>0.12){
+   tq.setFromUnitVectors(OP7[lead].clone().normalize(),zAx);
+   grp.quaternion.slerp(tq,0.016);
+   leadEl.textContent='leaning \u2014 '+OD[lead].n;
+   leadEl.style.opacity=1;
+ }else{
+   grp.rotateY(0.0016);
+   leadEl.textContent='still open';
+   leadEl.style.opacity=.6;
+ }
+ grp.position.y=Math.sin(ot*0.3)*0.06;
+ onodes.forEach(function(m,i){
+  const b=bel[i];
+  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
+  m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
+  m.material.opacity+=(to-m.material.opacity)*0.030;
+  m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
+  m.userData.amp+=(ta-m.userData.amp)*0.02;
+  owob(m,ot,m.userData.amp);});
+ oedges.forEach(function(e){
+  const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
+  const to=b>0.62?(b-0.62)*2.1:0.03;
+  e.material.opacity+=(to-e.material.opacity)*0.025;});
+ onodes.forEach(function(m,i){
+  pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
+  const el=olabels[i];
+  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
+  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight-m.scale.x*40)+'px';
+  el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
+ rend.render(sc,cam);}
+osize(); oframe();
+
+render('start'); };
   document.querySelectorAll('.hrow').forEach(function(el){
     el.onclick=function(){ hap([9]); fromHS=true; render(el.dataset.to); };
   });
   window.scrollTo(0,0);
 }
-document.getElementById('back').onclick=function(){ hap([5]); path.pop(); rewalk(); };
+document.getElementById('back').onclick=function(){ hap([5]); path.pop(); undoEvidence(); rewalk(); };
 function rewalk(){
   let id='start';
   for(const step of path){
@@ -445,6 +846,104 @@ function rewalk(){
   }
   render(id);
 }
+
+const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
+ {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
+const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
+ [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
+let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
+function evidence(o){
+  belHist.push(bel.slice());
+  (o.u||[]).forEach(function(i){ bel[i]+=(1-bel[i])*0.45; });
+  (o.d||[]).forEach(function(i){ bel[i]-=bel[i]*0.42; });
+}
+function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
+
+const org=document.getElementById('organ');
+const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
+rend.setPixelRatio(Math.min(devicePixelRatio,2));
+const sc=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(40,1,0.1,100); cam.position.set(0,0,7.6);
+sc.add(new THREE.AmbientLight(0xfff3e0,0.52));
+const pl=new THREE.PointLight(0xffe3ba,1.0); pl.position.set(4,6,6); sc.add(pl);
+const pl2=new THREE.PointLight(0x8fd0ff,0.45); pl2.position.set(-6,-3,2); sc.add(pl2);
+const grp=new THREE.Group(); sc.add(grp);
+const ORAD=2.0;
+function ofib(i,n){const off=2/n,y=i*off-1+off/2,r=Math.sqrt(Math.max(0,1-y*y));
+ const phi=i*Math.PI*(3-Math.sqrt(5));
+ return new THREE.Vector3(Math.cos(phi)*r*ORAD,y*ORAD,Math.sin(phi)*r*ORAD);}
+const OP7=OD.map(function(d,i){return ofib(i,7);});
+function ogeo(){const g=new THREE.IcosahedronGeometry(1,3);
+ g.userData.base=Float32Array.from(g.attributes.position.array);return g;}
+function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.base,ph=m.userData.ph||0;
+ for(let i=0;i<p.count;i++){const k=i*3,x=b[k],y=b[k+1],z=b[k+2];
+  const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
+  p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
+ p.needsUpdate=true;g.computeVertexNormals();}
+const onodes=[],olabels=[];
+OD.forEach(function(d,i){
+ const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
+  emissiveIntensity:.08,roughness:.55,metalness:.02,transparent:true,opacity:.4}));
+ m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
+ grp.add(m); onodes.push(m);
+ const el=document.createElement('div'); el.className='olbl';
+ el.style.color='#'+d.c.toString(16).padStart(6,'0'); el.textContent=d.n;
+ org.appendChild(el); olabels.push(el);});
+function otend(a,b,r){
+ const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
+ if(mid.length()<0.35){ctrl=mid.clone().add(new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(ORAD*0.75));}
+ else{ctrl=mid.clone().normalize().multiplyScalar(mid.length()+ORAD*0.42);}
+ return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,ctrl,b),20,r,6,false);}
+const oedges=[];
+for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
+ const st=OSTR[i][j];
+ const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
+  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
+   roughness:.7,transparent:true,opacity:0.04}));
+ m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
+const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
+const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
+function osize(){const w=org.clientWidth,h=org.clientHeight;
+ rend.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+window.addEventListener('resize',osize);
+let ot=0;
+function oframe(){
+ requestAnimationFrame(oframe);
+ ot=performance.now()*0.001;
+ let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
+ const spread=Math.max.apply(null,bel)-Math.min.apply(null,bel);
+ if(spread>0.12){
+   tq.setFromUnitVectors(OP7[lead].clone().normalize(),zAx);
+   grp.quaternion.slerp(tq,0.016);
+   leadEl.textContent='leaning \u2014 '+OD[lead].n;
+   leadEl.style.opacity=1;
+ }else{
+   grp.rotateY(0.0016);
+   leadEl.textContent='still open';
+   leadEl.style.opacity=.6;
+ }
+ grp.position.y=Math.sin(ot*0.3)*0.06;
+ onodes.forEach(function(m,i){
+  const b=bel[i];
+  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
+  m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
+  m.material.opacity+=(to-m.material.opacity)*0.030;
+  m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
+  m.userData.amp+=(ta-m.userData.amp)*0.02;
+  owob(m,ot,m.userData.amp);});
+ oedges.forEach(function(e){
+  const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
+  const to=b>0.62?(b-0.62)*2.1:0.03;
+  e.material.opacity+=(to-e.material.opacity)*0.025;});
+ onodes.forEach(function(m,i){
+  pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
+  const el=olabels[i];
+  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
+  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight-m.scale.x*40)+'px';
+  el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
+ rend.render(sc,cam);}
+osize(); oframe();
+
 render('start');
 </script>
 </body>
