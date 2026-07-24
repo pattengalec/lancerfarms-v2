@@ -348,6 +348,20 @@ html, body {
   .data-shell { padding: 16px 12px 48px; }
   .data-header { padding: 12px 16px; }
 }
+
+.info-row .label{font-size:0.95rem !important;text-transform:none !important;letter-spacing:0 !important;font-family:var(--font-body) !important;}
+.info-row{min-height:60px;padding:16px 18px !important;}
+.tab-btn{min-height:52px !important;font-size:0.95rem !important;text-transform:none !important;letter-spacing:0 !important;}
+.stat-num{font-size:2rem !important;}
+.stat-label{font-size:0.9rem !important;text-transform:none !important;letter-spacing:0 !important;}
+.readonly-banner{display:none !important;}
+body{padding-bottom:96px;}
+.lfnav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:9px;background:#1E1B16;
+  border-top:1.5px solid var(--card-border);padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:80;}
+.lfnav a{flex:1;min-height:56px;display:flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--card);border:1.5px solid var(--card-border);border-radius:12px;
+  color:var(--ink);text-decoration:none;font-size:1rem;font-weight:600;}
+.lfnav a:active{background:#3E5C42;border-color:var(--accent);}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
 </head>
@@ -359,7 +373,7 @@ html, body {
     <img src="lfg-logo.png" alt="LFG">
     <div>
       <div class="data-header-title">Lancer Farms &amp; Gardens</div>
-      <div class="data-header-sub">Live Farm Data · Read Only</div>
+      <div class="data-header-sub">What is happening in the beds today</div>
     </div>
   </div>
   <div class="header-right">
@@ -375,10 +389,8 @@ html, body {
   <button class="tab-btn active" onclick="switchTab('overview',this)">Overview</button>
   <button class="tab-btn" onclick="switchTab('beds',this)">Beds</button>
   <button class="tab-btn" onclick="switchTab('log',this)">Field Log</button>
-  <button class="tab-btn" onclick="switchTab('inventory',this)">Inventory</button>
   <button class="tab-btn" onclick="switchTab('photos',this)">Photos</button>
-  <button class="tab-btn" onclick="switchTab('almanac',this)">Almanac</button>
-</div>
+  </div>
 
 <!-- ── Shell ── -->
 <div class="data-shell">
@@ -391,7 +403,6 @@ html, body {
       <div class="stat-card accent"><div class="stat-num" id="stat-areas">—</div><div class="stat-label">Growing Areas</div></div>
       <div class="stat-card"><div class="stat-num" id="stat-events">—</div><div class="stat-label">Events Logged</div></div>
       <div class="stat-card"><div class="stat-num" id="stat-photos">—</div><div class="stat-label">Photos</div></div>
-      <div class="stat-card alert"><div class="stat-num" id="stat-low">—</div><div class="stat-label">Low Stock Items</div></div>
     </div>
 
     <div class="card">
@@ -461,15 +472,7 @@ html, body {
   </div>
 
   <!-- INVENTORY -->
-  <div class="tab-panel" id="tab-inventory">
-    <div class="card">
-      <h3>Current Inventory</h3>
-      <div id="inventory-content">
-        <div class="skeleton" style="height:80px;"></div>
-        <div class="skeleton" style="height:80px;margin-top:8px;"></div>
-      </div>
-    </div>
-  </div>
+  
 
   <!-- PHOTOS -->
   <div class="tab-panel" id="tab-photos">
@@ -487,19 +490,7 @@ html, body {
   </div>
 
   <!-- ALMANAC -->
-  <div class="tab-panel" id="tab-almanac">
-    <div class="alm-hero">
-      <div class="alm-temp" id="alm-temp">…</div>
-      <div class="alm-cond" id="alm-cond">Checking weather…</div>
-    </div>
-    <div class="info-row"><span class="label">Wind</span><span class="value" id="alm-wind">—</span></div>
-    <div class="info-row"><span class="label">Sunrise</span><span class="value" id="alm-sunrise">—</span></div>
-    <div class="info-row"><span class="label">Sunset</span><span class="value" id="alm-sunset">—</span></div>
-    <div class="info-row"><span class="label">Daylight</span><span class="value" id="alm-daylight">—</span></div>
-    <div class="info-row"><span class="label">Moon</span><span class="value" id="alm-moon">—</span></div>
-    <div class="section-label" style="margin-top:8px;">Forecast</div>
-    <div id="alm-forecast" style="display:flex;flex-direction:column;gap:8px;"></div>
-  </div>
+  
 
 </div><!-- /data-shell -->
 
@@ -553,29 +544,23 @@ window.switchTab = function(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   if (btn) btn.classList.add('active');
-  if (tab === 'almanac') loadAlmanac();
   if (tab === 'photos')  loadPhotos();
   if (tab === 'log')     loadLog();
-  if (tab === 'inventory') loadInventory();
   if (tab === 'beds')    loadBeds();
 };
 
 // ── Overview ──────────────────────────────────────────────────
 async function loadOverview() {
   try {
-    const [areas, events, photos, inventory] = await Promise.all([
+    const [areas, events, photos] = await Promise.all([
       sbGet('lfg_growing_areas','archived_at=is.null'),
       sbGet('lfg_area_events','order=event_date.desc&limit=200'),
-      sbGet('lfg_photos','select=id'),
-      sbGet('lfg_inventory','order=category.asc,item_name.asc')
+      sbGet('lfg_photos','select=id')
     ]);
-
-    const lowStock = inventory.filter(i => Number(i.par_level) > 0 && Number(i.quantity) <= Number(i.par_level));
 
     document.getElementById('stat-areas').textContent = areas.length;
     document.getElementById('stat-events').textContent = events.length;
     document.getElementById('stat-photos').textContent = photos.length;
-    document.getElementById('stat-low').textContent = lowStock.length;
 
     // Recent log
     const log = await sbGet('lfg_log','order=logged_at.desc&limit=8');
@@ -719,33 +704,6 @@ async function loadLog() {
 }
 
 // ── Inventory ─────────────────────────────────────────────────
-async function loadInventory() {
-  const box = document.getElementById('inventory-content');
-  try {
-    const items = await sbGet('lfg_inventory','order=category.asc,item_name.asc');
-    if (!items.length) { box.innerHTML = '<div class="empty-state">No inventory items yet.</div>'; return; }
-    const groups = {};
-    items.forEach(i => { const c = i.category || 'Other'; if (!groups[c]) groups[c] = []; groups[c].push(i); });
-    let html = '';
-    Object.keys(groups).sort().forEach(cat => {
-      html += `<div class="section-label" style="margin-top:14px;margin-bottom:8px;">${esc(cat)}</div>
-               <div class="inv-grid">`;
-      groups[cat].forEach(item => {
-        const qty = Number(item.quantity || 0);
-        const par = Number(item.par_level || 0);
-        const low = par > 0 && qty <= par;
-        html += `<div class="inv-cell ${low ? 'low' : ''}">
-          <div class="inv-name">${esc(item.item_name)}${low ? ' ⚠' : ''}</div>
-          <div class="inv-qty">${qty}</div>
-          <div class="inv-sub">${esc(item.unit || '')}${par ? ' · Par: ' + par : ''}${item.notes ? ' · ' + esc(item.notes) : ''}</div>
-        </div>`;
-      });
-      html += '</div>';
-    });
-    box.innerHTML = html;
-  } catch(e) { box.innerHTML = '<div class="empty-state">Could not load inventory.</div>'; }
-}
-
 // ── Photos ────────────────────────────────────────────────────
 let lbData = [];
 
@@ -773,74 +731,6 @@ window.openLightbox = function(idx) {
 window.closeLightbox = function() { document.getElementById('lightbox').classList.remove('open'); };
 
 // ── Almanac ───────────────────────────────────────────────────
-async function loadAlmanac() {
-  const n = new Date();
-  const sun = sunTimes(n);
-  document.getElementById('alm-sunrise').textContent = fmtAlmTime(sun.sunrise);
-  document.getElementById('alm-sunset').textContent = fmtAlmTime(sun.sunset);
-  if (sun.sunrise && sun.sunset) {
-    const mins = Math.round((sun.sunset - sun.sunrise) / 60000);
-    document.getElementById('alm-daylight').textContent = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
-  }
-  document.getElementById('alm-moon').textContent = moonPhase(n);
-  try {
-    let cached = null;
-    try { cached = JSON.parse(sessionStorage.getItem('lfg-wx') || 'null'); } catch(e) {}
-    let periods;
-    if (cached && (Date.now() - cached.at) < 1800000) {
-      periods = cached.periods;
-    } else {
-      const pt = await (await fetch(`https://api.weather.gov/points/${FARM_LAT},${FARM_LNG}`)).json();
-      const fc = await (await fetch(pt.properties.forecast)).json();
-      periods = fc.properties.periods.slice(0,5);
-      try { sessionStorage.setItem('lfg-wx', JSON.stringify({ at:Date.now(), periods })); } catch(e) {}
-    }
-    const p = periods[0];
-    document.getElementById('alm-temp').textContent = p.temperature + '°' + p.temperatureUnit;
-    document.getElementById('alm-cond').textContent = p.shortForecast + ' · ' + p.name;
-    document.getElementById('alm-wind').textContent = p.windSpeed + ' ' + p.windDirection;
-    document.getElementById('alm-forecast').innerHTML = periods.slice(1).map(pd =>
-      `<div class="info-row"><span class="label">${esc(pd.name)}</span><span class="value">${pd.temperature}°${pd.temperatureUnit} · ${esc(pd.shortForecast)}</span></div>`
-    ).join('');
-  } catch(e) {
-    document.getElementById('alm-temp').textContent = '—';
-    document.getElementById('alm-cond').textContent = 'Weather unavailable';
-  }
-}
-
-function fmtAlmTime(d) { return d ? d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '—'; }
-
-function sunTimes(date) {
-  const rad = Math.PI/180, lat = FARM_LAT, lng = FARM_LNG;
-  const doy = Math.floor((date - new Date(date.getFullYear(),0,0)) / 86400000);
-  function calc(rising) {
-    const z=90.833, lh=lng/15, t=doy+((rising?6:18)-lh)/24, M=0.9856*t-3.289;
-    let L=M+1.916*Math.sin(M*rad)+0.020*Math.sin(2*M*rad)+282.634;
-    L=((L%360)+360)%360;
-    let RA=Math.atan(0.91764*Math.tan(L*rad))/rad;
-    RA=((RA%360)+360)%360;
-    RA+=(Math.floor(L/90)*90-Math.floor(RA/90)*90); RA/=15;
-    const sd=0.39782*Math.sin(L*rad), cd=Math.cos(Math.asin(sd));
-    const ch=(Math.cos(z*rad)-(sd*Math.sin(lat*rad)))/(cd*Math.cos(lat*rad));
-    if(ch>1||ch<-1) return null;
-    let H=rising?360-Math.acos(ch)/rad:Math.acos(ch)/rad; H/=15;
-    const T=H+RA-0.06571*t-6.622;
-    let UT=((T-lh)%24+24)%24;
-    const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
-    d.setUTCMinutes(Math.round(UT*60)); return d;
-  }
-  return { sunrise:calc(true), sunset:calc(false) };
-}
-
-function moonPhase(date) {
-  const syn=29.53058867, known=Date.UTC(2000,0,6,18,14);
-  let age=((date.getTime()-known)/86400000)%syn;
-  if(age<0) age+=syn;
-  const names=[[1.85,'🌑 New Moon'],[5.54,'🌒 Waxing Crescent'],[9.23,'🌓 First Quarter'],[12.91,'🌔 Waxing Gibbous'],[16.61,'🌕 Full Moon'],[20.30,'🌖 Waning Gibbous'],[23.99,'🌗 Last Quarter'],[27.68,'🌘 Waning Crescent'],[99,'🌑 New Moon']];
-  for(const [l,n] of names) if(age<l) return n;
-  return '🌙';
-}
-
 // ── Refresh ───────────────────────────────────────────────────
 window.refreshAll = function() {
   showToast('Refreshing…');
@@ -849,9 +739,7 @@ window.refreshAll = function() {
   if (activeTab && activeTab !== 'overview') {
     if (activeTab === 'beds')      loadBeds();
     if (activeTab === 'log')       loadLog();
-    if (activeTab === 'inventory') loadInventory();
     if (activeTab === 'photos')    loadPhotos();
-    if (activeTab === 'almanac')   loadAlmanac();
   }
 };
 
@@ -867,5 +755,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
+<div class="lfnav">
+  <a href="visitor.html">&#8249; Farm</a>
+  <a href="almanac.html">Almanac</a>
+</div>
 </body>
 </html>
