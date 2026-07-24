@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 56 120" fill="none">
+<path d="M48 112 C46.5 92 50 74 48.5 56 C47.5 40 50.5 24 55 10" fill="none" stroke="var(--lg-line, #3D5A3E)" stroke-width="1.7" stroke-linecap="round"/>
+<path d="M47.3 94.0 Q42.5 85.6 32.9 85.0 Q37.7 93.4 47.3 94.0 Z" fill="var(--lg-leaf-fill, #3D5A3E)"/>
+<path d="M47.6 84.0 Q58.2 82.1 62.6 72.3 Q52.0 74.2 47.6 84.0 Z" fill="none" stroke="var(--lg-line, #3D5A3E)" stroke-width="1.3"/>
+<path d="M48.9 74.0 Q45.3 65.6 36.3 64.1 Q39.9 72.5 48.9 74.0 Z" fill="none" stroke="var(--lg-line, #3D5A3E)" stroke-width="1.3"/>
+<path d="M48.7 64.0 Q58.0 61.4 60.9 52.2 Q51.6 54.8 48.7 64.0 Z" fill="var(--lg-leaf-fill, #3D5A3E)"/>
+<path d="M48.0 54.0 Q45.7 46.3 37.9 44.3 Q40.2 52.0 48.0 54.0 Z" fill="var(--lg-leaf-fill, #3D5A3E)"/>
+<path d="M48.2 44.0 Q56.2 41.0 57.8 32.5 Q49.8 35.6 48.2 44.0 Z" fill="none" stroke="var(--lg-line, #3D5A3E)" stroke-width="1.3"/>
+<path d="M49.6 34.0 Q48.5 27.1 41.9 24.8 Q43.0 31.7 49.6 34.0 Z" fill="none" stroke="var(--lg-line, #3D5A3E)" stroke-width="1.3"/>
+<path d="M51.5 24.0 Q57.7 20.9 58.2 14.1 Q52.0 17.1 51.5 24.0 Z" fill="var(--lg-leaf-fill, #3D5A3E)"/>
+<path d="M53.4 14.0 Q58.6 8.9 57.4 1.6 Q52.2 6.8 53.4 14.0 Z" fill="var(--lg-leaf-fill, #3D5A3E)"/>
+</svg>
