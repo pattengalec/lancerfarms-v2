@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>Plant assessment · Lancer Farms</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#22201B; --card:#2E2B24;
+  --line:#45423A; --line-strong:#5A554A;
+  --green:#7E9A6E; --leaf:#A8B89A; --amber:#C9973F; --amber-bg:#4A3A22;
+  --font-head:'Fraunces',Georgia,serif; --font-body:'Source Sans 3',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);
+  max-width:560px;margin:0 auto;padding:14px 14px calc(20px + env(safe-area-inset-bottom));}
+h1{font-family:var(--font-head);font-size:1.2rem;font-weight:600;margin-bottom:2px;}
+.sub{color:var(--ink-soft);font-size:.85rem;margin-bottom:12px;}
+#stage{position:relative;width:100%;aspect-ratio:1/1;max-height:64vh;touch-action:none;
+  border-radius:16px;overflow:hidden;background:#1A1814;cursor:grab;}
+#stage:active{cursor:grabbing;}
+#cv{display:block;width:100%;height:100%;}
+.lbl{position:absolute;transform:translate(-50%,-50%);font-size:11px;font-weight:600;
+  pointer-events:none;white-space:nowrap;text-shadow:0 1px 5px rgba(0,0,0,.95);transition:opacity .5s;}
+.lbl small{display:block;font-weight:400;font-size:10px;opacity:.7;text-align:center;}
+.bar{display:flex;gap:8px;margin:12px 0;}
+.bar button{flex:1;background:none;border:1.5px solid var(--line-strong);color:var(--ink);
+  font-family:inherit;font-size:.95rem;font-weight:600;padding:13px;border-radius:12px;cursor:pointer;
+  transition:background .3s;min-height:48px;}
+.bar button:active{background:var(--card);}
+.hint{font-size:.82rem;color:var(--ink-soft);line-height:1.55;margin-bottom:10px;}
+.zone{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:7px;
+  font-size:.92rem;line-height:1.5;border-left:3px solid var(--line-strong);}
+.zone .t{color:var(--ink);font-weight:600;}
+.zone .m{color:var(--ink-soft);font-size:.86rem;margin-top:3px;}
+.synd{background:var(--amber-bg);border-left-color:var(--amber);}
+.synd .t{color:var(--amber);}
+.synd .m{color:#E4C68C;}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+.q-wrap{padding:2px 0;}
+.q-dots{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:20px;}
+.q-dots i{width:9px;height:9px;border-radius:50%;background:var(--line);display:block;transition:background .4s;}
+.q-dots i.done{background:var(--green);}
+.q-dots i.cur{background:var(--leaf);width:15px;border-radius:5px;}
+.q-station{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--leaf);margin-bottom:10px;}
+.q-text{font-family:var(--font-head);font-size:1.35rem;line-height:1.35;margin-bottom:8px;}
+.q-sub{color:var(--ink-soft);font-size:.92rem;line-height:1.5;margin-bottom:22px;}
+.q-btn{display:block;width:100%;min-height:62px;margin-bottom:11px;border-radius:14px;
+  border:1.5px solid var(--line-strong);background:var(--card);color:var(--ink);
+  font-family:inherit;font-size:1.08rem;font-weight:600;cursor:pointer;transition:background .25s,border-color .25s;}
+.q-btn:active{background:var(--green);border-color:var(--green);color:#1E241A;}
+.q-btn.skip{background:none;font-weight:400;color:var(--ink-soft);font-size:.98rem;min-height:54px;}
+.q-back{background:none;border:0;color:var(--ink-soft);font-family:inherit;font-size:.92rem;
+  padding:12px 4px;cursor:pointer;text-decoration:underline;}
+.sect{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:16px 0 8px;}
+</style>
+</head>
+<body>
+
+<h1>Plant assessment</h1>
+<div class="sub" id="hdsub">Walk the plant top to bottom. Tap an answer.</div>
+
+<div id="survey" class="q-wrap">
+  <div class="q-dots" id="qdots"></div>
+  <div class="q-station" id="qstation"></div>
+  <div class="q-text" id="qtext"></div>
+  <div class="q-sub" id="qsub"></div>
+  <button class="q-btn" id="qyes">Yes</button>
+  <button class="q-btn" id="qno">No</button>
+  <button class="q-btn skip" id="qskip">Haven’t looked</button>
+  <button class="q-back" id="qback">Back</button>
+</div>
+
+<div id="modelwrap" style="display:none">
+<div id="stage"><canvas id="cv"></canvas></div>
+
+<div class="bar">
+  <button id="reset">Reset</button>
+  <button id="demo">Load a decline</button>
+</div>
+
+<div class="hint">Tap a body to raise that system's severity. Grab any body and drag — it follows your finger. Pinch to zoom. Tendrils warm when both ends are stressed.</div>
+
+<div id="out"></div>
+<button class="q-btn skip" id="again" style="margin-top:14px">Assess again</button>
+</div>
+
+<input type="checkbox" switch id="hpx" style="position:absolute;opacity:0;pointer-events:none" aria-hidden="true">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const DOM=[
+ {n:'Light',       s:'energy in',    c:0xEDA100},
+ {n:'Water',       s:'hydration',    c:0x2A78D6},
+ {n:'Excretion',   s:'salt balance', c:0x8B7BD8},
+ {n:'Nutrition',   s:'food',         c:0x4FA83C},
+ {n:'Parasitic',   s:'pests',        c:0xEB6834},
+ {n:'Immune',      s:'disease',      c:0xE87BA4},
+ {n:'Respiration', s:'gas exchange', c:0x1BAF7A}];
+
+const STR=[
+ [0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
+ [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
+
+const MECH={
+ '0-1':'Light drives transpiration demand \u2014 bright heat empties the plant faster than roots refill it',
+ '0-2':'Growth rate under light changes how fast salts concentrate at the root zone',
+ '0-3':'Photosynthesis supplies the carbon skeletons that nutrients are built onto',
+ '0-4':'Canopy density and light level shift which pests settle in',
+ '0-5':'Shade and trapped humidity favour foliar fungal disease',
+ '0-6':'The carbon budget itself \u2014 fixation against respiration burn',
+ '1-2':'Flushing accumulated salts takes water; poor drainage concentrates them instead',
+ '1-3':'Nutrients travel dissolved \u2014 drought starves a plant sitting in fed soil',
+ '1-4':'Drought-stressed plants draw borers and mites',
+ '1-5':'Overwatering and wet foliage open the door to root and leaf pathogens',
+ '1-6':'Water displaces soil air \u2014 the root suffocation link',
+ '2-3':'Fertiliser salt burn at the root tips',
+ '2-4':'',
+ '2-5':'Salt stress lowers the plant\u2019s resistance',
+ '2-6':'Osmotic stress impairs root function and oxygen uptake',
+ '3-4':'Excess nitrogen makes soft growth that sap-suckers prefer',
+ '3-5':'Nutrient status sets disease resistance \u2014 deficiency and excess both weaken it',
+ '3-6':'Root respiration powers active nutrient uptake',
+ '4-5':'Feeding wounds are infection routes, and insects carry virus between plants',
+ '4-6':'Root-feeding pests reduce the root surface available for gas exchange',
+ '5-6':'Airless soil favours Phytophthora and other root rots'};
+
+const SYND=[
+ {k:[1,6,5],n:'Root rot complex',d:'Overwatering, airless soil, and opportunistic pathogens. The classic three-factor decline \u2014 treating any one alone will not stop it.'},
+ {k:[2,3,1],n:'Salt lockout',d:'Salts accumulate faster than water flushes them, and nutrients present in the soil stop being available.'},
+ {k:[1,4,5],n:'Drought\u2013borer cascade',d:'Water stress attracts boring and sucking pests, and their wounds admit pathogens the plant would otherwise resist.'},
+ {k:[0,6,3],n:'Carbon starvation',d:'Too little light to cover respiration, so reserves drain and uptake slows behind it.'}];
+
+let sev=[0,0,0,0,0,0,0];
+
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(40,1,0.1,100);
+let camDist=7.4;
+
+scene.add(new THREE.AmbientLight(0xfff3e0,0.5));
+const l1=new THREE.PointLight(0xffe3ba,1.0); l1.position.set(4,6,6); scene.add(l1);
+const l2=new THREE.PointLight(0x8fd0ff,0.5); l2.position.set(-6,-3,2); scene.add(l2);
+const l3=new THREE.PointLight(0xa8b89a,0.35); l3.position.set(0,-5,-5); scene.add(l3);
+
+const root=new THREE.Group(); scene.add(root);
+
+const RAD=2.0;
+function fib(i,n){
+  const off=2/n, y=i*off-1+off/2, r=Math.sqrt(Math.max(0,1-y*y));
+  const phi=i*Math.PI*(3-Math.sqrt(5));
+  return new THREE.Vector3(Math.cos(phi)*r*RAD, y*RAD, Math.sin(phi)*r*RAD);
+}
+const P=DOM.map((d,i)=>fib(i,7));
+
+function organicGeo(detail){
+  const g=new THREE.IcosahedronGeometry(1,detail);
+  g.userData.base=Float32Array.from(g.attributes.position.array);
+  return g;
+}
+function wobble(mesh,t,amp){
+  const g=mesh.geometry, pos=g.attributes.position, b=g.userData.base, ph=mesh.userData.ph||0;
+  for(let i=0;i<pos.count;i++){
+    const k=i*3, x=b[k], y=b[k+1], z=b[k+2];
+    const n=1+amp*(Math.sin(2.4*x+t*0.6+ph)*0.5+Math.sin(3.0*y-t*0.44+ph)*0.34+Math.sin(2.7*z+t*0.72+ph)*0.28);
+    pos.array[k]=x*n; pos.array[k+1]=y*n; pos.array[k+2]=z*n;
+  }
+  pos.needsUpdate=true; g.computeVertexNormals();
+}
+
+const core=new THREE.Mesh(organicGeo(3),
+  new THREE.MeshStandardMaterial({color:0xC9973F,emissive:0xC9973F,emissiveIntensity:0,
+    transparent:true,opacity:0,roughness:.6,flatShading:false}));
+core.scale.setScalar(0.5); core.userData.ph=1.7; root.add(core);
+
+const nodes=[], labels=[];
+DOM.forEach((d,i)=>{
+  const m=new THREE.Mesh(organicGeo(3),
+    new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,emissiveIntensity:.06,
+      roughness:.55,metalness:.02,transparent:true,opacity:.5}));
+  m.position.copy(P[i]); m.userData={i:i,ph:i*1.31}; m.scale.setScalar(0.3);
+  root.add(m); nodes.push(m);
+  const el=document.createElement('div');
+  el.className='lbl';
+  el.style.color='#'+d.c.toString(16).padStart(6,'0');
+  el.innerHTML=d.n+'<small>'+d.s+'</small>';
+  stage.appendChild(el); labels.push(el);
+});
+
+function tendril(a,b,r){
+  const mid=a.clone().add(b).multiplyScalar(0.5);
+  let ctrl;
+  if(mid.length()<0.35){
+    const perp=new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(RAD*0.75);
+    ctrl=mid.clone().add(perp);
+  }else{
+    ctrl=mid.clone().normalize().multiplyScalar(mid.length()+RAD*0.42);
+  }
+  const curve=new THREE.QuadraticBezierCurve3(a,ctrl,b);
+  return new THREE.TubeGeometry(curve,22,r,7,false);
+}
+
+const edges=[];
+for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
+  const st=STR[i][j];
+  const dim=new THREE.Mesh(tendril(P[i],P[j],0.008+st*0.002),
+    new THREE.MeshStandardMaterial({color:0x7D7666,roughness:.9,transparent:true,opacity:0.05+st*0.02}));
+  const hot=new THREE.Mesh(tendril(P[i],P[j],0.030),
+    new THREE.MeshStandardMaterial({color:0xE0B269,emissive:0xC9973F,emissiveIntensity:.5,
+      roughness:.5,transparent:true,opacity:0}));
+  dim.userData={i:i,j:j,st:st,dim:true}; hot.userData={i:i,j:j,st:st};
+  root.add(dim); root.add(hot); edges.push({dim:dim,hot:hot,i:i,j:j,st:st});
+}
+
+function hap(p){
+  try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){}
+  try{ const s=document.getElementById('hpx'); if(s) s.checked=!s.checked; }catch(e){}
+}
+
+const SC=[0.30,0.38,0.47,0.56,0.66];
+const OP=[0.28,0.52,0.68,0.84,1.00];
+const EM=[0.04,0.16,0.34,0.58,0.95];
+const AMP=[0.05,0.07,0.10,0.14,0.19];
+let want=nodes.map(()=>({s:0.30,o:0.28,e:0.04,a:0.05}));
+
+function apply(){
+  sev.forEach((s,i)=>{
+    const gh=unchecked[i];
+    want[i]=gh?{s:0.22,o:0.10,e:0.02,a:0.03}:{s:SC[s],o:OP[s],e:EM[s],a:AMP[s]};
+  });
+  edges.forEach(e=>{
+    const live=sev[e.i]>=2&&sev[e.j]>=2;
+    const warm=sev[e.i]>=1&&sev[e.j]>=1;
+    e.hot.userData.tOp = live?0.9 : warm?0.22 : 0;
+    e.dim.userData.tOp = live?0.02 : (0.05+e.st*0.02);
+  });
+  const deep=sev.filter(s=>s>=3).length;
+  core.userData.tOp = deep>=3?0.8:0;
+  core.userData.tEm = deep>=3?1.2:0;
+  readout(deep);
+}
+
+function readout(deep){
+  let h='';
+  const act=[];
+  for(let i=0;i<7;i++)for(let j=i+1;j<7;j++) if(sev[i]>=2&&sev[j]>=2) act.push([i,j,STR[i][j]]);
+  const hits=SYND.filter(s=>s.k.every(k=>sev[k]>=2));
+  if(deep>=3||hits.length){
+    h+='<div class="sect">Syndrome</div>';
+    if(deep>=3) h+='<div class="zone synd"><div class="t">Decline spiral \u2014 '+deep+' systems deep</div><div class="m">Manion\u2019s model treats this as one compounding failure needing a predisposing, an inciting, and a contributing factor \u2014 not separate problems to fix in turn.</div></div>';
+    hits.forEach(s=>{ h+='<div class="zone synd"><div class="t">'+s.n+'</div><div class="m">'+s.d+'</div></div>'; });
+  }
+  if(act.length){
+    h+='<div class="sect">Active couplings \u2014 '+act.length+' of 21</div>';
+    act.sort((a,b)=>b[2]-a[2]).forEach(function(p){
+      const i=p[0], j=p[1], st=p[2];
+      const mech=MECH[i+'-'+j]||'No documented mechanism recorded yet.';
+      const ci='#'+DOM[i].c.toString(16).padStart(6,'0'), cj='#'+DOM[j].c.toString(16).padStart(6,'0');
+      h+='<div class="zone" style="border-left-color:'+ci+'"><div class="t"><span class="dot" style="background:'+ci+'"></span><span class="dot" style="background:'+cj+'"></span>'+
+        DOM[i].n+' + '+DOM[j].n+(st===3?' \u00b7 strong':st===2?' \u00b7 moderate':' \u00b7 weak')+'</div><div class="m">'+(mech||'No documented mechanism recorded yet.')+'</div></div>';
+    });
+  }
+  const nc=[]; unchecked.forEach((u,i)=>{ if(u) nc.push(DOM[i].n); });
+  if(nc.length) h+='<div class="sect">Not checked</div><div class="zone"><div class="m">'+nc.join(', ')+' — nothing was observed either way, so the model is blank here rather than clear.</div></div>';
+  if(!h) h='<div class="hint">Nothing coupled yet. Raise two connected systems to 2 or higher and their tendril will name itself.</div>';
+  document.getElementById('out').innerHTML=h;
+}
+
+let idle=0, grabbed=-1;
+const ptrs=new Map();
+let dist0=0, pinch0=0, moved=0;
+let startQuat=new THREE.Quaternion(), grabDir=new THREE.Vector3(), prevDir=new THREE.Vector3();
+let spinAxis=new THREE.Vector3(0,1,0), spinAngle=0;
+
+const ray=new THREE.Raycaster(), v2=new THREE.Vector2();
+
+function ndc(cx,cy){
+  const r=stage.getBoundingClientRect();
+  v2.x=((cx-r.left)/r.width)*2-1;
+  v2.y=-((cy-r.top)/r.height)*2+1;
+  return v2;
+}
+function sphereDir(cx,cy,radius){
+  ray.setFromCamera(ndc(cx,cy),camera);
+  const o=ray.ray.origin, d=ray.ray.direction;
+  const b=2*o.dot(d), c=o.dot(o)-radius*radius;
+  const disc=b*b-4*c;
+  if(disc>=0){
+    const t=(-b-Math.sqrt(disc))/2;
+    return o.clone().add(d.clone().multiplyScalar(t)).normalize();
+  }
+  const t=-o.dot(d);
+  return o.clone().add(d.clone().multiplyScalar(t)).normalize();
+}
+
+stage.addEventListener('pointerdown',function(e){
+  stage.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  moved=0; idle=0; spinAngle=0;
+  if(ptrs.size===2){
+    const a=[...ptrs.values()];
+    dist0=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y); pinch0=camDist;
+    grabbed=-1; return;
+  }
+  ray.setFromCamera(ndc(e.clientX,e.clientY),camera);
+  const hit=ray.intersectObjects(nodes)[0];
+  grabbed=hit?hit.object.userData.i:-1;
+  if(grabbed>=0) hap([6]);
+  grabDir.copy(sphereDir(e.clientX,e.clientY,RAD));
+  prevDir.copy(grabDir);
+  startQuat.copy(root.quaternion);
+});
+
+stage.addEventListener('pointermove',function(e){
+  if(!ptrs.has(e.pointerId)) return;
+  const prev=ptrs.get(e.pointerId);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  idle=0;
+  if(ptrs.size===2){
+    const a=[...ptrs.values()], d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(dist0>0) camDist=Math.max(4.6,Math.min(12,pinch0*(dist0/d)));
+    return;
+  }
+  moved+=Math.abs(e.clientX-prev.x)+Math.abs(e.clientY-prev.y);
+  const cur=sphereDir(e.clientX,e.clientY,RAD);
+  const q=new THREE.Quaternion().setFromUnitVectors(grabDir,cur);
+  root.quaternion.copy(startQuat).premultiply(q);
+  const dq=new THREE.Quaternion().setFromUnitVectors(prevDir,cur);
+  let ang=2*Math.acos(Math.min(1,Math.abs(dq.w)));
+  if(ang>1e-4){
+    const s=Math.sqrt(Math.max(1e-9,1-dq.w*dq.w));
+    spinAxis.set(dq.x/s,dq.y/s,dq.z/s).normalize();
+    if(dq.w<0) ang=-ang;
+    spinAngle=Math.max(-0.14,Math.min(0.14,ang));
+  }
+  prevDir.copy(cur);
+});
+
+function endPtr(e){
+  if(ptrs.size===1&&moved<9){ tapNode(e); spinAngle=0; }
+  ptrs.delete(e.pointerId);
+  if(ptrs.size<2) dist0=0;
+  grabbed=-1; idle=0;
+}
+stage.addEventListener('pointerup',endPtr);
+stage.addEventListener('pointercancel',function(e){ptrs.delete(e.pointerId);grabbed=-1;});
+stage.addEventListener('wheel',function(e){
+  e.preventDefault();
+  camDist=Math.max(4.6,Math.min(12,camDist+e.deltaY*0.004));
+},{passive:false});
+
+function tapNode(e){
+  ray.setFromCamera(ndc(e.clientX,e.clientY),camera);
+  const hit=ray.intersectObjects(nodes)[0];
+  if(!hit) return;
+  const i=hit.object.userData.i;
+  sev[i]=(sev[i]+1)%5;
+  hap(sev[i]?[8+sev[i]*5]:[4]);
+  apply();
+}
+
+document.getElementById('reset').onclick=function(){sev=[0,0,0,0,0,0,0];hap([5]);apply();};
+document.getElementById('demo').onclick=function(){sev=[0,3,0,1,2,3,4];hap([10,45,10,45,18]);apply();};
+
+function size(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',size);
+
+const pv=new THREE.Vector3();
+const spinQ=new THREE.Quaternion(), driftQ=new THREE.Quaternion();
+const YAX=new THREE.Vector3(0,1,0);
+let camNow=camDist;
+
+function frame(){
+  requestAnimationFrame(frame);
+  const t=performance.now()*0.001;
+  idle++;
+
+  if(ptrs.size===0){
+    if(Math.abs(spinAngle)>0.00016){
+      spinQ.setFromAxisAngle(spinAxis,spinAngle);
+      root.quaternion.premultiply(spinQ);
+      spinAngle*=0.955;
+    }else if(idle>110){
+      driftQ.setFromAxisAngle(YAX,0.0012);
+      root.quaternion.premultiply(driftQ);
+    }
+  }
+  root.position.y=Math.sin(t*0.34)*0.07;
+
+  camNow+=(camDist-camNow)*0.12;
+  camera.position.set(0,0,camNow);
+  camera.lookAt(0,0,0);
+
+  nodes.forEach(function(n,i){
+    const w=want[i];
+    const tgt=w.s*(grabbed===i?1.18:1);
+    n.scale.setScalar(n.scale.x+(tgt-n.scale.x)*0.14);
+    n.material.opacity+=(Math.min(1,w.o+(grabbed===i?0.25:0))-n.material.opacity)*0.12;
+    n.material.emissiveIntensity+=((w.e+(grabbed===i?0.35:0))-n.material.emissiveIntensity)*0.12;
+    n.userData.amp=(n.userData.amp||0.05)+(w.a-(n.userData.amp||0.05))*0.06;
+    wobble(n,t,n.userData.amp);
+  });
+
+  edges.forEach(function(e){
+    if(e.hot.userData.tOp!==undefined) e.hot.material.opacity+=(e.hot.userData.tOp-e.hot.material.opacity)*0.06;
+    if(e.dim.userData.tOp!==undefined) e.dim.material.opacity+=(e.dim.userData.tOp-e.dim.material.opacity)*0.06;
+  });
+
+  if(core.userData.tOp!==undefined){
+    core.material.opacity+=(core.userData.tOp-core.material.opacity)*0.05;
+    const pulse=1+Math.sin(t*1.4)*0.08;
+    core.material.emissiveIntensity+=((core.userData.tEm*pulse)-core.material.emissiveIntensity)*0.05;
+    if(core.material.opacity>0.01) wobble(core,t,0.13);
+  }
+
+  nodes.forEach(function(n,i){
+    pv.copy(n.position).applyMatrix4(root.matrixWorld).project(camera);
+    const el=labels[i];
+    el.style.left=((pv.x*0.5+0.5)*stage.clientWidth)+'px';
+    el.style.top=((-pv.y*0.5+0.5)*stage.clientHeight - n.scale.x*52)+'px';
+    el.style.opacity=pv.z>1?0:(sev[i]?1:0.5);
+  });
+
+  renderer.render(scene,camera);
+}
+size(); apply(); frame();
+
+/* ---------- HEAD-TO-TOE SURVEY ---------- */
+const Q=[
+{st:'Stand back',t:'Is it only this one kind of plant looking sick?',s:'Other kinds nearby look fine',
+ y:{4:2,5:2}, n:{0:1.5,1:1.5,2:1.5,3:1.5,6:1.5}, d:[0,1,2,3,4,5,6], cw:0.3},
+{st:'Stand back',t:'Did it come on fast \u2014 over a few days?',s:'Rather than creeping up over weeks',
+ y:{1:2,2:1.5,6:1}, n:{3:1.5,5:1,4:1}, d:[1,2,3,4,5,6], cw:0.3},
+{st:'New growth up top',t:'Are the newest leaves pale, yellow, or stunted?',s:'The young growth at the tips',
+ y:{3:2,6:1}, n:{}, d:[3,6]},
+{st:'New growth up top',t:'Are new leaves curled, twisted, or misshapen?',s:'Distorted rather than just discoloured',
+ y:{4:2.5,5:1}, n:{}, d:[4,5]},
+{st:'Old leaves down low',t:'Are the oldest leaves yellowing first?',s:'Lower leaves going before the top',
+ y:{3:2.5,1:0.5}, n:{}, d:[3]},
+{st:'Old leaves down low',t:'Any spots, blotches, or dead patches?',s:'Distinct marks, not overall colour',
+ y:{5:2.5,4:0.5}, n:{}, d:[5]},
+{st:'Old leaves down low',t:'Are leaf edges or tips browned and scorched?',s:'Crispy margins',
+ y:{2:2.5,1:1.5}, n:{}, d:[1,2]},
+{st:'Turn leaves over',t:'Any bugs, eggs, or fine webbing underneath?',s:'Look close at the undersides',
+ y:{4:3}, n:{}, d:[4]},
+{st:'Turn leaves over',t:'White powder, fuzz, or mould on the leaves?',s:'Either surface',
+ y:{5:3}, n:{}, d:[5]},
+{st:'Turn leaves over',t:'Anything sticky, shiny, or sooty black?',s:'Sticky leaves or a dark film',
+ y:{4:2.5,5:1}, n:{}, d:[4,5]},
+{st:'Turn leaves over',t:'Holes, chewed edges, or missing leaf?',s:'Something has been eating it',
+ y:{4:2.5}, n:{}, d:[4]},
+{st:'Whole plant',t:'Is it drooping or wilting?',s:'Limp rather than upright',
+ y:{}, n:{}, d:[], flag:'wilt'},
+{st:'Soil at the stem',t:'Poke a finger in \u2014 is the soil dry down there?',s:'Dry a knuckle deep, or wet and heavy?',
+ y:{1:3}, n:{6:3,5:2,1:3}, d:[1,5,6], only:'wilt',
+ yl:'Dry', nl:'Wet or soggy'},
+{st:'Stem and base',t:'Is the stem dark, soft, or mushy at soil level?',s:'Where it meets the ground',
+ y:{5:3,6:2.5}, n:{}, d:[5,6]},
+{st:'Soil surface',t:'Any white crust or salty film on the soil?',s:'Pale deposit on top or at pot edges',
+ y:{2:3,3:1.5}, n:{}, d:[2,3]},
+{st:'Soil surface',t:'Does the soil smell sour or swampy?',s:'Rather than sweet and earthy',
+ y:{6:3,5:2}, n:{}, d:[5,6]},
+{st:'Soil surface',t:'Is the soil hard, or does water sit on top?',s:'Packed down, slow to drain',
+ y:{6:2.5,1:1.5}, n:{}, d:[1,6]},
+{st:'The site',t:'Does this spot get less sun than it used to?',s:'Newly shaded by growth or structures',
+ y:{0:2.5,6:1}, n:{}, d:[0,6]},
+{st:'The site',t:'Was it fed or sprayed in the last two weeks?',s:'Fertiliser, compost tea, any spray',
+ y:{2:2,3:1.5}, n:{}, d:[2,3]}];
+
+let qi=0, ans=[], score=[0,0,0,0,0,0,0], cov=[0,0,0,0,0,0,0], unchecked=[];
+
+function active(i){ const q=Q[i]; if(!q.only) return true;
+  const wi=Q.findIndex(x=>x.flag===q.only); return ans[wi]==='y'; }
+
+function drawQ(){
+  while(qi<Q.length && !active(qi)) qi++;
+  if(qi>=Q.length){ finish(); return; }
+  const q=Q[qi];
+  document.getElementById('qdots').innerHTML=Q.map((_,k)=>
+    '<i class="'+(k===qi?'cur':(ans[k]?'done':''))+'"></i>').join('');
+  document.getElementById('qstation').textContent=q.st;
+  document.getElementById('qtext').textContent=q.t;
+  document.getElementById('qsub').textContent=q.s;
+  document.getElementById('qyes').textContent=q.yl||'Yes';
+  document.getElementById('qno').textContent=q.nl||'No';
+  document.getElementById('qback').style.display=qi>0?'block':'none';
+}
+function answer(a){
+  ans[qi]=a; hap([7]);
+  qi++; drawQ();
+}
+function tally(){
+  score=[0,0,0,0,0,0,0]; cov=[0,0,0,0,0,0,0];
+  Q.forEach((q,k)=>{
+    const a=ans[k]; if(!a||a==='s') return;
+    if(!active(k)) return;
+    const cw=(q.cw===undefined)?1:q.cw;
+    (q.d||[]).forEach(d=>{ cov[d]+=cw; });
+    const w=a==='y'?q.y:q.n;
+    for(const d in w) score[+d]+=w[d];
+  });
+  unchecked=cov.map(c=>c<1);
+  sev=score.map((s,i)=>unchecked[i]?0:Math.max(0,Math.min(4,Math.round(s/1.8))));
+}
+function finish(){
+  tally();
+  document.getElementById('survey').style.display='none';
+  document.getElementById('modelwrap').style.display='block';
+  document.getElementById('hdsub').textContent='What the plant told you.';
+  hap([12,50,12]);
+  size(); apply();
+}
+document.getElementById('qyes').onclick=()=>answer('y');
+document.getElementById('qno').onclick=()=>answer('n');
+document.getElementById('qskip').onclick=()=>answer('s');
+document.getElementById('qback').onclick=()=>{ qi--; while(qi>0&&!active(qi)) qi--; hap([5]); drawQ(); };
+document.getElementById('again').onclick=()=>{
+  qi=0; ans=[]; sev=[0,0,0,0,0,0,0]; unchecked=[];
+  document.getElementById('modelwrap').style.display='none';
+  document.getElementById('survey').style.display='block';
+  document.getElementById('hdsub').textContent='Walk the plant top to bottom. Tap an answer.';
+  hap([5]); drawQ();
+};
+drawQ();
+
+</script>
+</body>
+</html>
