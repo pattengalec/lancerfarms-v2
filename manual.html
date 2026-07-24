@@ -501,6 +501,34 @@ html, body {
 }
 .coming-soon .cs-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
 .coming-soon h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--forest); margin-bottom: 0.4rem; }
+
+/* ---- glove navigation ---- */
+.subtab-strip { display:flex !important; flex-direction:column; gap:0.6rem; padding:0.85rem 0.75rem 1rem; overflow:visible !important; }
+.sec-btn { display:flex; align-items:center; justify-content:space-between; width:100%;
+  min-height:68px; padding:0 1.1rem; text-align:left;
+  background:var(--card-bg); border:1.5px solid var(--border); border-radius:12px;
+  color:var(--cream); cursor:pointer; transition:background .2s, border-color .2s; }
+.sec-btn:active { background:#3E5C42; border-color:var(--lime); }
+.sec-btn .sec-n { font-family:var(--font-head); font-size:1.18rem; }
+.sec-btn .sec-a { color:var(--lime-pale); font-size:1.5rem; line-height:1; }
+#sec-head { font-family:var(--font-head); font-size:1.3rem; color:var(--cream);
+  padding:0.9rem 0.95rem 0.25rem; border-bottom:1px solid var(--border); margin-bottom:0.5rem; }
+#navbar { position:fixed; left:0; right:0; bottom:0; display:none;
+  background:var(--bg-deeper); border-top:1.5px solid var(--border);
+  padding:0.5rem 0.6rem calc(0.5rem + env(safe-area-inset-bottom)); gap:0.6rem; z-index:60; }
+#navbar.visible { display:flex; }
+.nav-b { flex:1; min-height:58px; display:flex; align-items:center; justify-content:center; gap:0.45rem;
+  background:var(--card-bg); border:1.5px solid var(--border); border-radius:12px;
+  color:var(--cream); font-family:var(--font-body); font-size:1rem; font-weight:600; cursor:pointer; }
+.nav-b:active { background:#3E5C42; border-color:var(--lime); }
+.nav-b .nb-ic { font-size:1.25rem; line-height:1; color:var(--lime-pale); }
+#screen-topic { padding-bottom:100px; }
+.topic-grid { gap:0.85rem !important; }
+.topic-card { min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.topic-card .card-icon { font-size:2.4rem !important; }
+.info-card { padding:1.15rem !important; margin-bottom:0.95rem !important; line-height:1.62; }
+.ref-row { margin-bottom:0.85rem !important; }
+.home-fab { display:none !important; }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
 </head>
@@ -584,6 +612,7 @@ html, body {
     </div>
     <div class="subtab-strip" id="subtab-strip"></div>
   </div>
+  <div id="sec-head" style="display:none"></div>
   <div class="subtab-panels" id="subtab-panels"></div>
 </div>
 
@@ -1043,10 +1072,10 @@ function openTopic(key) {
   document.getElementById('topic-title').textContent = topic.title;
   document.getElementById('topic-icon').textContent = topic.icon;
 
-  // Build subtab strip
+  // Build stacked section list
   const strip = document.getElementById('subtab-strip');
   strip.innerHTML = topic.tabs.map((tab, i) =>
-    `<button class="subtab-btn ${i===0?'active':''}" onclick="showSubTab(${i})">${tab}</button>`
+    `<button class="sec-btn" onclick="showSubTab(${i})"><span class="sec-n">${tab}</span><span class="sec-a">&#8250;</span></button>`
   ).join('');
 
   // Build panels
@@ -1058,6 +1087,10 @@ function openTopic(key) {
   // Show topic screen
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-topic').classList.add('active');
+  document.getElementById('subtab-panels').style.display = 'none';
+  document.getElementById('sec-head').style.display = 'none';
+  const _nb=document.getElementById('navbar');
+  _nb.classList.add('visible'); _nb.classList.remove('in-section');
   document.getElementById('home-fab').classList.add('visible');
 
   // Init calculators if present
@@ -1070,15 +1103,37 @@ function openTopic(key) {
 
 function showSubTab(idx) {
   currentSubTab = idx;
-  document.querySelectorAll('.subtab-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
   document.querySelectorAll('.subtab-panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+  document.getElementById('subtab-strip').style.display = 'none';
+  document.getElementById('subtab-panels').style.display = 'block';
+  const t = TOPICS[currentTopic];
+  const sh = document.getElementById('sec-head');
+  sh.textContent = t.tabs[idx];
+  sh.style.display = 'block';
+  document.getElementById('navbar').classList.add('in-section');
   window.scrollTo(0,0);
+}
+function backToSections() {
+  document.getElementById('subtab-strip').style.display = 'flex';
+  document.getElementById('subtab-panels').style.display = 'none';
+  document.getElementById('sec-head').style.display = 'none';
+  document.getElementById('navbar').classList.remove('in-section');
+  window.scrollTo(0,0);
+}
+function navBack() {
+  if (document.getElementById('navbar').classList.contains('in-section')) backToSections();
+  else goHome();
 }
 
 function goHome() {
   document.getElementById('screen-topic').classList.remove('active');
   document.getElementById('screen-home').classList.add('active');
-  document.getElementById('home-fab').classList.remove('visible');
+  const f=document.getElementById('home-fab'); if(f) f.classList.remove('visible');
+  document.getElementById('subtab-strip').style.display = 'flex';
+  document.getElementById('subtab-panels').style.display = 'none';
+  document.getElementById('sec-head').style.display = 'none';
+  const nb=document.getElementById('navbar');
+  nb.classList.remove('in-section'); nb.classList.remove('visible');
   window.scrollTo(0,0);
 }
 
@@ -1820,5 +1875,9 @@ function showToast(msg) {
 })();
 </script>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
+<div id="navbar">
+  <button class="nav-b" onclick="navBack()"><span class="nb-ic">&#8249;</span>Back</button>
+  <button class="nav-b" onclick="goHome()"><span class="nb-ic">&#9776;</span>All topics</button>
+</div>
 </body>
 </html>
