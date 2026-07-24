@@ -89,7 +89,7 @@ h1{font-family:var(--font-head);font-size:1.7rem;line-height:1.2;margin-bottom:1
 const SUPABASE_URL='https://gblizuknnvguxyxfequh.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGl6dWtubnZndXh5eGZlcXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MzE5NjIsImV4cCI6MjA5OTIwNzk2Mn0.9m3e5T4S1kL9wusD0ZJBgIkshGt_Ws55iEcBE8bbLiE';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-let cards=[], seq=[], idx=-1, coverTitle='', singleCard=null, totalSteps=0;
+let cards=[], seq=[], idx=-1, matItems=[], coverTitle='', singleCard=null, totalSteps=0;
 
 const ICONS=[
   [/tie|wire|twine|string|lash/i,'\u{1FAA2}'],
@@ -133,6 +133,15 @@ async function load(){
       document.getElementById('err-msg').textContent='No how-to specified.'; showView('v-err'); return;
     }
   }catch(e){ showView('v-err'); return; }
+  const mids=[];
+  cards.forEach(function(c){ (c.material_ids||[]).forEach(function(id){ if(mids.indexOf(id)===-1) mids.push(id); }); });
+  if(mids.length){
+    try{
+      const r=await sb.from('lfg_inventory').select('id,item_name,image_url,image_credit').in('id',mids);
+      const m=r.data||[];
+      matItems=mids.map(function(id){ return m.find(function(x){return x.id===id;}); }).filter(Boolean);
+    }catch(e){}
+  }
   buildSequence(); buildCover(); showView('v-cover');
 }
 
@@ -157,16 +166,25 @@ function buildCover(){
   const sEl=document.getElementById('c-safety');
   sEl.innerHTML=cards.filter(c=>c.safety_note).map(c=>'<div class="safety"><b>\u26A0 Safety:</b> '+esc(c.safety_note)+'</div>').join('');
   const seen={}, mats=[];
+  matItems.forEach(function(it){ seen[(it.item_name||'').toLowerCase()]=1; });
   cards.forEach(function(c){
     (c.materials||'').split(/,|;/).map(m=>m.trim()).filter(Boolean).forEach(function(m){
       const k=m.toLowerCase(); if(!seen[k]){ seen[k]=1; mats.push(m); }
     });
   });
   const mEl=document.getElementById('c-mats');
-  if(mats.length){
-    mEl.innerHTML='<div class="mat-h">You need</div>'+mats.map(m=>
-      '<div class="mat" onclick="this.classList.toggle(\'done\')"><span class="box">\u2713</span><span>'+esc(m)+'</span></div>').join('');
-  }
+  let mh='';
+  matItems.forEach(function(it){
+    const img=it.image_url
+      ? '<img src="'+esc(it.image_url)+'" style="width:46px;height:46px;border-radius:9px;object-fit:cover;flex:none;cursor:zoom-in" onclick="event.stopPropagation();window.open(\''+esc(it.image_url)+'\',\'_blank\')">'
+      : '';
+    const credit=it.image_credit? '<div style="font-size:.68rem;color:var(--ink-soft)">Image: '+esc(it.image_credit)+'</div>' : '';
+    mh+='<div class="mat" onclick="this.classList.toggle(\'done\')"><span class="box">\u2713</span>'+img+'<span style="flex:1">'+esc(it.item_name)+credit+'</span></div>';
+  });
+  mats.forEach(function(m){
+    mh+='<div class="mat" onclick="this.classList.toggle(\'done\')"><span class="box">\u2713</span><span>'+esc(m)+'</span></div>';
+  });
+  if(mh){ mEl.innerHTML='<div class="mat-h">You need</div>'+mh; }
   if(singleCard && localStorage.getItem('lfg_admin')==='1' && !singleCard.archived_at){
     document.getElementById('c-archive').style.display='block';
   }

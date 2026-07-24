@@ -750,20 +750,37 @@ async function deleteTask(){
 /* ---------- INVENTORY (immediate) ---------- */
 let invData=[];
 async function loadInventory(){
-  const {data,error}= await sb.from('lfg_inventory').select('*').order('item_name');
+  const {data,error}= await sb.from('lfg_inventory').select('*').is('archived_at',null).order('item_name');
   if(error){ document.getElementById('inv-list').innerHTML='<div class="empty">Could not load</div>'; return; }
   invData=data; renderInventory();
 }
 function renderInventory(){
   const el=document.getElementById('inv-list');
+  const isAdmin=document.body.classList.contains('is-admin');
   if(!invData.length){ el.innerHTML='<div class="empty"><span class="ic">&#128230;</span>No items yet. Add your first below.</div>'; return; }
-  el.innerHTML=invData.map(i=>(
-    '<div class="inv-row"><div class="inv-body" onclick="openInvEditor(\''+i.id+'\')"><div class="inv-name">'+esc(i.item_name)+'</div>'+
-    (i.category?'<div class="inv-cat">'+esc(i.category)+'</div>':'')+'</div>'+
+  el.innerHTML=invData.map(function(i){
+    const thumb=i.image_url?'<img src="'+esc(i.image_url)+'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin-right:10px;flex:none">':'';
+    const cam=isAdmin?'<button class="step-btn" style="width:auto;padding:0 10px;margin-right:6px" onclick="event.stopPropagation();setItemImage(\''+i.id+'\')">&#128247;</button>':'';
+    return '<div class="inv-row">'+thumb+'<div class="inv-body" onclick="openInvEditor(\''+i.id+'\')"><div class="inv-name">'+esc(i.item_name)+'</div>'+
+    (i.category?'<div class="inv-cat">'+esc(i.category)+'</div>':'')+'</div>'+cam+
     '<div class="stepper"><button class="step-btn" onclick="event.stopPropagation();stepQty(\''+i.id+'\',-1)">&minus;</button>'+
     '<div class="qty" onclick="event.stopPropagation();typeQty(\''+i.id+'\')">'+ (i.quantity??0) +'<small>'+esc(i.unit||'')+'</small></div>'+
-    '<button class="step-btn" onclick="event.stopPropagation();stepQty(\''+i.id+'\',1)">&#43;</button></div></div>'
-  )).join('');
+    '<button class="step-btn" onclick="event.stopPropagation();stepQty(\''+i.id+'\',1)">&#43;</button></div></div>';
+  }).join('');
+}
+async function setItemImage(id){
+  const item=invData.find(function(x){return x.id===id;});
+  const url=prompt('Image URL for "'+(item?item.item_name:'item')+'" (empty to remove)', item&&item.image_url?item.image_url:'');
+  if(url===null) return;
+  let credit=null;
+  if(url.trim()){
+    const c=prompt('Image credit (only if the license requires attribution \u2014 leave empty for CC0/own photos)', item&&item.image_credit?item.image_credit:'');
+    if(c===null) return;
+    credit=c.trim()||null;
+  }
+  const {error}= await sb.from('lfg_inventory').update({image_url:url.trim()||null, image_credit:url.trim()?credit:null}).eq('id',id);
+  if(error){ toast('Could not save image'); return; }
+  toast(url.trim()?'Image saved':'Image removed'); loadInventory();
 }
 async function stepQty(id,delta){
   const item=invData.find(x=>x.id===id); if(!item) return;
@@ -1083,6 +1100,40 @@ function addHowtoToTask(){
   editHowtos.push(sel.value);
   renderHowtoConfig();
 }
+let hcMats=[], invPick=null;
+async function ensureInvPick(){
+  const {data,error}= await sb.from('lfg_inventory').select('id,item_name').is('archived_at',null).order('item_name');
+  invPick = error? [] : (data||[]);
+  return invPick;
+}
+function _invName(id){ const x=(invPick||[]).find(function(v){return v.id===id;}); return x? x.item_name : '(missing item)'; }
+function renderMatList(){
+  document.getElementById('hc-mat-list').innerHTML=hcMats.map(function(id,i){
+    return '<div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 10px;margin-bottom:5px">'
+      +'<span style="flex:1;font-size:.95rem">'+esc(_invName(id))+'</span>'
+      +'<button class="chip" style="min-height:34px;padding:0 10px" onclick="removeMat('+i+')">&#10005;</button></div>';
+  }).join('');
+  const add=document.getElementById('hc-mat-add');
+  let opts='<option value="">Add item from inventory&hellip;</option>';
+  (invPick||[]).forEach(function(v){ if(hcMats.indexOf(v.id)===-1) opts+='<option value="'+v.id+'">'+esc(v.item_name)+'</option>'; });
+  opts+='<option value="__newitem">&#65291; New inventory item&hellip;</option>';
+  add.innerHTML=opts;
+}
+function removeMat(i){ hcMats.splice(i,1); renderMatList(); }
+async function addMatToCard(){
+  const sel=document.getElementById('hc-mat-add');
+  if(!sel.value) return;
+  if(sel.value==='__newitem'){
+    sel.value='';
+    const name=prompt('New inventory item name'); if(name===null||!name.trim()) return;
+    const {data,error}= await sb.from('lfg_inventory').insert({item_name:name.trim(), quantity:0}).select().single();
+    if(error){ toast('Could not add item'); return; }
+    toast('Item added to inventory');
+    await ensureInvPick(); hcMats.push(data.id); renderMatList(); invData=[];
+    return;
+  }
+  hcMats.push(sel.value); renderMatList();
+}
 let _tsWasOpen=false;
 function openHowtoCreate(){
   _tsWasOpen=document.getElementById('task-sheet').classList.contains('show');
@@ -1091,6 +1142,7 @@ function openHowtoCreate(){
   document.getElementById('hc-steps').value='';
   document.getElementById('hc-materials').value='';
   document.getElementById('hc-safety').value='';
+  hcMats=[]; ensureInvPick().then(renderMatList);
   document.getElementById('howto-create').style.display='flex';
 }
 function closeHowtoCreate(){
@@ -1104,6 +1156,7 @@ async function saveHowtoCard(){
   if(!steps.length){ toast('Add at least one step'); return; }
   const row={ title:title, steps:steps,
     materials:document.getElementById('hc-materials').value.trim()||null,
+    material_ids:hcMats,
     safety_note:document.getElementById('hc-safety').value.trim()||null,
     created_by:'staff' };
   const {data,error}= await sb.from('lfg_howto_cards').insert(row).select().single();
@@ -1282,7 +1335,7 @@ async function uploadReviewed(){
 </script>
 <div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
 
-<div id="howto-create" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">New how-to card</span><button class="pr-x" onclick="closeHowtoCreate()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><input id="hc-title" placeholder="Title, e.g. Trellis vine crops off the ground" autocomplete="off" style="width:100%;margin-bottom:10px"><textarea id="hc-steps" rows="7" placeholder="Steps — one per line" style="width:100%;margin-bottom:10px"></textarea><input id="hc-materials" placeholder="Materials, e.g. trellis netting, zip ties, snips" autocomplete="off" style="width:100%;margin-bottom:10px"><input id="hc-safety" placeholder="Safety note (optional)" autocomplete="off" style="width:100%"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeHowtoCreate()">Cancel</button><button class="pr-btn go" onclick="saveHowtoCard()">Save card</button></div></div></div>
+<div id="howto-create" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">New how-to card</span><button class="pr-x" onclick="closeHowtoCreate()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><input id="hc-title" placeholder="Title, e.g. Trellis vine crops off the ground" autocomplete="off" style="width:100%;margin-bottom:10px"><textarea id="hc-steps" rows="7" placeholder="Steps — one per line" style="width:100%;margin-bottom:10px"></textarea><div id="hc-mat-list" style="margin-bottom:8px"></div><select id="hc-mat-add" style="width:100%;margin-bottom:10px" onchange="addMatToCard()"><option value="">Add item from inventory&hellip;</option></select><input id="hc-materials" placeholder="Other materials (free text, optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><input id="hc-safety" placeholder="Safety note (optional)" autocomplete="off" style="width:100%"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeHowtoCreate()">Cancel</button><button class="pr-btn go" onclick="saveHowtoCard()">Save card</button></div></div></div>
 <div id="howto-view" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="hv-title">How-to</span><button class="pr-x" onclick="closeHowtoView()">&times;</button></div><div id="hv-body" style="padding:14px 16px;overflow-y:auto;font-size:1.05rem;line-height:1.6"></div><div class="pr-actions" id="hv-actions"><button class="pr-btn cancel" onclick="closeHowtoView()">Close</button></div></div></div>
 <div id="photo-edit" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">Edit photo</span><button class="pr-x" onclick="closePhotoEdit()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><img id="pe-img" src="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px"><input id="pe-caption" placeholder="Caption (optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><select id="pe-area" style="width:100%;margin-bottom:10px"></select><select id="pe-type" style="width:100%;margin-bottom:10px"></select><select id="pe-plant" style="width:100%;margin-bottom:10px"></select><select id="pe-status" style="width:100%"><option value="approved">Approved (public)</option><option value="pending">Pending (hidden)</option></select></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closePhotoEdit()">Cancel</button><button class="pr-btn go" onclick="savePhotoEdit()">Save</button></div></div></div>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
