@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Grush Console — Audition</title>
+<style>
+  /* Mirrors the site's shared :root vocabulary so the module
+     snapshots and themes exactly what the real pages declare. */
+  :root{
+    color-scheme:dark;
+    --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+    --line:#45423A; --line-strong:#5A554A;
+    --green:#7E9A6E; --green-d:#2A2620; --leaf:#A8B89A; --amber:#C9973F;
+    --shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink); background:var(--paper);}
+  h1,h2{font-family:Georgia,serif; font-weight:600; margin:0;}
+  button{font-family:inherit; cursor:pointer;}
+  #app{max-width:520px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column;}
+
+  .topbar{height:56px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 12px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--paper); z-index:40;}
+  .iconbtn{width:44px; height:44px; border:none; background:transparent; border-radius:12px; font-size:24px;
+    display:flex; align-items:center; justify-content:center; color:var(--ink);}
+  .topbar .title{font-family:Georgia,serif; font-weight:600; font-size:18px;}
+
+  #scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:90; opacity:0; pointer-events:none; transition:opacity .25s;}
+  #scrim.show{opacity:1; pointer-events:auto;}
+  #panel{position:fixed; top:0; left:0; bottom:0; width:300px; max-width:86%; background:var(--card);
+    z-index:100; transform:translateX(-100%); transition:transform .28s cubic-bezier(.3,.7,.3,1);
+    box-shadow:2px 0 24px rgba(0,0,0,.18); display:flex; flex-direction:column; padding:18px 14px; overflow-y:auto;}
+  #panel.show{transform:translateX(0);}
+  #panel .phead{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
+  .menu-label{font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:var(--ink-soft); margin:14px 12px 4px;}
+
+  main{padding:16px;}
+  .note{font-size:13px; color:var(--ink-soft); margin:0 0 16px; line-height:1.5;}
+  .demo-card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; box-shadow:var(--shadow);}
+  .demo-card h2{font-size:16px; margin-bottom:4px;}
+  .demo-card p{font-size:13px; color:var(--ink-soft); margin:0;}
+  .demo-card .amber{color:var(--amber);} .demo-card .green{color:var(--green);}
+  .row{display:flex; gap:8px; margin-bottom:14px;}
+  .row button{flex:1; border:1.5px solid var(--line-strong); background:var(--card); color:var(--ink);
+    border-radius:12px; padding:12px 8px; font-size:14px; font-weight:600;}
+</style>
+<script src="grush-settings.js"></script>
+</head>
+<body>
+<div id="scrim" onclick="closeMenu()"></div>
+<div id="panel">
+  <div class="phead"><h2>Menu</h2><button class="iconbtn" onclick="closeMenu()">&times;</button></div>
+  <div class="menu-label">Language</div>
+  <div style="padding:0 12px;font-size:13px;color:var(--ink-soft)">(i18n switcher renders here on real pages)</div>
+  <!-- the console auto-mounts below -->
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <button class="iconbtn" onclick="openMenu()">&#9776;</button>
+    <span class="title">Console Audition</span>
+  </div>
+  <main>
+    <p class="note">Open the gear (or hamburger) for the console. Hold and drag any knob like a pot — detents click, HUE transposes the whole palette live, and the console re-skins itself as you turn. Double-tap HUE to snap home to stock.</p>
+
+    <div class="demo-card">
+      <h2>Sample card</h2>
+      <p>Body copy in <span class="green">green</span> and <span class="amber">amber</span> accents, on card over paper — the real reading surfaces, all following the knobs.</p>
+    </div>
+
+    <p class="note">Event spot-checks (fire in the current profile — set SOUND first):</p>
+    <div class="row">
+      <button onclick="GrushSettings.play('success')" data-gs-control="1">success</button>
+      <button onclick="GrushSettings.play('reward')" data-gs-control="1">reward</button>
+      <button onclick="GrushSettings.play('error')" data-gs-control="1">error</button>
+    </div>
+
+    <p class="note">Text-size note: sizing uses zoom, which Firefox versions before 126 ignore — a silent no-op there. All modern Chrome/Safari support it.</p>
+  </main>
+</div>
+
+<script>
+function openMenu(){ document.getElementById('panel').classList.add('show'); document.getElementById('scrim').classList.add('show'); }
+function closeMenu(){ document.getElementById('panel').classList.remove('show'); document.getElementById('scrim').classList.remove('show'); }
+</script>
+</body>
+</html>
