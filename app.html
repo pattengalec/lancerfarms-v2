@@ -269,15 +269,19 @@
 <nav id="panel">
   <div class="phead"><h2>Menu</h2><button class="iconbtn" onclick="closeMenu()">&times;</button></div>
   <button class="menu-item" onclick="goHero()"><span class="ic">&#127968;</span> Home</button>
-  <div class="menu-label">Screens</div>
   <button class="menu-item" onclick="go('hub');closeMenu()"><span class="ic">&#9632;</span> Hub</button>
+  <div class="menu-label">Record</div>
   <button class="menu-item" onclick="go('log');closeMenu()"><span class="ic">&#9998;</span> Log activity</button>
-  <button class="menu-item" onclick="go('tasks');closeMenu()"><span class="ic">&#9745;</span> Tasks</button>
-  <button class="menu-item" onclick="go('inventory');closeMenu()"><span class="ic">&#128230;</span> Inventory</button>
   <button class="menu-item" onclick="go('photos');closeMenu()"><span class="ic">&#128247;</span> Photos</button>
+  <div class="menu-label">Act</div>
+  <button class="menu-item" onclick="go('tasks');closeMenu()"><span class="ic">&#9745;</span> Tasks</button>
+  <div class="menu-label">Diagnose</div>
+  <button class="menu-item" onclick="location.href='/triage.html'"><span class="ic">&#129658;</span> Plant triage</button>
+  <div class="menu-label">Resources</div>
+  <button class="menu-item" onclick="go('inventory');closeMenu()"><span class="ic">&#128230;</span> Inventory</button>
   <button class="menu-item" onclick="go('areas');closeMenu()"><span class="ic">&#128205;</span> Locations</button>
-  <div class="menu-label">Apps</div>
   <button class="menu-item" onclick="location.href='/manual.html'"><span class="ic">&#128214;</span> Farm manual</button>
+  <div class="menu-label">Admin</div>
   <button class="menu-item admin-only" onclick="go('approvals');closeMenu()"><span class="ic">&#9989;</span> Approval queue <span class="badge" id="approve-badge" style="display:none">0</span></button>
   <div class="menu-label">Language</div>
   <button class="menu-item" onclick="cycleLang()"><span class="ic">&#127760;</span> <span id="menu-lang">English</span></button>
