@@ -5,9 +5,11 @@
 
      <script src="grush-settings.js"></script>
 
-   THE CONSOLE. A simulated analog control surface — a rocker
-   toggle for the binary choice, pots for everything continuous.
-   Hold and drag knobs to rotate; detents click; trims center-snap:
+   THE CONSOLE. A simulated 80s-boombox control surface: slide
+   switches for discrete choices, ridged rotary pots for continuous
+   ones, LED indicators for state, brushed panel, corner screws.
+   Every surface is drawn from the site's own CSS variables, so the
+   console re-skins itself live — it IS the theme preview.
 
      BASE   rocker toggle: LIGHT / DARK. Site-controlled and immune
             to OS theme changes after a one-time first-visit seed —
@@ -376,66 +378,51 @@ const GrushSettings = (() => {
     return n;
   }
 
-  /* Discrete detented knob. positions = [[value,label],...] */
-  function detentKnob({ label, positions, value, onLand, onDetent }) {
-    const box = el('div', 'gk');
-    const dial = el('div', 'gk-dial');
-    const face = el('div', 'gk-face');
-    face.appendChild(el('div', 'gk-line'));
-    dial.appendChild(face);
-
+  /* Boombox slide selector. positions = [[value,label],...];
+     LED lights over the live position; thumb drags or taps by slot. */
+  function slideSwitch({ label, positions, value, onDetent, onLand, compact }) {
     const n = positions.length;
-    const posAng = i => -SWEEP / 2 + (n === 1 ? 0 : SWEEP * i / (n - 1));
+    const box = el('div', 'gsw' + (compact ? ' compact' : ''));
+
+    const leds = el('div', 'gsw-leds');
+    const ledEls = positions.map(() => { const l = el('div', 'led'); leds.appendChild(l); return l; });
+    box.appendChild(leds);
+
+    const track = el('div', 'gsw-track');
+    const thumb = el('div', 'gsw-thumb');
+    track.appendChild(thumb);
+    box.appendChild(track);
+
+    const labs = el('div', 'gsw-labs');
+    const labEls = positions.map(p => { const s = el('span', '', p[1]); labs.appendChild(s); return s; });
+    box.appendChild(labs);
+    if (label) box.appendChild(el('div', 'gk-name', label));
+
     let cur = Math.max(0, positions.findIndex(p => p[0] === value));
-    let ang = posAng(cur);
-
-    for (let i = 0; i < n; i++) {               /* ticks + tick labels */
-      const t = el('div', 'gk-tick');
-      t.style.transform = `rotate(${posAng(i)}deg) translateY(-46px)`;
-      dial.appendChild(t);
-      const tl = el('div', 'gk-tlabel', positions[i][1]);
-      const rad = (posAng(i) - 90) * Math.PI / 180;
-      tl.style.left = `calc(50% + ${Math.cos(rad) * 62}px)`;
-      tl.style.top  = `calc(50% + ${Math.sin(rad) * 62}px)`;
-      dial.appendChild(tl);
-    }
-
-    const render = () => { face.style.transform = `rotate(${ang}deg)`; };
-    const markOn = () => {
-      dial.querySelectorAll('.gk-tlabel').forEach((x, i) => x.classList.toggle('on', i === cur));
+    const place = () => {
+      thumb.style.width = `calc(${100 / n}% - 4px)`;
+      thumb.style.left  = `calc(${cur * 100 / n}% + 2px)`;
+      ledEls.forEach((l, i) => l.classList.toggle('lit', i === cur));
+      labEls.forEach((l, i) => l.classList.toggle('on', i === cur));
     };
-    render(); markOn();
+    place();
 
-    let dragging = false, startPtr = 0, startAng = 0;
-    const ptrAngle = e => {
-      const b = dial.getBoundingClientRect();
-      return Math.atan2(e.clientY - (b.top + b.height / 2), e.clientX - (b.left + b.width / 2)) * 180 / Math.PI + 90;
+    let dragging = false;
+    const slotAt = e => {
+      const b = track.getBoundingClientRect();
+      return Math.max(0, Math.min(n - 1, Math.floor((e.clientX - b.left) / b.width * n)));
     };
-    dial.addEventListener('pointerdown', e => {
-      dragging = true; dial.setPointerCapture(e.pointerId);
-      startPtr = ptrAngle(e); startAng = ang;
+    const moveTo = i => {
+      if (i === cur) return;
+      cur = i; place(); onDetent?.(positions[cur][0]);
+    };
+    track.addEventListener('pointerdown', e => {
+      dragging = true; track.setPointerCapture(e.pointerId); moveTo(slotAt(e));
     });
-    dial.addEventListener('pointermove', e => {
-      if (!dragging) return;
-      e.preventDefault();
-      let d = ptrAngle(e) - startPtr;
-      if (d > 180) d -= 360; if (d < -180) d += 360;
-      ang = Math.max(-SWEEP / 2, Math.min(SWEEP / 2, startAng + d));
-      let best = 0, bd = 1e9;
-      for (let i = 0; i < n; i++) { const dd = Math.abs(posAng(i) - ang); if (dd < bd) { bd = dd; best = i; } }
-      if (best !== cur) { cur = best; markOn(); onDetent?.(positions[cur][0]); }
-      render();
-    });
-    const settle = () => {
-      if (!dragging) return; dragging = false;
-      ang = posAng(cur); render();
-      onLand(positions[cur][0]);
-    };
-    dial.addEventListener('pointerup', settle);
-    dial.addEventListener('pointercancel', settle);
-
-    box.appendChild(dial);
-    box.appendChild(el('div', 'gk-name', label));
+    track.addEventListener('pointermove', e => { if (dragging) { e.preventDefault(); moveTo(slotAt(e)); } });
+    const settle = () => { if (!dragging) return; dragging = false; onLand(positions[cur][0]); };
+    track.addEventListener('pointerup', settle);
+    track.addEventListener('pointercancel', settle);
     return box;
   }
 
@@ -444,7 +431,8 @@ const GrushSettings = (() => {
     const box = el('div', 'gk gk-trim');
     const dial = el('div', 'gk-dial');
     const face = el('div', 'gk-face');
-    face.appendChild(el('div', 'gk-line'));
+    face.appendChild(el('div', 'gk-cap'));
+    face.appendChild(el('div', 'gk-dot'));
     dial.appendChild(face);
 
     const marks = [-SWEEP / 2, 0, SWEEP / 2];         /* end + center ticks */
@@ -500,36 +488,14 @@ const GrushSettings = (() => {
     return box;
   }
 
-  /* Rocker toggle for the one binary choice: LIGHT / DARK. */
-  function baseToggle(onFlip) {
-    const box = el('div', 'gt');
-    box.appendChild(el('span', 'gt-label' + (S.base === 'light' ? ' on' : ''), 'LIGHT'));
-    const sw = el('button', 'gt-sw'); sw.type = 'button'; sw.dataset.gsControl = '1';
-    sw.setAttribute('aria-label', 'Light or dark base');
-    sw.appendChild(el('div', 'gt-lever'));
-    box.appendChild(sw);
-    box.appendChild(el('span', 'gt-label' + (S.base === 'dark' ? ' on' : ''), 'DARK'));
-    const sync = () => {
-      sw.classList.toggle('lit', S.base === 'light');
-      const [l1, , l2] = box.children;
-      l1.classList.toggle('on', S.base === 'light');
-      l2.classList.toggle('on', S.base === 'dark');
-    };
-    sync();
-    sw.addEventListener('click', () => {
-      S.base = S.base === 'light' ? 'dark' : 'light';
-      save(); applyTheme(); sync(); play('toggle'); onFlip?.();
-    });
-    return box;
-  }
-
   /* Continuous 360° hue pot with the palette chord on its ring. */
   function hueKnob() {
     const box = el('div', 'gk gk-hue');
     const dial = el('div', 'gk-dial');
     const ring = el('canvas', 'gk-ring');
     const face = el('div', 'gk-face');
-    face.appendChild(el('div', 'gk-line'));
+    face.appendChild(el('div', 'gk-cap'));
+    face.appendChild(el('div', 'gk-dot'));
     dial.appendChild(ring); dial.appendChild(face);
     box.appendChild(dial);
     box.appendChild(el('div', 'gk-name', 'HUE'));
@@ -613,9 +579,20 @@ const GrushSettings = (() => {
 
     const head = el('div', 'gs-head');
     head.appendChild(el('div', 'gs-brand', 'settings'));
-    const hue = hueKnob();
-    head.appendChild(baseToggle(() => hue._redraw()));
+    const pwr = el('div', 'gs-pwr');
+    const pled = el('div', 'led amber lit'); pwr.appendChild(pled);
+    pwr.appendChild(el('span', '', 'PWR'));
+    head.appendChild(pwr);
     root.appendChild(head);
+
+    const hue = hueKnob();
+
+    root.appendChild(slideSwitch({
+      label: null, compact: true, value: S.base,
+      positions: [['light', 'LIGHT'], ['dark', 'DARK']],
+      onDetent: v => { S.base = v; applyTheme(); hue._redraw(); play('detent'); },
+      onLand:   v => { S.base = v; save(); applyTheme(); hue._redraw(); play('toggle'); }
+    }));
 
     root.appendChild(hue);
 
@@ -638,13 +615,13 @@ const GrushSettings = (() => {
     root.appendChild(trims);
 
     const grid = el('div', 'gs-grid');
-    grid.appendChild(detentKnob({
+    grid.appendChild(slideSwitch({
       label: 'SOUND', value: S.sound,
       positions: [['mute', 'MUTE'], ['chill', 'CHILL'], ['assertive', 'ASSERT']],
       onDetent: v => { if (v !== 'mute') synth(v, 'detent'); },
       onLand:   v => { S.sound = v; save(); if (v !== 'mute') synth(v, 'reward'); }
     }));
-    grid.appendChild(detentKnob({
+    grid.appendChild(slideSwitch({
       label: 'TEXT', value: S.text,
       positions: [['small', 'S'], ['default', 'M'], ['large', 'L']],
       onDetent: () => play('detent'),
@@ -658,42 +635,74 @@ const GrushSettings = (() => {
     if (document.getElementById('gs-css')) return;
     const st = el('style'); st.id = 'gs-css';
     st.textContent =
-      '.gs-console{margin:14px 4px 8px;padding:16px 10px 12px;border:1.5px solid var(--line-strong,#5A554A);' +
-        'border-radius:16px;background:var(--paper,#2A2620);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),var(--shadow,none);}' +
-      '.gs-head{display:flex;align-items:center;justify-content:space-between;margin:0 6px 12px;}' +
+      /* ── panel: brushed metal, corner screws ── */
+      '.gs-console{position:relative;margin:14px 4px 8px;padding:16px 12px 14px;' +
+        'border:1.5px solid var(--line-strong,#5A554A);border-radius:14px;' +
+        'background:' +
+          'radial-gradient(circle 2.6px at 11px 11px, var(--line-strong,#5A554A) 0 1.8px, transparent 2.6px),' +
+          'radial-gradient(circle 2.6px at calc(100% - 11px) 11px, var(--line-strong,#5A554A) 0 1.8px, transparent 2.6px),' +
+          'radial-gradient(circle 2.6px at 11px calc(100% - 11px), var(--line-strong,#5A554A) 0 1.8px, transparent 2.6px),' +
+          'radial-gradient(circle 2.6px at calc(100% - 11px) calc(100% - 11px), var(--line-strong,#5A554A) 0 1.8px, transparent 2.6px),' +
+          'repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 3px),' +
+          'var(--paper,#2A2620);' +
+        'box-shadow:inset 0 1px 0 rgba(255,255,255,.06), var(--shadow,none);}' +
+      '.gs-head{display:flex;align-items:center;justify-content:space-between;margin:0 8px 10px;}' +
       '.gs-brand{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-soft,#B0A99C);opacity:.7;}' +
-      '.gt{display:flex;align-items:center;gap:7px;}' +
-      '.gt-label{font-size:8.5px;letter-spacing:1px;color:var(--ink-soft,#B0A99C);opacity:.55;transition:opacity .15s,color .15s;}' +
-      '.gt-label.on{color:var(--green,#7E9A6E);opacity:1;font-weight:700;}' +
-      '.gt-sw{position:relative;width:46px;height:24px;border-radius:6px;border:1.5px solid var(--line-strong,#5A554A);' +
-        'background:var(--paper,#2A2620);box-shadow:inset 0 2px 5px rgba(0,0,0,.4);padding:0;}' +
-      '.gt-lever{position:absolute;top:2px;left:2px;width:19px;height:16px;border-radius:4px;' +
-        'background:linear-gradient(180deg,var(--card,#34302A),var(--paper,#2A2620));' +
-        'border:1px solid var(--line-strong,#5A554A);box-shadow:0 2px 4px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12);' +
-        'transition:transform .16s cubic-bezier(.4,0,.2,1);}' +
-      '.gt-sw.lit .gt-lever{transform:translateX(19px);}' +
+      '.gs-pwr{display:flex;align-items:center;gap:5px;font-size:8px;letter-spacing:1.5px;color:var(--ink-soft,#B0A99C);opacity:.8;}' +
+      /* ── LEDs ── */
+      '.led{width:7px;height:7px;border-radius:50%;flex:0 0 auto;' +
+        'background:color-mix(in srgb, var(--ink,#F0EDE2) 10%, var(--paper,#2A2620));' +
+        'box-shadow:inset 0 1px 2px rgba(0,0,0,.55);transition:background .15s, box-shadow .15s;}' +
+      '.led.lit{background:var(--green,#7E9A6E);' +
+        'box-shadow:0 0 7px color-mix(in srgb, var(--green,#7E9A6E) 75%, transparent), inset 0 0 2px rgba(255,255,255,.45);}' +
+      '.led.amber.lit{background:var(--amber,#C9973F);' +
+        'box-shadow:0 0 7px color-mix(in srgb, var(--amber,#C9973F) 75%, transparent), inset 0 0 2px rgba(255,255,255,.45);}' +
+      /* ── slide switches ── */
+      '.gsw{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;max-width:132px;}' +
+      '.gsw.compact{max-width:96px;margin:0 auto 4px;}' +
+      '.gsw-leds{display:flex;width:100%;justify-content:space-around;}' +
+      '.gsw-track{position:relative;width:100%;height:26px;border-radius:6px;touch-action:none;' +
+        'background:color-mix(in srgb, black 28%, var(--paper,#2A2620));' +
+        'border:1px solid var(--line-strong,#5A554A);box-shadow:inset 0 2px 5px rgba(0,0,0,.5);}' +
+      '.gsw-thumb{position:absolute;top:2px;bottom:2px;border-radius:4px;cursor:grab;' +
+        'background:repeating-linear-gradient(90deg, rgba(255,255,255,.09) 0 1px, transparent 1px 4px),' +
+          'linear-gradient(180deg, var(--card,#34302A), var(--paper,#2A2620));' +
+        'border:1px solid var(--line-strong,#5A554A);' +
+        'box-shadow:0 2px 4px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);' +
+        'transition:left .12s cubic-bezier(.4,0,.2,1);}' +
+      '.gsw-labs{display:flex;width:100%;justify-content:space-around;font-size:8.5px;letter-spacing:1px;' +
+        'color:var(--ink-soft,#B0A99C);}' +
+      '.gsw-labs span{opacity:.55;transition:opacity .15s,color .15s;}' +
+      '.gsw-labs span.on{color:var(--green,#7E9A6E);opacity:1;font-weight:700;}' +
+      /* ── rotary pots: ridged rim, smooth cap, LED pointer ── */
       '.gs-trims{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;justify-items:center;margin:16px 0 4px;}' +
-      '.gk-trim .gk-dial{width:88px;height:88px;}' +
-      '.gk-trim .gk-face{inset:11px;}' +
-      '.gk-tick.mid{height:9px;background:var(--green,#7E9A6E);opacity:.8;}' +
       '.gs-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 8px;justify-items:center;margin-top:16px;}' +
       '.gk{display:flex;flex-direction:column;align-items:center;gap:6px;}' +
       '.gk-dial{position:relative;width:104px;height:104px;touch-action:none;}' +
       '.gk-hue .gk-dial{width:128px;height:128px;}' +
       '.gk-hue{margin:2px auto 0;}' +
+      '.gk-trim .gk-dial{width:88px;height:88px;}' +
+      '.gk-trim .gk-face{inset:11px;}' +
       '.gk-ring{position:absolute;inset:0;pointer-events:none;}' +
       '.gk-face{position:absolute;inset:14px;border-radius:50%;cursor:grab;' +
-        'background:radial-gradient(circle at 35% 30%, var(--card,#34302A), var(--paper,#2A2620) 78%);' +
+        'background:repeating-conic-gradient(' +
+          'color-mix(in srgb, var(--ink,#F0EDE2) 16%, var(--paper,#2A2620)) 0deg 4deg,' +
+          'var(--paper,#2A2620) 4deg 9deg);' +
         'border:1.5px solid var(--line-strong,#5A554A);' +
-        'box-shadow:0 3px 8px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.09), inset 0 -2px 5px rgba(0,0,0,.3);}' +
+        'box-shadow:0 3px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08), inset 0 -2px 6px rgba(0,0,0,.35);}' +
       '.gk-face:active{cursor:grabbing;}' +
-      '.gk-line{position:absolute;left:50%;top:7%;width:3px;height:32%;margin-left:-1.5px;border-radius:2px;' +
-        'background:var(--green,#7E9A6E);box-shadow:0 0 5px color-mix(in srgb, var(--green,#7E9A6E) 60%, transparent);}' +
+      '.gk-cap{position:absolute;inset:20%;border-radius:50%;' +
+        'background:radial-gradient(circle at 35% 30%, var(--card,#34302A), var(--paper,#2A2620) 80%);' +
+        'border:1px solid var(--line-strong,#5A554A);' +
+        'box-shadow:inset 0 1px 0 rgba(255,255,255,.1), inset 0 -2px 4px rgba(0,0,0,.3);}' +
+      '.gk-dot{position:absolute;left:50%;top:7%;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;' +
+        'background:var(--amber,#C9973F);' +
+        'box-shadow:0 0 6px color-mix(in srgb, var(--amber,#C9973F) 75%, transparent), inset 0 0 2px rgba(255,255,255,.4);}' +
       '.gk-tick{position:absolute;left:50%;top:50%;width:2px;height:7px;margin-left:-1px;margin-top:-3.5px;' +
         'background:var(--ink-soft,#B0A99C);opacity:.55;border-radius:1px;}' +
+      '.gk-tick.mid{height:9px;background:var(--green,#7E9A6E);opacity:.8;}' +
       '.gk-tlabel{position:absolute;transform:translate(-50%,-50%);font-size:8.5px;letter-spacing:.8px;' +
-        'color:var(--ink-soft,#B0A99C);opacity:.6;transition:opacity .15s,color .15s;white-space:nowrap;}' +
-      '.gk-tlabel.on{color:var(--green,#7E9A6E);opacity:1;font-weight:700;}' +
+        'color:var(--ink-soft,#B0A99C);opacity:.6;white-space:nowrap;}' +
       '.gk-name{font-size:10px;letter-spacing:2px;color:var(--ink-soft,#B0A99C);opacity:.85;}' +
       '.gs-gear{opacity:.55;transition:opacity .15s;}' +
       '.gs-gear:active{opacity:1;}';
