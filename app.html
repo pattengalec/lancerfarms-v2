@@ -445,6 +445,10 @@
       <div class="field-label">Where <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
       <select id="task-area-in" class="text-in"><option value="">Anywhere / whole farm</option></select>
     </div>
+    <div class="field">
+      <div class="field-label">How-to <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
+      <select id="task-howto-in" class="text-in"><option value="">No how-to card</option></select>
+    </div>
     <button class="btn-primary" onclick="saveTask()" style="margin-top:8px">Save task</button>
     <button id="task-delete-btn" class="btn-danger" onclick="deleteTask()" style="display:none">Remove task</button>
     <button class="btn-ghost" onclick="closeTaskEditor()">Cancel</button>
@@ -682,7 +686,7 @@ function renderTasks(list){
     else if(t._color==='bad') sub='Overdue \u2014 2 visits missed';
     else if(t._color==='warn') sub='Carried forward \u2014 1 missed';
     else sub=recurLabel(t);
-    return '<div class="task-row '+cls+'"><button class="task-check" onclick="event.stopPropagation();completeTask(\''+t.id+'\',\''+(t.title||'').replace(/\x27/g,'')+'\')"></button><div class="task-body" onclick="openTaskEditor(\''+t.id+'\')"><div class="task-title">'+esc(t.title||'Untitled')+'</div><div class="task-sub">'+sub+'</div></div></div>';
+    return '<div class="task-row '+cls+'"><button class="task-check" onclick="event.stopPropagation();completeTask(\''+t.id+'\',\''+(t.title||'').replace(/\x27/g,'')+'\')"></button><div class="task-body" onclick="openTaskEditor(\''+t.id+'\')"><div class="task-title">'+esc(t.title||'Untitled')+'</div><div class="task-sub">'+sub+'</div></div>'+(t.howto_id?'<button class="chip" style="min-height:40px;align-self:center;margin-right:6px" onclick="event.stopPropagation();openHowtoView(\''+t.howto_id+'\')">&#128203;</button>':'')+'</div>';
   }).join('');
 }
 function recurLabel(t){ const m={visit:'Every visit',daily:'Daily',weekly:'Weekly',biweekly:'Every 2 weeks',monthly:'Monthly',interval:'Recurring',one_time:'One time',seasonal:'Seasonal'}; return m[t.recurrence_type]||'Pending'; }
@@ -700,13 +704,17 @@ function fillTaskAreaSelect(){
   if(sel.options.length>1) return; // already filled
   (state.areas||[]).forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=a.name; sel.appendChild(o); });
 }
-function openTaskEditor(id){
+async function openTaskEditor(id){
   fillTaskAreaSelect();
+  await ensureHowtos();
   editingTaskId = (typeof id==='string') ? id : null;
   const t = editingTaskId ? (window._tasks||[]).find(x=>x.id===editingTaskId) : null;
   document.getElementById('task-sheet-title').textContent = t? 'Edit task' : 'New task';
   document.getElementById('task-title-in').value = t? (t.title||'') : '';
   document.getElementById('task-area-in').value = t? (t.area_id||'') : '';
+  _hcPrev = t? (t.howto_id||'') : '';
+  const _th=document.getElementById('task-howto-in');
+  _th.innerHTML=howtoOptionsHTML(_hcPrev); _th.onchange=taskHowtoChange;
   editRecur = t? (t.recurrence_type||'one_time') : 'one_time';
   document.querySelectorAll('.recur-chip').forEach(c=>c.classList.toggle('on', c.dataset.recur===editRecur));
   document.getElementById('task-delete-btn').style.display = t? 'block':'none';
@@ -723,9 +731,11 @@ async function saveTask(){
   const title=document.getElementById('task-title-in').value.trim();
   if(!title){ toast('Give the task a name'); return; }
   const area=document.getElementById('task-area-in').value || null;
-  const row={ title, recurrence_type:editRecur, area_id:area, created_by:'staff' };
+  const hv=document.getElementById('task-howto-in').value;
+  const howto=(hv&&hv!=='__newhowto')?hv:null;
+  const row={ title, recurrence_type:editRecur, area_id:area, howto_id:howto, created_by:'staff' };
   let error;
-  if(editingTaskId){ ({error}= await sb.from('lfg_tasks').update({title, recurrence_type:editRecur, area_id:area}).eq('id',editingTaskId)); }
+  if(editingTaskId){ ({error}= await sb.from('lfg_tasks').update({title, recurrence_type:editRecur, area_id:area, howto_id:howto}).eq('id',editingTaskId)); }
   else { ({error}= await sb.from('lfg_tasks').insert(row)); }
   if(error){ toast('Could not save'); return; }
   toast(editingTaskId?'Task updated':'Task added'); closeTaskEditor(); loadTasks();
@@ -1028,6 +1038,77 @@ async function peAreaChange(){
   sel.innerHTML=areaOptionsHTML(added? added.id : (p.area_id||''))+'<option value="__addnew">&#65291; New location&hellip;</option>';
 }
 
+/* ---------- HOW-TO CARDS ---------- */
+let howtoCards=null;
+async function ensureHowtos(){
+  if(howtoCards) return howtoCards;
+  const {data,error}= await sb.from('lfg_howto_cards').select('*').is('archived_at',null).order('title');
+  howtoCards = error? [] : (data||[]);
+  return howtoCards;
+}
+function howtoOptionsHTML(sel){
+  let h='<option value=""'+(sel?'':' selected')+'>No how-to card</option>';
+  (howtoCards||[]).forEach(function(c){ h+='<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.title)+'</option>'; });
+  h+='<option value="__newhowto">&#65291; New how-to&hellip;</option>';
+  return h;
+}
+function taskHowtoChange(){
+  const sel=document.getElementById('task-howto-in');
+  if(sel.value!=='__newhowto') return;
+  sel.value=_hcPrev||'';
+  openHowtoCreate();
+}
+let _hcPrev='';
+function openHowtoCreate(){
+  document.getElementById('hc-title').value='';
+  document.getElementById('hc-steps').value='';
+  document.getElementById('hc-materials').value='';
+  document.getElementById('hc-safety').value='';
+  document.getElementById('howto-create').style.display='flex';
+}
+function closeHowtoCreate(){ document.getElementById('howto-create').style.display='none'; }
+async function saveHowtoCard(){
+  const title=document.getElementById('hc-title').value.trim();
+  if(!title){ toast('Give the card a title'); return; }
+  const steps=document.getElementById('hc-steps').value.split('\n').map(function(s){return s.trim();}).filter(Boolean).map(function(s){return {text:s};});
+  if(!steps.length){ toast('Add at least one step'); return; }
+  const row={ title:title, steps:steps,
+    materials:document.getElementById('hc-materials').value.trim()||null,
+    safety_note:document.getElementById('hc-safety').value.trim()||null,
+    created_by:'staff' };
+  const {data,error}= await sb.from('lfg_howto_cards').insert(row).select().single();
+  if(error){ toast('Could not save card'); return; }
+  toast('How-to card saved');
+  howtoCards=null; await ensureHowtos();
+  const sel=document.getElementById('task-howto-in');
+  if(sel){ sel.innerHTML=howtoOptionsHTML(data.id); }
+  closeHowtoCreate();
+}
+async function openHowtoView(id){
+  await ensureHowtos();
+  const c=(howtoCards||[]).find(function(x){return x.id===id;});
+  if(!c){ toast('Card not found'); return; }
+  document.getElementById('hv-title').textContent=c.title;
+  let h='';
+  if(c.materials) h+='<div style="margin-bottom:12px"><b>You need:</b> '+esc(c.materials)+'</div>';
+  if(c.safety_note) h+='<div style="margin-bottom:12px;padding:10px;border-radius:10px;background:var(--amber-bg);color:var(--amber)"><b>&#9888; Safety:</b> '+esc(c.safety_note)+'</div>';
+  (c.steps||[]).forEach(function(s,i){
+    h+='<div style="display:flex;gap:12px;margin-bottom:14px"><div style="min-width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">'+(i+1)+'</div><div style="padding-top:3px">'+esc(s.text||'')+'</div></div>';
+  });
+  document.getElementById('hv-body').innerHTML=h||'<div class="empty">No steps yet</div>';
+  const act=document.getElementById('hv-actions');
+  act.innerHTML='<button class="pr-btn cancel" onclick="closeHowtoView()">Close</button>'
+    +(document.body.classList.contains('is-admin')?'<button class="pr-btn cancel" onclick="archiveHowto(\''+c.id+'\')">Archive card</button>':'');
+  document.getElementById('howto-view').style.display='flex';
+}
+function closeHowtoView(){ document.getElementById('howto-view').style.display='none'; }
+async function archiveHowto(id){
+  if(!confirm('Archive this how-to card? Tasks keep their link; it leaves the picker.')) return;
+  const {error}= await sb.from('lfg_howto_cards').update({archived_at:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('Archive failed'); return; }
+  toast('Card archived'); howtoCards=null; closeHowtoView(); loadTasks();
+}
+
 /* ---------- PLANT LINKS ---------- */
 let staffPlants=null;
 async function ensurePlants(){
@@ -1170,6 +1251,8 @@ async function uploadReviewed(){
 </script>
 <div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
 
+<div id="howto-create" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">New how-to card</span><button class="pr-x" onclick="closeHowtoCreate()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><input id="hc-title" placeholder="Title, e.g. Trellis vine crops off the ground" autocomplete="off" style="width:100%;margin-bottom:10px"><textarea id="hc-steps" rows="7" placeholder="Steps — one per line" style="width:100%;margin-bottom:10px"></textarea><input id="hc-materials" placeholder="Materials, e.g. trellis netting, zip ties, snips" autocomplete="off" style="width:100%;margin-bottom:10px"><input id="hc-safety" placeholder="Safety note (optional)" autocomplete="off" style="width:100%"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeHowtoCreate()">Cancel</button><button class="pr-btn go" onclick="saveHowtoCard()">Save card</button></div></div></div>
+<div id="howto-view" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="hv-title">How-to</span><button class="pr-x" onclick="closeHowtoView()">&times;</button></div><div id="hv-body" style="padding:14px 16px;overflow-y:auto;font-size:1.05rem;line-height:1.6"></div><div class="pr-actions" id="hv-actions"><button class="pr-btn cancel" onclick="closeHowtoView()">Close</button></div></div></div>
 <div id="photo-edit" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">Edit photo</span><button class="pr-x" onclick="closePhotoEdit()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><img id="pe-img" src="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px"><input id="pe-caption" placeholder="Caption (optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><select id="pe-area" style="width:100%;margin-bottom:10px"></select><select id="pe-type" style="width:100%;margin-bottom:10px"></select><select id="pe-plant" style="width:100%;margin-bottom:10px"></select><select id="pe-status" style="width:100%"><option value="approved">Approved (public)</option><option value="pending">Pending (hidden)</option></select></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closePhotoEdit()">Cancel</button><button class="pr-btn go" onclick="savePhotoEdit()">Save</button></div></div></div>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
 </body>
