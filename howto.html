@@ -28,10 +28,19 @@ h1{font-family:var(--font-head);font-size:1.7rem;line-height:1.2;margin-bottom:1
 .parts b{color:var(--leaf);}
 .safety{background:var(--amber-bg);color:var(--amber);border-radius:12px;padding:13px 14px;font-size:.95rem;line-height:1.45;margin-bottom:12px;}
 .mat-h{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin:6px 0 10px;}
-.mat{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:8px;font-size:1.02rem;cursor:pointer;}
-.mat .box{min-width:24px;height:24px;border-radius:7px;border:2px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--paper);}
-.mat.done .box{background:var(--green);border-color:var(--green);}
-.mat.done{opacity:.65;text-decoration:line-through;}
+.mat{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 14px;margin-bottom:9px;font-size:1.08rem;min-height:56px;cursor:pointer;transition:background .35s,border-color .35s,color .35s;}
+.mat .box{min-width:30px;height:30px;border-radius:9px;border:2px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:transparent;transition:background .35s,border-color .35s,color .35s;}
+.mat.done{background:var(--green);border-color:var(--green);color:#1E241A;font-weight:600;}
+.mat.done .box{background:#1E241A;border-color:#1E241A;color:var(--green);}
+body{transition:background .6s;}
+body.mats-done{background:var(--green);}
+body.mats-done .kicker,body.mats-done .parts{color:#33402B;}
+body.mats-done .parts b{color:#1E241A;}
+body.mats-done h1,body.mats-done .mat-h{color:#1E241A;}
+body.mats-done .mat{background:#6D8A5F;border-color:#5F7B52;color:#1E241A;}
+body.mats-done .mat .box{background:#1E241A;border-color:#1E241A;color:#9FBF8E;}
+body.mats-done .btn.go{background:#F0EDE2;color:#1E241A;animation:pulseGo 1.1s ease-in-out infinite;}
+@keyframes pulseGo{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(240,237,226,.5);}50%{transform:scale(1.03);box-shadow:0 0 0 14px rgba(240,237,226,0);}}
 .step-ic{font-size:64px;text-align:center;margin:7vh 0 12px;}
 .step-n{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--leaf);text-align:center;margin-bottom:12px;font-weight:700;}
 .step-t{font-size:1.35rem;line-height:1.5;text-align:center;padding:0 6px;}
@@ -110,7 +119,16 @@ function iconFor(text,i){
   return ['\u{1F33F}','\u{1F343}','\u{1F33E}'][i%3];
 }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function showView(id){ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on', v.id===id)); }
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on', v.id===id));
+  if(id==='v-cover') updateMatsState(); else document.body.classList.remove('mats-done');
+}
+function matToggle(el){ el.classList.toggle('done'); updateMatsState(); }
+function updateMatsState(){
+  const all=document.querySelectorAll('#c-mats .mat');
+  const done=document.querySelectorAll('#c-mats .mat.done');
+  document.body.classList.toggle('mats-done', all.length>0 && done.length===all.length);
+}
 
 async function load(){
   const qp=new URLSearchParams(location.search);
@@ -179,10 +197,10 @@ function buildCover(){
       ? '<img src="'+esc(it.image_url)+'" style="width:46px;height:46px;border-radius:9px;object-fit:cover;flex:none;cursor:zoom-in" onclick="event.stopPropagation();window.open(\''+esc(it.image_url)+'\',\'_blank\')">'
       : '';
     const credit=it.image_credit? '<div style="font-size:.68rem;color:var(--ink-soft)">Image: '+esc(it.image_credit)+'</div>' : '';
-    mh+='<div class="mat" onclick="this.classList.toggle(\'done\')"><span class="box">\u2713</span>'+img+'<span style="flex:1">'+esc(it.item_name)+credit+'</span></div>';
+    mh+='<div class="mat" onclick="matToggle(this)"><span class="box">\u2713</span>'+img+'<span style="flex:1">'+esc(it.item_name)+credit+'</span></div>';
   });
   mats.forEach(function(m){
-    mh+='<div class="mat" onclick="this.classList.toggle(\'done\')"><span class="box">\u2713</span><span>'+esc(m)+'</span></div>';
+    mh+='<div class="mat" onclick="matToggle(this)"><span class="box">\u2713</span><span>'+esc(m)+'</span></div>';
   });
   if(mh){ mEl.innerHTML='<div class="mat-h">You need</div>'+mh; }
   if(singleCard && localStorage.getItem('lfg_admin')==='1' && !singleCard.archived_at){
