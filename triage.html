@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>Plant triage · Lancer Farms</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#22201B; --card:#2E2B24;
+  --line:#45423A; --line-strong:#5A554A;
+  --green:#7E9A6E; --leaf:#A8B89A; --amber:#C9973F; --amber-bg:#4A3A22;
+  --red:#D15A48; --red-bg:#3E2723;
+  --font-head:'Fraunces',Georgia,serif; --font-body:'Source Sans 3',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);
+  max-width:560px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));}
+.top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;}
+h1{font-family:var(--font-head);font-size:1.25rem;font-weight:600;}
+.step{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--leaf);}
+.trail{font-size:.8rem;color:var(--ink-soft);line-height:1.5;margin-bottom:20px;min-height:1.2em;}
+.q{font-family:var(--font-head);font-size:1.6rem;line-height:1.28;margin-bottom:8px;}
+.qs{color:var(--ink-soft);font-size:.95rem;line-height:1.5;margin-bottom:22px;}
+.opt{display:block;width:100%;min-height:74px;margin-bottom:12px;padding:14px 18px;
+  border-radius:15px;border:1.5px solid var(--line-strong);background:var(--card);color:var(--ink);
+  font-family:inherit;text-align:left;cursor:pointer;transition:background .2s,border-color .2s;}
+.opt:active{background:var(--green);border-color:var(--green);color:#1E241A;}
+.opt b{display:block;font-size:1.14rem;font-weight:600;line-height:1.3;}
+.opt span{display:block;font-size:.87rem;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
+.opt:active span{color:#2C3826;}
+.act{border-radius:16px;padding:18px;margin-bottom:14px;}
+.act.urgent{background:var(--red-bg);border:1.5px solid var(--red);}
+.act.watch{background:var(--amber-bg);border:1.5px solid var(--amber);}
+.act.calm{background:var(--card);border:1.5px solid var(--line-strong);}
+.act .tag{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:7px;}
+.urgent .tag{color:var(--red);} .watch .tag{color:var(--amber);} .calm .tag{color:var(--leaf);}
+.act h2{font-family:var(--font-head);font-size:1.5rem;font-weight:600;line-height:1.25;margin-bottom:8px;}
+.act .why{color:var(--ink-soft);font-size:.95rem;line-height:1.55;}
+.blk{margin-bottom:14px;}
+.blk .h{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--leaf);margin-bottom:9px;}
+.blk ul{list-style:none;}
+.blk li{background:var(--card);border-radius:11px;padding:13px 15px;margin-bottom:7px;
+  font-size:1rem;line-height:1.45;border-left:3px solid var(--green);}
+.blk.later li{border-left-color:var(--line-strong);color:var(--ink-soft);font-size:.95rem;}
+.btn{display:block;width:100%;min-height:56px;margin-top:10px;border-radius:14px;
+  border:1.5px solid var(--line-strong);background:none;color:var(--ink);
+  font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;}
+.btn:active{background:var(--card);}
+.btn.ghost{font-weight:400;color:var(--ink-soft);}
+.back{background:none;border:0;color:var(--ink-soft);font-family:inherit;font-size:.92rem;
+  padding:14px 2px;cursor:pointer;text-decoration:underline;}
+.ro li{border-left-color:var(--line-strong);cursor:pointer;transition:opacity .3s;}
+.ro li.cleared{opacity:.45;border-left-color:var(--green);}
+.ro .n{font-weight:600;}
+.ro .d{color:var(--ink-soft);font-size:.87rem;display:block;margin-top:2px;line-height:1.4;}
+.rok{float:right;color:var(--green);font-size:.78rem;font-weight:600;}
+.roq{float:right;color:var(--amber);font-size:.78rem;}
+.rob{float:right;color:var(--leaf);font-size:.78rem;font-weight:600;}
+.hs li{border-left-color:var(--amber);cursor:pointer;}
+.hs .n{font-weight:600;}
+.hs .d{color:var(--ink-soft);font-size:.88rem;display:block;margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div class="top"><h1>Plant triage</h1><span class="step" id="step"></span></div>
+<div class="trail" id="trail"></div>
+<div id="view"></div>
+<button class="back" id="back" style="display:none">Back a step</button>
+<input type="checkbox" switch id="hpx" style="position:absolute;opacity:0;pointer-events:none" aria-hidden="true">
+
+<script>
+const T={
+start:{q:'Is it drooping or wilting?',s:'Limp and losing its shape, rather than just discoloured.',
+ o:[{l:'Yes, it is wilting',x:'Soft, sagging, losing turgor',to:'soil'},
+    {l:'No, it is holding up',x:'Standing normally but something looks wrong',to:'signs'}]},
+
+soil:{q:'Push a finger into the soil at the stem. What do you find?',
+ s:'Go in to the second knuckle. This one answer splits the two opposite emergencies.',
+ o:[{l:'Dry',x:'Dusty or barely damp down there',to:'a_drought'},
+    {l:'Wet or soggy',x:'Damp, heavy, maybe smells sour',to:'a_rootfail'},
+    {l:'Just moist',x:'About right, and it is still wilting',to:'base'}]},
+
+base:{q:'Look where the stem meets the soil. Is it dark, soft, or sunken?',
+ s:'Squeeze it gently between two fingers.',
+ o:[{l:'Yes, soft or discoloured',x:'Mushy, dark, or collapsing at the collar',to:'a_crown'},
+    {l:'No, firm and normal',x:'Solid all the way down',to:'timing'}]},
+
+timing:{q:'Is it wilted all day, or only in the afternoon heat?',
+ s:'Check it early morning before the sun is on it.',
+ o:[{l:'Recovers by morning',x:'Only limp in the hottest part of the day',to:'a_heat'},
+    {l:'Wilted even at dawn',x:'Never recovers overnight',to:'a_vascular'}]},
+
+signs:{q:'Is there anything visibly on the plant?',
+ s:'Check leaf undersides. Bugs, webbing, powder, sticky film, chewed edges.',
+ o:[{l:'Yes, I can see something',x:'Something is on it or has been eating it',to:'what'},
+    {l:'Nothing visible',x:'Just the plant looking unwell',to:'who'}]},
+
+what:{q:'What are you looking at?',s:'Pick the closest match.',
+ o:[{l:'Fine webbing, speckled leaves',x:'Dusty look, tiny specks that move',to:'a_mites'},
+    {l:'Clustered bugs, sticky leaves',x:'Soft-bodied insects, shiny or sooty film',to:'a_suckers'},
+    {l:'White powder or fuzzy growth',x:'Dusty coating or mould on the surface',to:'a_fungal'},
+    {l:'Holes or chewed edges',x:'Tissue physically missing',to:'a_chewers'}]},
+
+who:{q:'Who else is affected?',s:'Look down the bed and at neighbouring plants.',
+ o:[{l:'Only this kind of plant',x:'Different plants nearby look fine',to:'spots'},
+    {l:'Several different kinds',x:'Whatever is growing there is struggling',to:'leaves'}]},
+
+spots:{q:'Any distinct spots, rings, or dead patches on the leaves?',
+ s:'Defined marks rather than overall colour change.',
+ o:[{l:'Yes, defined marks',x:'Spots, blotches, or rings',to:'a_foliar'},
+    {l:'No, just off-colour',x:'Overall pale or yellow',to:'leaves'}]},
+
+leaves:{q:'Which leaves look worst?',s:'Compare the top of the plant against the bottom.',
+ o:[{l:'The oldest, lowest leaves',x:'Yellowing from the bottom up',to:'a_mobile'},
+    {l:'The newest growth on top',x:'Young leaves pale while old stay green',to:'a_immobile'},
+    {l:'Edges and tips, browned',x:'Crispy margins, scorched look',to:'a_salt'},
+    {l:'All over, evenly',x:'The whole plant is dull or pale together',to:'a_site'}]},
+
+a_drought:{t:'urgent',n:'Water shortage',
+ w:'The plant is losing water faster than the roots can supply it, and the soil is empty. This is the straightforward version and it responds fast.',
+ now:['Water slowly and deeply at the base until the soil is wet several inches down','Water again the same day if it drains away immediately','Mulch the surface once it is wet, keeping mulch off the stem'],
+ then:['Check it the next morning \u2014 it should be standing up again','If it is still limp tomorrow with wet soil, come back and start over at the top']},
+
+a_rootfail:{t:'urgent',n:'Roots are drowning',
+ w:'Wilting with wet soil is the dangerous one. Water has filled the air spaces, the roots cannot breathe, and rot organisms move in behind that. Watering more makes it worse.',
+ now:['Stop watering this plant entirely','Check the irrigation timer and emitters for a stuck or leaking line','Pull mulch back from the stem to let the surface dry','Gently loosen compacted soil at the edge of the root zone, not through it'],
+ then:['Check the stem base for softening over the next few days','If soil is still soggy in two days with no water applied, the problem is drainage, not watering']},
+
+a_crown:{t:'urgent',n:'Crown or collar rot',
+ w:'The stem is failing where it meets the soil. Everything above it is being cut off from its roots, which is why it wilts no matter how the soil feels.',
+ now:['Stop watering and pull all mulch and soil away from the stem base','Clear anything holding moisture against the collar','Do not bury the stem deeper trying to stabilise it'],
+ then:['Mark the plant and watch whether the soft area spreads','If it spreads, remove the plant with its root ball and do not compost it','Check whether neighbours in the same bed are starting the same way']},
+
+a_heat:{t:'calm',n:'Afternoon heat load',
+ w:'A plant that wilts in the afternoon and recovers by dawn is usually keeping up \u2014 it is shedding water faster than it can pull it for a few hours, then catching up overnight. Not an emergency on its own.',
+ now:['Confirm the soil actually has water a few inches down','Water early in the morning rather than at midday','Shade the plant through the worst hours if this repeats daily'],
+ then:['Watch for the day it does not recover by morning \u2014 that is when it becomes a real problem','Mulch to hold soil moisture through the afternoon']},
+
+a_vascular:{t:'urgent',n:'Something is blocking the plumbing',
+ w:'Wilting that never recovers, with moisture available and a firm base, points at the transport system itself \u2014 damaged roots, a girdled stem, or a vascular disease.',
+ now:['Look for recent digging, trenching, or cultivation near the roots','Check the stem for a ring of damage, a tie left on too long, or a wound','Cut one wilted stem across and look for dark staining in the ring inside'],
+ then:['If the cut shows dark streaking, isolate the plant and clean tools before touching another','Note anything done near this plant in the last month \u2014 the cause is usually recent and physical']},
+
+a_mites:{t:'watch',n:'Spider mites',
+ w:'Fine webbing with a speckled, dusty look on the leaves. They thrive in hot dry dusty conditions and multiply fast.',
+ now:['Spray the undersides hard with plain water to knock them down','Repeat every few days \u2014 water alone does real damage to their populations','Rinse dust off nearby foliage; dust is part of what favours them'],
+ then:['Check undersides again in three days for new webbing','Keep the plant properly watered \u2014 drought stress makes this worse','If it persists, insecticidal soap is the next organic step; read the label for your plant']},
+
+a_suckers:{t:'watch',n:'Sap-sucking insects',
+ w:'Clustered soft-bodied insects on new growth, with sticky honeydew and often black sooty mould growing on it. They are usually a symptom of soft, over-fed growth.',
+ now:['Knock them off with a strong jet of water, especially on growing tips','Squash small colonies by hand where you find them','Leave any ladybirds, lacewings, or their larvae alone \u2014 they are already working'],
+ then:['Check the growing tips again in three days','Ease off nitrogen feeding \u2014 lush soft growth is what drew them','Follow the ants if you see them; they farm and protect these insects']},
+
+a_fungal:{t:'watch',n:'Fungal growth on the leaves',
+ w:'Powdery or fuzzy growth on the leaf surface. It usually follows humid still air, crowded planting, or wet foliage overnight.',
+ now:['Remove the worst affected leaves and bag them \u2014 do not compost','Improve airflow: thin crowded growth around the plant','Water at the base only, and early in the day so leaves dry'],
+ then:['Check whether it is spreading to new leaves in a few days','Look at spacing and shade for the longer term \u2014 this problem is mostly about conditions']},
+
+a_chewers:{t:'calm',n:'Something is eating it',
+ w:'Missing tissue means a chewing animal rather than a disease. What matters is which one, and that is decided by when and where the damage happens.',
+ now:['Look under leaves and at the soil surface for caterpillars, beetles, or slugs','Check at dusk or after dark \u2014 many chewers only feed then','Look for slime trails, droppings, or ragged versus clean-cut edges'],
+ then:['Hand-pick what you find; for most beds this is genuinely enough','Judge whether the damage is cosmetic or actually threatening the plant before doing more']},
+
+a_foliar:{t:'watch',n:'Leaf disease',
+ w:'Defined spots or patches on one kind of plant, while different plants nearby stay healthy, points at a host-specific disease rather than the conditions.',
+ now:['Remove and bag the worst leaves \u2014 do not compost them','Water at the base, never over the leaves','Clean your hands and tools before moving to another plant'],
+ then:['Watch whether new spots appear on new leaves over the next week','Note the pattern for next season \u2014 many of these come back in the same spot at the same time']},
+
+a_mobile:{t:'calm',n:'Hungry \u2014 the movable nutrients',
+ w:'When food runs short, a plant pulls what it can move \u2014 nitrogen, phosphorus, potassium, magnesium \u2014 out of its old leaves to feed the new ones. That is why the bottom yellows first.',
+ now:['Feed with a balanced organic amendment worked into the surface','Water it in so it reaches the roots','Check that the soil is not so dry that food cannot travel'],
+ then:['Look for new growth coming in greener over one to two weeks','If the lower leaves keep going despite feeding, check drainage and roots next']},
+
+a_immobile:{t:'watch',n:'New growth starving',
+ w:'Some nutrients cannot be moved once placed \u2014 iron, calcium, boron. When those run short, or when roots cannot take them up, the new growth suffers while old leaves stay green.',
+ now:['Check soil moisture and drainage first \u2014 failing roots cause this more often than empty soil does','Look at the stem base and root zone for damage or sogginess','Hold off on general feeding until you know uptake is working'],
+ then:['If roots and water are fine, the soil chemistry is the next thing to test','Note that overfeeding at this point usually makes it worse, not better']},
+
+a_salt:{t:'watch',n:'Salt or water stress at the edges',
+ w:'Browned, crispy margins while the middle stays green usually means salts have concentrated at the root zone \u2014 from feeding, from hard water, or from never flushing through.',
+ now:['Water long and slow to push salts down past the roots','Stop all feeding until the edges stop advancing','Check for white crust on the soil surface or at pot rims'],
+ then:['Repeat the deep flush in a week if crust returns','Review how much and how often this bed gets fed']},
+
+h_drift:{t:'watch',n:'Herbicide exposure',
+ w:'Weedkiller reaching a plant it was never meant for. It gets missed because the damage appears days later, often on several unrelated plants at once, and looks like disease or deficiency.',
+ now:['Look at the new growth \u2014 twisted, cupped, or strap-like leaves are the signature','Check whether the damage lines up with a boundary, a path, or the prevailing wind','Photograph it with the date before anything changes','Rinse the foliage and stop feeding'],
+ then:['Most light exposures grow out over a few weeks \u2014 give it time before removing anything','Keep a note of what was applied nearby and when','If it recurs each season in the same place, the source is upwind and repeating']},
+
+h_compost:{t:'urgent',n:'Contaminated compost or manure',
+ w:'Some broadleaf herbicides survive being eaten, composted, and aged. They arrive in manure, hay, or bought compost and stunt everything planted into it. It is the most missed cause on this list because the input looked wholesome.',
+ now:['Look for cupped, fern-like, or twisted new growth on beans, tomatoes, or peas specifically \u2014 they show it first','Work out what was added to this bed and where it came from','Stop spreading that material anywhere else on the farm'],
+ then:['Grow a few bean seedlings in a pot of the suspect material and a pot of known-clean soil, side by side \u2014 that comparison is the test','Affected soil takes seasons, not weeks, to clear','Ask the supplier what the animals were fed or what the hay was sprayed with']},
+
+h_heat:{t:'calm',n:'A heat or cold event',
+ w:'A single extreme day can show up a week later, long after anyone connects the two. The plant looks like it is failing now, but the injury already happened.',
+ now:['Check what the weather did over the last two weeks, not just today','Look at whether damage is worst on the exposed or sun-facing side','Leave damaged leaves in place for now \u2014 they shade what is under them'],
+ then:['Wait for new growth before judging how bad it was','Prune damaged tissue only once you can see what is alive','Plan shade or protection before the next event rather than after']},
+
+h_pan:{t:'watch',n:'Hardpan under the surface',
+ w:'A compacted layer that roots and water cannot cross. Everything looks fine until the topsoil dries, and then plants collapse quickly for no visible reason.',
+ now:['Push a long probe or piece of rebar straight down in several spots','Feel for a consistent depth where it stops \u2014 that is the layer','Dig one test hole and look at whether roots turn sideways when they reach it'],
+ then:['Break the layer at the edge of root zones rather than through them','Deep organic matter and living roots fix this over seasons','A raised bed is the fast answer where breaking it is not practical']},
+
+h_hydro:{t:'watch',n:'Soil that repels water',
+ w:'Soil so dry it has become water-repellent. You water, it looks watered, and the root zone stays dust dry underneath. Plants die of thirst in visibly damp ground.',
+ now:['Pour a cup of water on the surface and watch \u2014 does it bead and run off?','An hour after watering, dig three inches down and feel','Water in several short passes rather than one long one'],
+ then:['Mulch and keep it from ever fully drying again \u2014 that is the real fix','A drop of dish soap in a watering can breaks the surface tension short-term','Check the whole bed; this is usually patchy, not uniform']},
+
+h_roots:{t:'urgent',n:'Roots cut recently',
+ w:'Trenching, edging, tilling, or a neighbour digging. The plant looks untouched above ground and starts failing weeks later.',
+ now:['Ask what has been dug, trenched, or edged within the root zone in the last three months','Look for a straight line of damage \u2014 roots were cut along it','Reduce the load: shade it, keep water even, do not feed'],
+ then:['Cut back some top growth so the remaining roots have less to supply','Recovery takes a season if enough root remains','Mark root zones before any future digging near established plants']},
+
+h_shock:{t:'calm',n:'Transplant shock',
+ w:'Recently moved or planted, and the roots have not caught up with the leaves yet. Common, self-resolving, and constantly mistaken for disease or hunger.',
+ now:['Confirm when it went in the ground \u2014 anything under six weeks is a candidate','Check it was not planted too deep; the crown should sit at soil level','Check whether it was root-bound and never teased out','Keep the soil evenly moist and shade it through the hottest hours'],
+ then:['Do not feed \u2014 it cannot use it yet and salts make things worse','Look for new growth as the sign it has taken','If nothing new appears in a month, dig at the edge and look at the roots']},
+
+h_timer:{t:'urgent',n:'Irrigation failure',
+ w:'A controller that lost its schedule, a valve that stuck, a line that split, or one clogged emitter. The most common cause of a healthy plan producing sick plants.',
+ now:['Run each zone by hand and walk it while it runs','Watch individual emitters rather than trusting the zone','Check the controller actually ran \u2014 look at its history, not its schedule','Feel the line with the system off; a wet line means a stuck valve'],
+ then:['Hand-water the affected area until the fault is fixed','Put a recurring check on the calendar \u2014 this fails silently and repeatedly','Flush the lines at the start of each season']},
+
+h_tox:{t:'watch',n:'Too much of a good thing',
+ w:'Over-feeding, fresh manure, or salty water building up over time. It burns roots and leaf margins, and it looks like drought that will not respond to water.',
+ now:['Look for white crust on the soil surface or at pot rims','Work out when this bed was last fed, and with what','Stop all feeding now','Water long and slow to push salts down past the roots'],
+ then:['Repeat the deep flush in a week if crust returns','Let fresh manure age properly before it goes anywhere near a bed','Feed less, more often, rather than heavily and rarely']},
+
+a_site:{t:'calm',n:'The conditions, not the plant',
+ w:'Several kinds of plants dull together, evenly, with nothing visible on them. When everything in one place struggles at once, the place is the problem.',
+ now:['Check the irrigation actually reaching this area \u2014 timer, valve, emitters','Note anything that changed: new shade, recent spray nearby, digging, traffic','Push a probe into the soil in several spots to find hardpan or dry pockets'],
+ then:['Compare against a healthy area of the farm and list every difference','Work through the overlooked causes below before treating anything']}
+};
+
+const HS=[
+ ['h_timer','Irrigation failure','A controller that lost its schedule, a stuck valve, or one clogged emitter. Fails silently and constantly.'],
+ ['h_drift','Herbicide exposure','Spray from a neighbour or a windy day. Twisted, cupped new growth is the tell.'],
+ ['h_compost','Contaminated compost or manure','Weedkiller that survived being eaten and composted. The most missed cause here.'],
+ ['h_hydro','Soil that repels water','So dry it sheds water. Looks watered, bone dry underneath.'],
+ ['h_pan','Hardpan under the surface','A compacted layer roots and water cannot cross.'],
+ ['h_roots','Roots cut recently','Trenching, edging, or digging. Shows up weeks after the damage.'],
+ ['h_shock','Transplant shock','Recently moved or planted. Roots have not caught up yet.'],
+ ['h_heat','A heat or cold event','One extreme day can surface a week later.'],
+ ['h_tox','Too much of a good thing','Over-feeding, fresh manure, or salty water building up.']];
+
+
+const RO={
+a_drought:[
+ {n:'Hydrophobic soil',l:'You watered, but it ran off instead of soaking in',t:'An hour after watering, dig down three inches beside the plant',a:'Water in several short passes instead of one, or add a drop of soap to break the surface tension, then mulch'},
+ {n:'Irrigation never reached it',l:'The plant is dry because it was missed, not because it drank',t:'Run the system by hand and stand there watching this emitter',a:'Clear or replace the emitter, then check every other plant on the same line'},
+ {n:'Roots are gone or damaged',l:'Water is present but there is nothing left to take it up',t:'Probe gently at the root zone, or tug the plant \u2014 does it lift easily?',a:'Stop treating it as thirst. Look for gophers, grubs, or recent digging'}],
+
+a_rootfail:[
+ {n:'Broken or stuck irrigation',l:'It is soggy because water never stopped arriving',t:'Check the timer and valve, and feel whether the line is wet with the system off',a:'Shut the zone off at the valve until the fault is fixed'},
+ {n:'Hardpan below',l:'Water cannot drain because a compacted layer is stopping it',t:'Push a long probe or rebar straight down and feel for where it stops',a:'Break the layer at the edge of the root zone, or raise the bed'},
+ {n:'The bed sits in a low spot',l:'Everything drains here and nothing drains out',t:'Look at this bed within an hour of heavy watering or rain',a:'Reshape the surface to move water away, or move the planting'},
+ {n:'Crown rot instead of root rot',l:'The collapse is at the stem, not down in the roots',t:'Squeeze the stem where it enters the soil',a:'If it is soft, treat it as crown rot \u2014 clear everything away from the collar'}],
+
+a_crown:[
+ {n:'Mechanical injury',l:'Trimmer, tool, or animal damage looks like rot at a glance',t:'Is the damage on one side only, with clean edges rather than mush?',a:'Keep string trimmers and mulch away from the base and let it callus over'},
+ {n:'Borer',l:'An insect tunnelling at the base kills the stem the same way',t:'Look for a small hole with sawdust-like material around it',a:'Cut into the stem to find the tunnel if the plant is worth saving; otherwise remove it'},
+ {n:'Buried stem',l:'Soil or mulch piled against the stem softens it without any disease',t:'Clear it back \u2014 is the tissue actually rotten, or just wet and pale?',a:'Keep the crown clear permanently; most plants recover once it can breathe'}],
+
+a_vascular:[
+ {n:'Roots cut recently',l:'Digging or trenching nearby severed the supply line',t:'Has anything been dug, trenched, or cultivated within the root zone in the last month?',a:'Reduce the load on the roots \u2014 shade it, cut back some top growth, keep it evenly moist'},
+ {n:'Girdled stem',l:'A tie, wire, or circling root is strangling it',t:'Look for a ring, groove, or constriction anywhere on the stem',a:'Cut the tie or wire off. A circling root may need excavation at the collar'},
+ {n:'Vascular disease',l:'A fungus is plugging the plumbing from inside',t:'Cut a wilted stem across and look for dark staining in the ring of tissue',a:'Isolate it, clean tools before touching another plant, and do not replant the same family there'},
+ {n:'Rodent root feeding',l:'Something ate the roots underground',t:'Tug the plant gently \u2014 does it lift too easily? Look for tunnels or mounds',a:'Deal with the rodent first; the plant may recover if enough root remains'}],
+
+a_mites:[
+ {n:'Dust and drought only',l:'Dusty stressed leaves look speckled without any mites present',t:'Tap a leaf over white paper and watch for moving specks',a:'Rinse the foliage and water properly \u2014 no treatment needed'},
+ {n:'Thrips',l:'They also stipple leaves, but the damage looks silvery',t:'Look for silvery streaks with tiny black specks of waste',a:'Different pest, similar approach \u2014 water sprays and removing affected growth'},
+ {n:'Nutrient pattern',l:'Some deficiencies mottle leaves in a way that reads as speckling',t:'Is the pattern between the veins and even, rather than random and dusty?',a:'Stop treating for pests and look at feeding and root health'}],
+
+a_suckers:[
+ {n:'Scale insects',l:'They also make sticky honeydew but do not look like insects',t:'Scrape a small bump with a fingernail \u2014 does it lift off?',a:'Rub them off by hand where reachable; horticultural oil is the next step'},
+ {n:'Whitefly',l:'Same honeydew and sooty mould, different insect',t:'Shake the plant and watch for tiny white insects flying up',a:'Yellow sticky traps and undersides sprayed with water'},
+ {n:'Honeydew from above',l:'The sticky film dripped down from a tree overhead',t:'Look straight up. Is there something infested above this plant?',a:'Treat the plant above, not this one. Rinse this one clean'}],
+
+a_fungal:[
+ {n:'It wipes off',l:'Hard water residue, dust, or spray film mimics powdery growth',t:'Rub a patch firmly between finger and thumb \u2014 does it come away clean?',a:'Nothing to treat. Rinse and adjust how you are watering'},
+ {n:'Downy mildew',l:'Similar look, but it grows underneath and is fuzzy rather than powdery',t:'Turn the leaf over and compare the two surfaces',a:'Airflow and dry foliage matter even more here; remove affected leaves promptly'}],
+
+a_chewers:[
+ {n:'Slugs or snails',l:'Ragged holes appearing overnight, often near the ground',t:'Look for slime trails in the morning, or go out with a light after dark',a:'Hand-pick at night, remove damp hiding places, keep mulch back from stems'},
+ {n:'Caterpillars',l:'Chewed edges and rapid damage on new growth',t:'Look for dark green droppings on lower leaves and check leaf undersides',a:'Hand-pick. Most beds need nothing more'},
+ {n:'Earwigs',l:'Shot-hole damage that appears with nothing visible by day',t:'Check under boards, pots, or debris at first light',a:'Remove daytime shelter near the bed; roll of damp newspaper as a trap'},
+ {n:'Birds or rodents',l:'Larger, cleaner damage than an insect makes',t:'Are cuts clean and the pieces large, with droppings nearby?',a:'Netting or a physical barrier; nothing sprayed will help'}],
+
+a_foliar:[
+ {n:'Sunscald',l:'Bleached dead patches that look like disease spots',t:'Is the damage only on the side facing the afternoon sun?',a:'Shade it through the worst hours; the existing damage will not heal but will stop spreading'},
+ {n:'Spray damage',l:'Sharp-edged burnt patches from something applied',t:'Was anything sprayed here, and do the marks have hard clean margins?',a:'Rinse the foliage and stop the product. Note wind direction for next time'},
+ {n:'Just old leaves',l:'Normal ageing on the lowest leaves reads as disease',t:'Is it only the oldest leaves, with new growth clean and no spread?',a:'Remove them for tidiness. Nothing else needed'}],
+
+a_mobile:[
+ {n:'Waterlogged roots',l:'Wet roots cannot take up nitrogen, so it looks exactly like hunger',t:'Finger into the soil at the stem \u2014 wet or dry?',a:'Fix the drainage first. Feeding a waterlogged plant does nothing'},
+ {n:'Nitrogen tied up by mulch',l:'Fresh wood chips or sawdust lock nitrogen away as they break down',t:'Has raw wood, sawdust, or fresh chips been dug into this soil recently?',a:'Keep raw wood on the surface, never mixed in, and feed to bridge the gap'},
+ {n:'Normal ageing',l:'A cropping plant strips its old leaves on purpose',t:'Is the plant otherwise growing and setting well?',a:'Nothing wrong. Remove the spent leaves if you like'}],
+
+a_immobile:[
+ {n:'Root failure',l:'The food is there but the roots cannot collect it',t:'Check soil moisture and the stem base before assuming a deficiency',a:'Fix roots and drainage first. Feeding will not reach anything'},
+ {n:'Soil chemistry lockout',l:'Nutrients present but chemically unavailable at this pH',t:'A soil test is the only way to see this one',a:'Adjust pH slowly over a season rather than dosing the plant'},
+ {n:'Herbicide drift',l:'Distorted pale new growth reads as a deficiency',t:'Is the new growth twisted or cupped as well as pale?',a:'Nothing to feed. Note the wind and the neighbouring application, and wait it out'}],
+
+a_salt:[
+ {n:'Wind or heat scorch',l:'Dry air burns margins the same way salt does',t:'Is it worst on the exposed or windward side of the plant?',a:'Shelter or shade rather than flushing'},
+ {n:'Drought',l:'Edges go first when the plant runs short, before it wilts',t:'Finger into the soil at the stem',a:'Water deeply and consistently before assuming salt'},
+ {n:'Herbicide',l:'Some damage burns margins cleanly',t:'Is there distortion in the new growth as well as browning at the edges?',a:'Stop flushing and wait it out. Note what was applied nearby'}],
+
+a_site:[
+ {n:'Irrigation zone failure',l:'A whole area suffers because a valve or line failed',t:'Run the zone manually and walk it while it runs',a:'Fix the fault, then hand-water the area until it recovers'},
+ {n:'Herbicide drift',l:'A whole area hit at once by something carried on the wind',t:'Does the damage line up with a property edge or the prevailing wind?',a:'Document it, rinse foliage, and wait. Most plants outgrow a light exposure'},
+ {n:'Soil is different here',l:'This patch was always going to struggle',t:'Dig a hole here and in a thriving area and compare what you find',a:'Amend or raise the bed. Treating the plants will not fix the ground'},
+ {n:'The light changed',l:'Something grew or was built and this area lost its sun',t:'Watch the spot across a full day and note the hours of direct sun',a:'Prune what is shading it, or move to plants that suit the new light'}],
+
+h_drift:[
+ {n:'Contaminated compost instead',l:'Same twisted growth, but it came in with the soil rather than on the wind',t:'Did this bed get manure, hay mulch, or bought compost before the damage started?',a:'Follow the contaminated compost branch \u2014 the test and the timeline are completely different'},
+ {n:'Virus',l:'Also distorts and mottles new growth',t:'Is it one plant rather than a spread of unrelated plants, with mottling as well as distortion?',a:'Remove the plant, clean tools, and control the sucking insects that move it'},
+ {n:'Mite damage',l:'Heavy mite feeding puckers new growth',t:'Tap the growing tips over white paper and watch for moving specks',a:'Treat as mites \u2014 water sprays and dust control'}],
+h_shock:[
+ {n:'Planted too deep',l:'Looks like slow establishment but will never resolve on its own',t:'Scrape back and find where the stem flares into roots \u2014 is it buried?',a:'Lift and replant at the right depth now rather than waiting'},
+ {n:'Root-bound and never opened',l:'The roots are still circling in the shape of the pot',t:'Dig at the edge and look at whether roots left the original ball',a:'Lift, tease or cut the circling roots, and replant'},
+ {n:'It is simply dry',l:'New plantings dry out far faster than established ones',t:'Finger into the root ball itself, not the soil beside it',a:'Water the root ball directly until roots reach out into the bed'}],
+h_tox:[
+ {n:'Salty irrigation water',l:'Not the fertiliser at all \u2014 it is arriving dissolved in the water',t:'Has anything changed about the water source, or is there crust even where you never fed?',a:'Leach deeply and regularly; the fix is management, not stopping feed'},
+ {n:'Drought',l:'Scorched margins look the same from a distance',t:'Finger into the soil at the stem',a:'Water properly before flushing anything'}],
+
+a_heat:[
+ {n:'This is normal for the species',l:'Some plants wilt every hot afternoon in perfect health',t:'Do healthy plants of the same kind nearby do exactly the same thing?',a:'Nothing to treat. Judge it by whether it recovers overnight'},
+ {n:'Root space too small',l:'A restricted root zone cannot buffer an afternoon',t:'Is it in a container, or squeezed between hard surfaces?',a:'Larger root volume, mulch, and more frequent lighter watering'},
+ {n:'Early drought',l:'The first days of running short look exactly like heat load',t:'Finger into the soil at the stem',a:'Water deeply now, before it becomes the all-day version'}]
+};
+let roState={};
+let fromHS=false;
+
+let path=[];
+
+function hap(p){
+  try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){}
+  try{ const s=document.getElementById('hpx'); if(s) s.checked=!s.checked; }catch(e){}
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function go(id,label){
+  if(label) path.push(label);
+  render(id);
+}
+
+function roBlock(id){
+  const list=RO[id]; if(!list) return '';
+  const st=roState[id]||(roState[id]={});
+  const cleared=list.filter((_,i)=>st[i]==='out').length;
+  let h='<div class="blk"><div class="h">Rule out \u2014 '+cleared+' of '+list.length+' cleared</div><ul class="ro">';
+  list.forEach(function(r,i){
+    const s=st[i];
+    const mark=s==='out'?'<span class="rok">\u2713 ruled out</span>':s==='skip'?'<span class="roq">not checked</span>':s==='in'?'<span class="rob">\u2190 this one</span>':'';
+    h+='<li class="rorow'+(s==='out'?' cleared':'')+'" data-ro="'+i+'"><span class="n">'+esc(r.n)+'</span>'+mark+'<span class="d">'+esc(r.l)+'</span></li>';
+  });
+  return h+'</ul></div>';
+}
+function wireRO(id){
+  document.querySelectorAll('.rorow').forEach(function(el){
+    el.onclick=function(){ hap([8]); roCheck(id,+el.dataset.ro); };
+  });
+}
+function roCheck(id,i){
+  const r=RO[id][i];
+  document.getElementById('step').textContent='Rule out';
+  document.getElementById('view').innerHTML=
+    '<div class="q">'+esc(r.n)+'</div><div class="qs">'+esc(r.l)+'</div>'+
+    '<div class="blk"><div class="h">Go check this</div><ul><li>'+esc(r.t)+'</li></ul></div>'+
+    '<button class="opt" id="roin"><b>That is what I found</b><span>This looks like the answer</span></button>'+
+    '<button class="opt" id="roout"><b>Not that</b><span>Checked, and it is not this</span></button>'+
+    '<button class="opt" id="roskip"><b>Cannot check now</b><span>Leave it open</span></button>';
+  document.getElementById('roin').onclick=function(){
+    hap([12,50,12]); (roState[id]=roState[id]||{})[i]='in';
+    document.getElementById('step').textContent='Finding';
+    document.getElementById('view').innerHTML=
+      '<div class="act watch"><div class="tag">Ruled in</div><h2>'+esc(r.n)+'</h2><div class="why">'+esc(r.l)+'</div></div>'+
+      '<div class="blk"><div class="h">Do now</div><ul><li>'+esc(r.a)+'</li></ul></div>'+
+      '<button class="btn" id="roback">Back to the findings</button>'+
+      '<button class="btn ghost" id="restart3">Start over</button>';
+    document.getElementById('roback').onclick=function(){ hap([5]); render(id); };
+    document.getElementById('restart3').onclick=function(){ hap([5]); path=[]; roState={}; render('start'); };
+    window.scrollTo(0,0);
+  };
+  document.getElementById('roout').onclick=function(){ hap([6]); (roState[id]=roState[id]||{})[i]='out'; render(id); };
+  document.getElementById('roskip').onclick=function(){ hap([4]); (roState[id]=roState[id]||{})[i]='skip'; render(id); };
+  window.scrollTo(0,0);
+}
+
+function render(id){
+  const n=T[id];
+  const v=document.getElementById('view');
+  document.getElementById('back').style.display=path.length?'block':'none';
+  document.getElementById('trail').textContent=path.join('  \u203a  ');
+  if(n.o){
+    document.getElementById('step').textContent='Step '+(path.length+1);
+    v.innerHTML='<div class="q">'+esc(n.q)+'</div><div class="qs">'+esc(n.s)+'</div>'+
+      n.o.map(function(o,i){return '<button class="opt" data-to="'+o.to+'" data-l="'+esc(o.l)+'"><b>'+esc(o.l)+'</b><span>'+esc(o.x)+'</span></button>';}).join('');
+    v.querySelectorAll('.opt').forEach(function(b){
+      b.onclick=function(){ hap([9]); go(b.dataset.to,b.dataset.l); };
+    });
+  }else{
+    document.getElementById('step').textContent='Finding';
+    hap(n.t==='urgent'?[14,60,14,60,20]:[10,50,14]);
+    v.innerHTML='<div class="act '+n.t+'"><div class="tag">'+
+      (n.t==='urgent'?'Act now':n.t==='watch'?'Treat and watch':'Manageable')+
+      '</div><h2>'+esc(n.n)+'</h2><div class="why">'+esc(n.w)+'</div></div>'+
+      '<div class="blk"><div class="h">Do now</div><ul>'+n.now.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'+
+      '<div class="blk later"><div class="h">Then check</div><ul>'+n.then.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'+
+      roBlock(id)+
+      '<button class="btn" id="hsbtn">'+(fromHS?'Back to the overlooked list':'Not it? Overlooked causes')+'</button>'+
+      '<button class="btn ghost" id="restart">Start over</button>';
+    document.getElementById('restart').onclick=function(){ hap([5]); path=[]; render('start'); };
+    document.getElementById('hsbtn').onclick=function(){ hap([7]); showHS(); };
+    document.getElementById('restart').onclick=function(){ hap([5]); path=[]; roState={}; fromHS=false; render('start'); };
+    wireRO(id);
+  }
+  window.scrollTo(0,0);
+}
+function showHS(){
+  document.getElementById('step').textContent='Check these';
+  document.getElementById('view').innerHTML=
+    '<div class="q">The eight that get missed</div><div class="qs">When the plant does not fit the picture, it is usually one of these. Most are recent and physical.</div>'+
+    '<div class="blk hs"><ul>'+HS.map(h=>'<li class="hrow" data-to="'+h[0]+'"><span class="n">'+esc(h[1])+'</span><span class="d">'+esc(h[2])+'</span></li>').join('')+'</ul></div>'+
+    '<button class="btn ghost" id="restart2">Start over</button>';
+  document.getElementById('restart2').onclick=function(){ hap([5]); path=[]; roState={}; render('start'); };
+  document.querySelectorAll('.hrow').forEach(function(el){
+    el.onclick=function(){ hap([9]); fromHS=true; render(el.dataset.to); };
+  });
+  window.scrollTo(0,0);
+}
+document.getElementById('back').onclick=function(){ hap([5]); path.pop(); rewalk(); };
+function rewalk(){
+  let id='start';
+  for(const step of path){
+    const n=T[id]; if(!n||!n.o) break;
+    const o=n.o.find(x=>x.l===step); if(!o) break;
+    id=o.to;
+  }
+  render(id);
+}
+render('start');
+</script>
+</body>
+</html>
