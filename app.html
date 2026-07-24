@@ -955,9 +955,17 @@ let albumPhotos=[], albumAreaMap={};
 function _capW(x){ x=String(x||''); return x?x.charAt(0).toUpperCase()+x.slice(1):''; }
 function buildAlbumFilters(){
   const fb=document.getElementById('photo-filters'); if(!fb) return;
-  let ao='<option value="">All areas</option><option value="__none__">General / whole farm</option>';
-  const g={}; (state.areas||[]).forEach(function(a){ const z=a.zone||'Other'; (g[z]=g[z]||[]).push(a); });
-  Object.keys(g).forEach(function(z){ ao+='<optgroup label="'+esc(z)+'">'; g[z].forEach(function(a){ ao+='<option value="'+a.id+'">'+esc(a.name)+'</option>'; }); ao+='</optgroup>'; });
+  const cnt={}; let nNone=0;
+  (albumPhotos||[]).forEach(function(p){ if(p.area_id) cnt[p.area_id]=(cnt[p.area_id]||0)+1; else nNone++; });
+  const total=(albumPhotos||[]).length;
+  let ao='<option value="">All areas \u00b7 '+total+'</option>';
+  if(nNone) ao+='<option value="__none__">General / whole farm \u00b7 '+nNone+'</option>';
+  const g={}; (state.areas||[]).forEach(function(a){ if(!cnt[a.id]) return; const z=a.zone||'Other'; (g[z]=g[z]||[]).push(a); });
+  Object.keys(g).forEach(function(z){
+    ao+='<optgroup label="'+esc(z)+'">';
+    g[z].forEach(function(a){ ao+='<option value="'+a.id+'">'+esc(a.name)+' \u00b7 '+cnt[a.id]+'</option>'; });
+    ao+='</optgroup>';
+  });
   fb.innerHTML='<select id="pf-area" onchange="applyAlbumFilter()">'+ao+'</select><select id="pf-type" onchange="applyAlbumFilter()"><option value="">All types</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select>';
 }
 function applyAlbumFilter(){
