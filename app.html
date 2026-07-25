@@ -566,9 +566,7 @@ function goHero(){
   document.getElementById('hero').classList.add('show');
 }
 function enterVisitor(){
-  // Visitor view is next build — for tonight, send them to hero with a note
-  toast('Visitor view coming next \u2014 showing staff hub for now');
-  enterStaff();
+ window.location.href='visitor.html';
 }
 function enterStaff(){
   go('hub');
