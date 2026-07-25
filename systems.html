@@ -384,6 +384,8 @@ function size(){
   camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 window.addEventListener('resize',size);
+size();
+requestAnimationFrame(()=>{ size(); });
 
 const pv=new THREE.Vector3();
 const spinQ=new THREE.Quaternion(), driftQ=new THREE.Quaternion();
