@@ -3,15 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
 <title>grush — what it is</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="i18n.js"></script>
 <style>
   :root{
-    --graphite:#23262B; --graphite-2:#2A2E33; --bone:#F0EDE6;
+    color-scheme:light dark;
+    /* page ground — flips with the OS setting */
+    --graphite:#23262B; --graphite-2:#2A2E33; --bone:#F0EDE6; --body-ink:#E4E0D6;
     --oxblood:#C34044; --gold:#B4A71D; --steel:#A6ADB4; --moss:#7E9A6E;
-    --line:#3A3D43;
+    --line:#3A3D43; --foot-ink:#8A8F96;
+    /* the grush signature always sits on graphite */
+    --sig-plate:#23262B;
   }
   *{box-sizing:border-box;}
   html,body{margin:0; padding:0;}
@@ -22,13 +27,14 @@
   .back{display:inline-block; margin-bottom:36px; font-size:15px; font-weight:600;
     color:var(--moss); text-decoration:none;}
   .back:hover{text-decoration:underline; text-underline-offset:2px;}
-  .hero{text-align:center; margin:16px 0 6px;}
+  .hero{text-align:center; margin:16px 0 6px; background:var(--sig-plate);
+    border-radius:14px; padding:18px 12px 12px;}
   .hero svg{width:min(340px,82vw); height:auto;}
   .kicker{text-align:center; font-family:Georgia,serif; font-style:italic;
     color:var(--steel); font-size:16px; margin:0 0 46px;}
   h2{font-family:Georgia,serif; font-weight:600; font-size:13px; letter-spacing:3px;
     text-transform:uppercase; color:var(--gold); margin:42px 0 12px;}
-  p{font-size:17px; margin:0 0 18px; color:#E4E0D6;}
+  p{font-size:17px; margin:0 0 18px; color:var(--body-ink);}
   .lead{font-size:19px; color:var(--bone);}
   .deploy{margin-top:22px; padding:20px 22px; border:1px solid var(--line);
     border-radius:12px; background:var(--graphite-2);}
@@ -39,8 +45,17 @@
   .ag-lang button:hover{color:var(--bone);}
   .ag-lang button.on{color:var(--oxblood); font-weight:600;}
   .foot{margin-top:26px; padding-top:20px; border-top:1px solid var(--line);
-    text-align:center; font-size:13px; color:#8a8f96;}
-  .foot a{color:#8a8f96;}
+    text-align:center; font-size:13px; color:var(--foot-ink);}
+  .foot a{color:var(--foot-ink);}
+
+  /* ── Light mode: cool paper, signature stays on its graphite plate ── */
+  @media (prefers-color-scheme: light){
+    :root{
+      --graphite:#EDEEF0; --graphite-2:#F6F7F8; --bone:#23262B; --body-ink:#35383D;
+      --oxblood:#A02B2F; --gold:#6E6512; --steel:#5C646C; --moss:#4C6B3E;
+      --line:#D3D6DA; --foot-ink:#666D74;
+    }
+  }
 </style>
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
