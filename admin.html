@@ -730,9 +730,10 @@ async function getComments() { return sbGet('lfg_comments','order=submitted_at.d
 async function markCommentReviewed(id) { return sbPatch('lfg_comments',{id},{status:'reviewed'}); }
 
 // ─── Admin password check ────────────────────────────────────
-// Admin password is stored in lfg_config under key 'admin_password'
-// Set it in Supabase → Table Editor → lfg_config → insert row:
-//   key: admin_password  value: YourSecretAdminPassword
+// Admin password lives in lfg_config under key 'admin_password' and is
+// verified by the check_admin_password() database function. The value is
+// never fetched into the browser. To change it, edit the row in Supabase →
+// Table Editor → lfg_config.
 
 const ADMIN_PW_KEY = 'lfg_admin_token';
 let adminPw = '';
@@ -756,13 +757,16 @@ window.doAuth = async function() {
   const pw = document.getElementById('auth-pw').value.trim();
   if (!pw) { showToast('Enter a password'); return; }
   try {
-    const cfg = await getConfig();
-    const correct = cfg.admin_password;
-    if (!correct) {
-      showToast('Admin password not set in config — add key "admin_password" to lfg_config table');
-      return;
-    }
-    if (pw !== correct) { showToast('Incorrect password'); return; }
+    // Checked server-side by the check_admin_password() function so the
+    // stored password never has to be sent to the browser.
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_admin_password`, {
+      method: 'POST',
+      headers: DB_HEADERS,
+      body: JSON.stringify({ candidate: pw })
+    });
+    if (!res.ok) throw new Error('check_admin_password failed: ' + res.status);
+    const ok = await res.json();
+    if (ok !== true) { showToast('Incorrect password'); return; }
     adminPw = pw;
     sessionStorage.setItem(ADMIN_PW_KEY, pw);
     sessionStorage.setItem('lfg_admin_token', pw);
