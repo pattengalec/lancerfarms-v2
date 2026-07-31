@@ -234,7 +234,9 @@
   var staffMounted = false;
   function syncStaff() {
     if (staffMounted || !CFG.staff) return;
-    var G = window.GRUSH;
+    /* grush-auth.js declares `const GRUSH` — a global lexical binding that
+       never appears on window. Read the bare name, guarded. */
+    var G; try { G = GRUSH; } catch (e) { G = undefined; }
     if (!G || typeof G.isOperator !== 'function') return;
     Promise.resolve(G.isOperator()).then(function (ok) {
       if (ok && !staffMounted) { staffMounted = true; addGroup(CFG.staff); }
