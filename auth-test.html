@@ -121,19 +121,32 @@ whether the database recognises you as an operator. Delete it once the answer is
 </script>
 <script src="grush-auth.js"></script>
 <script>
+// Captured before anything else runs, so a throw inside grush-auth.js is visible.
+window.__grushLoadError = null;
+window.addEventListener('error', function (e) {
+  if (!window.__grushLoadError) window.__grushLoadError = e.message || String(e.error || e);
+});
+
 (async function () {
   const $ = id => document.getElementById(id);
+
+  // grush-auth.js declares `const GRUSH`, which is a global LEXICAL binding —
+  // it never lands on window. Read the bare name, and guard the temporal dead
+  // zone in case the module threw partway through.
+  function getGrush() { try { return GRUSH; } catch (e) { return undefined; } }
   const yes = t => `<span class="ok">${t}</span>`;
   const nope = t => `<span class="no">${t}</span>`;
 
   // 1 — libraries
   const haveSb   = typeof window.supabase !== 'undefined';
   const haveCfg  = !!(window.LFG_CONFIG && window.LFG_CONFIG.SUPABASE_ANON_KEY);
-  const haveAuth = typeof window.GRUSH !== 'undefined';
+  const G        = getGrush();
+  const haveAuth = typeof G !== 'undefined';
   $('libs').innerHTML =
     `supabase-js: ${haveSb ? yes('loaded') : nope('MISSING')}<br>` +
     `lfg-config.js: ${haveCfg ? yes('loaded') : nope('MISSING')}<br>` +
-    `grush-auth.js: ${haveAuth ? yes('loaded') : nope('MISSING')}`;
+    `grush-auth.js: ${haveAuth ? yes('loaded') : nope('MISSING')}` +
+    (window.__grushLoadError ? `<br>${nope('script error: ' + window.__grushLoadError)}` : '');
   if (!haveSb || !haveCfg || !haveAuth) {
     $('sess').innerHTML = nope('skipped — fix the libraries first');
     $('oper').innerHTML = nope('skipped');
@@ -142,12 +155,12 @@ whether the database recognises you as an operator. Delete it once the answer is
 
   async function refresh() {
     try {
-      const s = await GRUSH.session();
+      const s = await getGrush().session();
       $('sess').innerHTML = s
         ? `${yes('signed in')}<br>email: ${s.user.email}<br>uid: ${s.user.id}`
         : nope('no session');
 
-      const op = await GRUSH.isOperator();
+      const op = await getGrush().isOperator();
       $('oper').innerHTML = op
         ? yes('TRUE — the database recognises you as an operator')
         : (s ? nope('false — signed in, but not on the operator allowlist')
@@ -162,13 +175,13 @@ whether the database recognises you as an operator. Delete it once the answer is
     if (!email) { $('msg').textContent = 'Enter an email address.'; return; }
     $('send').disabled = true;
     $('msg').textContent = 'Sending…';
-    const r = await GRUSH.sendLink(email);
+    const r = await getGrush().sendLink(email);
     $('msg').innerHTML = r.ok ? yes(r.msg) : nope(r.msg);
     $('send').disabled = false;
   });
 
   $('out').addEventListener('click', async () => {
-    await GRUSH.signOut();
+    await getGrush().signOut();
     $('msg').textContent = 'Signed out.';
     refresh();
   });
