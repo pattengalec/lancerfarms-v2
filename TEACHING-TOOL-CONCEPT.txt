@@ -1,0 +1,78 @@
+LANCER FARMS — TEACHING TOOL CONCEPT
+Harvested 2026-07-30 from systems.html before pruning.
+The page never rendered; the idea is worth rebuilding.
+
+═══════════════════════════════════════════════════════════════
+WHAT IT WAS FOR
+═══════════════════════════════════════════════════════════════
+A teaching model, not a diagnostic. triage.html walks you through
+one sick plant and gives an answer. This was meant to build the
+mental model underneath: that a plant is seven interlocking systems,
+and trouble in one pulls on the others. You learn the shape of the
+problem space, then triage becomes legible.
+
+Visitor-facing description, as written on visitor.html:
+  "An interactive model of the seven systems that keep a plant
+   alive, and how trouble in one pulls on the others."
+
+═══════════════════════════════════════════════════════════════
+THE SEVEN SYSTEMS
+═══════════════════════════════════════════════════════════════
+  1. Light
+  2. Water
+  3. Excretion
+  4. Nutrition
+  5. Parasitic
+  6. Immune
+  7. Respiration
+
+═══════════════════════════════════════════════════════════════
+THE SYNDROMES — where the teaching actually lives
+Each names a set of systems that fail together, which is the
+whole point: single-system thinking misses these.
+═══════════════════════════════════════════════════════════════
+
+  Root rot complex
+    systems: Water + Respiration + Immune
+    Overwatering, airless soil, and opportunistic pathogens. The classic three-factor decline \u2014 treating any one alone will not stop it.
+
+  Salt lockout
+    systems: Excretion + Nutrition + Water
+    Salts accumulate faster than water flushes them, and nutrients present in the soil stop being available.
+
+  Drought–borer cascade
+    systems: Water + Parasitic + Immune
+    Water stress attracts boring and sucking pests, and their wounds admit pathogens the plant would otherwise resist.
+
+  Carbon starvation
+    systems: Light + Respiration + Nutrition
+    Too little light to cover respiration, so reserves drain and uptake slows behind it.
+
+═══════════════════════════════════════════════════════════════
+INTERACTIONS THAT WERE DESIGNED
+═══════════════════════════════════════════════════════════════
+  - Tap a system to raise it and light up what it connects to
+  - Drag to rotate, pinch to zoom
+  - "Load a decline" — run a worked example
+  - "Walk a real plant instead" — a Yes / No / Haven't looked
+    survey that takes field observations and shows which systems
+    are implicated
+  - Connections warm when both ends are stressed
+
+═══════════════════════════════════════════════════════════════
+WHY IT FAILED, SO THE REBUILD DOESN'T REPEAT IT
+═══════════════════════════════════════════════════════════════
+  - It opened with new THREE.WebGLRenderer() at the top of the
+    script. When that threw, every button below it never got
+    wired. One failure killed the whole page.
+  - It needed a 600KB 3D library from a CDN to teach a concept
+    that is really a seven-node graph.
+  - Nothing degraded. The survey and the text needed no 3D but
+    died with it.
+
+REBUILD NOTES
+  - A seven-node graph in SVG or 2D canvas would carry the whole
+    idea at a fraction of the weight, with no CDN dependency.
+  - Wire the survey first, independently. It is the part that
+    teaches; the diagram is the illustration.
+  - The syndromes are the payload. Lead with them.
