@@ -645,8 +645,13 @@ const GrushSettings = (() => {
     const st = el('style'); st.id = 'gs-css';
     st.textContent =
       /* ── overlay housing ── */
-      '.gs-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;' +
-        'padding:16px;background:rgba(20,24,16,.55);}' +
+      /* z-index 1300: ABOVE grush-nav's rail (900) and drawer (1010), and
+         above the page-level modals that sit at 1100-1200. At its old
+         value of 200 the console opened UNDERNEATH the rail, which ate
+         the bottom ~78px and made the controls look cut off. */
+      '.gs-overlay{position:fixed;inset:0;z-index:1300;display:none;align-items:center;justify-content:center;' +
+        'padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));' +
+        'background:rgba(20,24,16,.55);}' +
       '.gs-overlay.show{display:flex;}' +
       '.gs-close{width:34px;height:34px;border-radius:8px;border:1px solid var(--line-strong,#5A554A);' +
         'background:linear-gradient(180deg,var(--card,#34302A),var(--paper,#2A2620));color:var(--ink-soft,#B0A99C);' +
@@ -654,7 +659,9 @@ const GrushSettings = (() => {
         'box-shadow:0 2px 4px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.1);}' +
       '.gs-close:active{box-shadow:inset 0 1px 3px rgba(0,0,0,.4);}' +
       /* ── panel: brushed metal, corner screws ── */
-      '.gs-console{position:relative;box-sizing:border-box;width:min(400px,100%);max-height:calc(100dvh - 32px);' +
+      '.gs-console{position:relative;box-sizing:border-box;width:min(400px,100%);'  +
+        /* leave room for the notch and the home indicator, not just 32px */
+        'max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));' +
         'overflow-y:auto;overflow-x:hidden;padding:16px 18px 18px;' +
         'border:1.5px solid var(--line-strong,#5A554A);border-radius:16px;' +
         'background:' +
@@ -773,7 +780,9 @@ const GrushSettings = (() => {
      way left to open it and change it. Hence the spread of mounts below. */
   function mountControls() {
     /* 1. grush-nav drawer — the current pattern. */
+    let inDrawer = false;
     const drawer = document.getElementById('grush-drawer');
+    if (drawer) inDrawer = true;
     if (drawer && !drawer.querySelector('.gs-menu-item')) {
       const lb = el('div', 'grush-group', 'Display');
       lb.dataset.gsControl = '1';
@@ -790,6 +799,7 @@ const GrushSettings = (() => {
 
     /* 2. legacy hand-rolled drawer, for pages not yet on grush-nav. */
     const panel = document.getElementById('panel');
+    if (panel) inDrawer = true;
     if (panel && !panel.querySelector('.gs-menu-item')) {
       const mi = el('button', 'menu-item gs-menu-item');
       mi.type = 'button'; mi.dataset.gsControl = '1';
@@ -802,9 +812,12 @@ const GrushSettings = (() => {
       panel.appendChild(mi);
     }
 
-    /* 3. a gear in the page header, wherever that header lives.
+    /* 3. a gear in the page header — ONLY where there is no drawer.
+       Two doors into the same console is one too many, and on a narrow
+       sitebar the extra control squeezes the wordmark onto three lines.
        First selector that matches wins; admin.html's .header-controls is
        why the gear was missing there. */
+    if (inDrawer) return;
     const bar = document.querySelector(
       '.topbar, .admin-header .header-controls, .header-right, .header-controls, .sitebar, .top'
     );
@@ -825,7 +838,6 @@ const GrushSettings = (() => {
        each new page, float one. The rule that matters is that NO page may
        apply a saved palette with no way to change it — that is precisely
        the state admin and visitor were stuck in. */
-    if (drawer || panel) return;                      // already reachable
     if (document.querySelector('.gs-float')) return;
     const f = el('button', 'gs-float gs-gear', '\u2699\ufe0e');
     f.type = 'button';
