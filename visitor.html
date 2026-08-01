@@ -62,18 +62,26 @@
   /* ── Site title bar (herbarium plate) ──
      A PLATE, not page ground: it stays dark in light mode, matching
      almanac/data/about-grush. Only --paper and --card flip. */
-  .sitebar{background:var(--bar-bg); display:flex; align-items:center; gap:13px;
-    padding:13px 14px 11px; position:sticky; top:0; z-index:40;
+  /* Two lines, always. The eyebrow and wordmark are each nowrap with a
+     fluid size, so they shrink to fit rather than wrapping and growing
+     the bar. A wrapping wordmark was what made this rail three lines
+     deep. */
+  .sitebar{background:var(--bar-bg); display:flex; align-items:center; gap:11px;
+    padding:9px 12px; position:sticky; top:0; z-index:40; flex-wrap:nowrap;
     border-bottom:1px solid var(--bar-line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
-  .sitebar img{width:46px; height:46px; flex:none; object-fit:contain; border-radius:50%;
+  .sitebar img{width:38px; height:38px; flex:none; object-fit:contain; border-radius:50%;
     border:1px solid var(--bar-line); padding:2px;}
-  .sitebar .wrap{flex:1; min-width:0;}
-  .sitebar .eb{font-family:var(--font-mono); font-size:.7rem; font-weight:700; letter-spacing:.14em;
-    text-transform:uppercase; color:var(--bar-accent); margin-bottom:4px;}
-  .sitebar .wm{font-family:var(--font-display); font-size:1.3rem; font-weight:700;
-    color:var(--bar-ink); line-height:1; letter-spacing:-.015em;}
+  .sitebar .wrap{flex:1 1 auto; min-width:0; overflow:hidden;}
+  .sitebar .eb{font-family:var(--font-mono); font-size:.62rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--bar-accent); margin-bottom:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sitebar .wm{font-family:var(--font-display); font-weight:700; line-height:1.05;
+    color:var(--bar-ink); letter-spacing:-.015em;
+    font-size:clamp(0.98rem, 4.6vw, 1.25rem);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .sitebar .wm em{font-style:normal; font-weight:400; color:var(--bar-soft);}
-  @media (max-width:360px){ .sitebar .wm{font-size:1.15rem;} .sitebar img{width:40px; height:40px;} }
+  /* The language switcher must not push the wordmark around. */
+  .sitebar [data-lang-switch]{flex:0 0 auto; display:flex; gap:2px;}
 
   /* per-screen heading, formerly the topbar title */
   .screen-head{padding:16px 16px 0;}
@@ -264,7 +272,7 @@
 <script src="i18n.js"></script>
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
-<script src="grush-settings.js?v=8"></script>
+<script src="grush-settings.js?v=9"></script>
 </head>
 <body>
 
