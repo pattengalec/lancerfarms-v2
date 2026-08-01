@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- class="grush-shell" opts this page into the fixed-header /
+     scrolling-middle app shell. Delete that one class to fall back
+     to normal document scrolling; nothing else needs changing. -->
+<html lang="en" class="grush-shell">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +10,7 @@
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
 <link rel="stylesheet" href="lfg-theme.css">
+<link rel="stylesheet" href="grush-shell.css?v=1">
 <script>
 (function(){try{
   var m = localStorage.getItem('lfg-mode');
@@ -167,7 +171,7 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 <script src="grush-settings.js?v=8"></script>
 </head>
 <body>
-<div class="shell">
+<div class="shell shell-frame">
 
   <!-- ── AUTH WALL ──
        No password field. Access is an emailed one-time link plus the
@@ -207,9 +211,9 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
   </div>
 
   <!-- ── MAIN UI ── -->
-  <div id="main-ui" style="display:none;flex-direction:column;flex:1;width:100%;">
+  <div id="main-ui" class="shell-frame" style="display:none;flex-direction:column;flex:1;width:100%;">
 
-    <div class="admin-header">
+    <div class="admin-header shell-fixed">
       <div class="admin-header-top">
         <h1>🌿 LFG Admin <span>Lancer Farms &amp; Gardens</span></h1>
         <div class="header-controls">
@@ -230,6 +234,9 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
         <button class="tab-btn" onclick="switchTab('completions',this)">Task Log</button>
       </div>
     </div>
+
+    <!-- Everything below scrolls; the header above does not. -->
+    <div class="shell-scroll">
 
     <!-- ══ DASHBOARD ══ -->
     <div class="tab-panel active" id="tab-review">
@@ -611,6 +618,8 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
       <div class="section-label">Completion Log</div>
       <div class="data-list" id="completions-list"><div class="empty-state"><span class="spinner"></span> Loading…</div></div>
     </div>
+
+    </div><!-- /shell-scroll -->
 
   </div><!-- /main-ui -->
 </div><!-- /shell -->
@@ -1617,6 +1626,18 @@ window.loadCompletions = async function() {
 };
 
 // ─── Init ────────────────────────────────────────────────────
+// iOS app-shell caveat: with <body> locked, focusing a field low in the
+// scroll pane can leave it hidden behind the keyboard, because the browser
+// scrolls the DOCUMENT to reveal it and the document no longer scrolls.
+// Nudge the field into the middle of the pane ourselves. The delay lets the
+// keyboard finish animating first, or we measure against the old viewport.
+document.addEventListener('focusin', (e) => {
+  if (!document.documentElement.classList.contains('grush-shell')) return;
+  const el = e.target;
+  if (!el.matches || !el.matches('input, select, textarea')) return;
+  setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 250);
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   updateModeIcon();
   document.getElementById('auth-email').addEventListener('keydown', e => {

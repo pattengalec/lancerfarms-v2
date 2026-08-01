@@ -1,0 +1,82 @@
+/* ============================================================
+   grush-shell.css — opt-in "app shell" layout.
+
+   Normally a page scrolls its document: the header is sticky, the rail
+   is fixed, and iOS Safari collapses its URL bar as you scroll. That is
+   the right behaviour for DOCUMENTS you read a long way down —
+   manual, almanac, data, howto.
+
+   This file is for TOOLS: short screens you operate rather than read,
+   where the header and rail should never move and only the middle
+   scrolls. Locking the body means Safari's toolbar never collapses, so
+   you permanently spend ~60px on it. Worth it on admin and app, not on
+   a page of prose.
+
+   TO OPT IN, three things:
+     1. <html class="grush-shell">      on the html tag
+     2. <link rel="stylesheet" href="grush-shell.css">
+     3. class="shell-frame" on the full-height column, and
+        class="shell-scroll" on the element that should scroll
+
+   TO OPT OUT: delete "grush-shell" from the html tag. Nothing else.
+   The page falls straight back to normal document scrolling, because
+   every rule below is scoped to that one class.
+   ============================================================ */
+
+/* Pin the viewport. min-height:0 and max-height matter: pages commonly
+   carry min-height:100vh from their own stylesheet, and on iOS 100vh is
+   TALLER than the visible area (it counts the space behind the URL bar).
+   Left alone it would force the body past the screen and reintroduce
+   document scrolling — the exact thing we are turning off. */
+html.grush-shell,
+html.grush-shell body {
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+html.grush-shell body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The full-height column: fixed header, scrolling middle, fixed rail. */
+html.grush-shell .shell-frame {
+  flex: 1 1 auto;
+  min-height: 0;          /* lets the column shrink so the child can scroll */
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The one element that scrolls.
+   overscroll-behavior:contain stops a rubber-band at the end of this
+   pane from dragging the page behind it. */
+html.grush-shell .shell-scroll {
+  flex: 1 1 auto;
+  min-height: 0;          /* without this, flex children refuse to scroll */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Anything meant to stay put inside the frame. */
+html.grush-shell .shell-fixed { flex: 0 0 auto; }
+
+/* A sticky header inside a locked shell is redundant — it is already
+   pinned by the flex column — and sticky positioning inside a scroll
+   container can jitter on iOS. Neutralise it rather than making every
+   page edit its own header rule. */
+html.grush-shell .shell-frame > .shell-fixed { position: static; }
+
+/* grush-nav reserves room for its rail by adding padding to <body>.
+   In shell mode the body does not scroll, so that padding would just
+   shrink the frame and leave a dead band. The scroll pane handles its
+   own bottom spacing instead. */
+html.grush-shell body { padding-bottom: 0 !important; }
+html.grush-shell .shell-scroll.has-rail {
+  padding-bottom: calc(78px + env(safe-area-inset-bottom));
+}
