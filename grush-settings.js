@@ -783,6 +783,21 @@ const GrushSettings = (() => {
     let inDrawer = false;
     const drawer = document.getElementById('grush-drawer');
     if (drawer) inDrawer = true;
+
+    /* A page that declares window.GRUSH_NAV INTENDS to have a drawer, even
+       if grush-nav.js has not mounted it yet. This script's DOMContentLoaded
+       listener is registered while <head> parses, so it always runs before
+       grush-nav mounts at the end of <body>. Without this check the first
+       pass sees no drawer, drops a gear in the header, and the observer
+       later adds the drawer item too — two doors again. */
+    if (window.GRUSH_NAV) inDrawer = true;
+
+    /* Belt and braces: if a gear was already placed before the drawer
+       existed, take it back out now that there is a drawer. */
+    if (inDrawer) {
+      const stray = document.querySelector('.gs-gear, .gs-float');
+      if (stray) stray.remove();
+    }
     if (drawer && !drawer.querySelector('.gs-menu-item')) {
       const lb = el('div', 'grush-group', 'Display');
       lb.dataset.gsControl = '1';
