@@ -532,6 +532,12 @@ html, body {
 .home-fab { display:none !important; }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
+<!-- Identity stack. Order is load-bearing: supabase-js defines
+     window.supabase, lfg-config.js defines window.LFG_CONFIG, and
+     grush-auth.js consumes both the moment it parses. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
 <script src="grush-settings.js?v=8"></script>
 </head>
 <body>
@@ -1364,41 +1370,47 @@ document.addEventListener('change', function(e) {
 });
 
 // ══════════════════════════════════════════════════════════════
-// SUPABASE CONFIG (entries only — no auth)
+// SUPABASE CONFIG
 // ══════════════════════════════════════════════════════════════
-const SUPA_URL = 'https://gblizuknnvguxyxfequh.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGl6dWtubnZndXh5eGZlcXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MzE5NjIsImV4cCI6MjA5OTIwNzk2Mn0.9m3e5T4S1kL9wusD0ZJBgIkshGt_Ws55iEcBE8bbLiE';
+// Credentials come from lfg-config.js. Nothing is hardcoded on this page.
+const SUPA_URL = window.LFG_CONFIG.SUPABASE_URL;
+const SUPA_KEY = window.LFG_CONFIG.SUPABASE_ANON_KEY;
 
 async function supaFetch(path, options = {}) {
-  const headers = {
-    'apikey': SUPA_KEY,
-    'Authorization': `Bearer ${SUPA_KEY}`,
-    'Content-Type': 'application/json',
-    ...options.headers
-  };
+  // GRUSH.headers() is awaited per request, so the bearer token is the
+  // signed-in operator's JWT when there is one and the anon key otherwise.
+  // Writes to lfg_manual_entries are refused by RLS unless it is a real
+  // operator token -- the browser no longer decides.
+  const headers = { ...(await GRUSH.headers()), ...options.headers };
   const res = await fetch(`${SUPA_URL}/rest/v1/${path}`, { ...options, headers });
   if (!res.ok) { const err = await res.text(); throw new Error(err); }
   return res.status === 204 ? null : res.json();
 }
 
 // ══════════════════════════════════════════════════════════════
-// ADMIN STATE — uses v2 Godisgood+MMDD password
+// ADMIN STATE — operator allowlist, checked by is_operator()
 // ══════════════════════════════════════════════════════════════
-const BASE_PW = 'Godisgood';
+// The old gate was a client-side password pattern ('Godisgood' + four
+// digits) sitting in this file's public source. It is gone. Editing the
+// manual now requires an emailed sign-in link AND membership in
+// grush_operators. isAdmin below only shows and hides buttons; RLS on
+// lfg_manual_entries is what actually refuses a write.
 let isAdmin = false;
 
-function verifyAdminPw(pw) {
-  if (!pw || !pw.startsWith(BASE_PW)) return false;
-  return /^\d{4}$/.test(pw.slice(BASE_PW.length));
+async function checkExistingSession() {
+  isAdmin = await GRUSH.isOperator();
+  if (isAdmin && location.hash.includes('access_token')) {
+    // Scrub the consumed magic-link token out of the address bar.
+    history.replaceState(null, '', location.pathname + location.search);
+    showToast('✓ Signed in');
+  }
+  updateAdminUI();
 }
 
-function checkExistingSession() {
-  const token = sessionStorage.getItem('lfg_token');
-  if (token && verifyAdminPw(token)) {
-    isAdmin = true;
-    updateAdminUI();
-  }
-}
+// Catches the magic link resolving after the page has already loaded.
+document.addEventListener('grush:auth', (e) => {
+  if (e.detail === 'SIGNED_IN' || e.detail === 'SIGNED_OUT') checkExistingSession();
+});
 
 function updateAdminUI() {
   const btn = document.getElementById('admin-btn');
@@ -1473,36 +1485,42 @@ function showLoginModal() {
     return;
   }
   openModal(`
-    <div style="font-family:var(--font-head);font-style:italic;font-size:1.15rem;color:var(--forest);margin-bottom:0.25rem;">Admin Sign In</div>
-    <div style="font-size:0.72rem;color:var(--cream);margin-bottom:1rem;font-family:var(--font-mono);">Staff password + your birthday MMDD</div>
+    <div style="font-family:var(--font-head);font-style:italic;font-size:1.15rem;color:var(--forest);margin-bottom:0.25rem;">Operator Sign In</div>
+    <div style="font-size:0.72rem;color:var(--cream);margin-bottom:1rem;font-family:var(--font-mono);">We'll email you a one-time link</div>
     <div style="margin-bottom:1rem;">
-      <label style="font-size:0.65rem;color:var(--cream);display:block;margin-bottom:0.3rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;">Password</label>
-      <input id="login-pw" type="password" placeholder="e.g. Godisgood0315" style="${inputStyle()}" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <label style="font-size:0.65rem;color:var(--cream);display:block;margin-bottom:0.3rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;">Email</label>
+      <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email"
+             inputmode="email" autocapitalize="off" spellcheck="false"
+             style="${inputStyle()}" onkeydown="if(event.key==='Enter')doAdminLogin()">
     </div>
     <div id="login-err" style="font-size:0.75rem;color:var(--orange-dim);margin-bottom:0.5rem;display:none;"></div>
-    <button onclick="doAdminLogin()" style="${btnStyle('var(--forest)')}">Sign In</button>
+    <button id="login-send" onclick="doAdminLogin()" style="${btnStyle('var(--forest)')}">Email me a link</button>
     <button onclick="closeModal()" style="${btnStyle('var(--bg-dark)')}">Cancel</button>
   `);
-  setTimeout(() => document.getElementById('login-pw')?.focus(), 100);
+  setTimeout(() => document.getElementById('login-email')?.focus(), 100);
 }
 
-function doAdminLogin() {
-  const pw = document.getElementById('login-pw')?.value;
+// Sending a link is not granting access. Anyone may request one; only an
+// address in grush_operators gets past is_operator() afterwards.
+async function doAdminLogin() {
+  const email = document.getElementById('login-email')?.value?.trim();
   const errEl = document.getElementById('login-err');
-  if (!verifyAdminPw(pw)) {
-    if (errEl) { errEl.textContent = 'Incorrect password.'; errEl.style.display = 'block'; }
-    return;
-  }
-  isAdmin = true;
-  sessionStorage.setItem('lfg_token', pw);
-  closeModal();
-  updateAdminUI();
-  showToast('✓ Admin access granted');
+  const btn = document.getElementById('login-send');
+  const say = (m) => { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } };
+
+  if (!email) { say('Enter your email address.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+  const { ok, msg } = await GRUSH.sendLink(email);
+  say(msg);
+  // Leave the button disabled on success so an impatient second tap doesn't
+  // trip Supabase's built-in SMTP rate limit.
+  if (!ok && btn) { btn.disabled = false; btn.textContent = 'Email me a link'; }
 }
 
-function doAdminLogout() {
+async function doAdminLogout() {
+  await GRUSH.signOut();
   isAdmin = false;
-  sessionStorage.removeItem('lfg_token');
   closeModal();
   updateAdminUI();
   showToast('Signed out');
@@ -1861,7 +1879,6 @@ function showToast(msg) {
 // ══════════════════════════════════════════════════════════════
 (function init() {
   updateModeIcon();
-  checkExistingSession();
 
   // Inject admin button into home header controls
   const controls = document.querySelector('.header-controls');
@@ -1874,6 +1891,11 @@ function showToast(msg) {
     controls.insertBefore(btn, controls.firstChild);
   }
   updateAdminUI();
+
+  // Asks the database whether this session is an operator, then repaints.
+  // Deliberately last: it calls updateAdminUI(), which needs #admin-btn
+  // to already be in the DOM.
+  checkExistingSession();
 })();
 </script>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
