@@ -1,19 +1,41 @@
 /* ============================================================
    grush-auth.js — one identity module for every Grush site.
-   Drop in beside lfg-theme.css; load before app/admin/manual JS.
+
+   LOAD ORDER MATTERS. On every page, in this order:
+     1. https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
+     2. lfg-config.js        (supplies URL + anon key)
+     3. grush-auth.js        (this file)
 
    Two tiers, deliberately separate:
      CREW      tap a name. no password. identifies, never authorizes.
      OPERATOR  magic link + allowlist. authorizes approve/delete/config.
 
-   Replaces: Godisgood+MMDD, lfg_config.admin_password, the dead
-   verifyStaffPassword(), and the hardcoded 'staff' attribution string.
+   Replaces: Godisgood+MMDD, lfg_config.admin_password, the admin PIN
+   in app.html, the dead verifyStaffPassword(), and the hardcoded
+   'staff' attribution string.
+
+   Client-side checks here are for SHOWING AND HIDING UI ONLY.
+   Row-level security in Postgres is what actually enforces anything.
    ============================================================ */
 
 const GRUSH = (() => {
-  const SITE = document.documentElement.dataset.grushSite || 'lfg'; // <html data-grush-site="fgf">
-  const URL_ = 'https://gblizuknnvguxyxfequh.supabase.co';
-  const ANON = window.SUPABASE_ANON_KEY; // already public by design; keep as-is
+
+  /* ---------- configuration ---------- */
+  // lfg-config.js sets window.LFG_CONFIG. A Fun Guy Fungi page can set
+  // window.GRUSH_CONFIG with the same shape instead. Nothing is hardcoded
+  // here, so moving to different infrastructure means editing the config
+  // file and nothing else.
+  const CFG  = window.LFG_CONFIG || window.GRUSH_CONFIG || {};
+  const URL_ = CFG.SUPABASE_URL;
+  const ANON = CFG.SUPABASE_ANON_KEY;
+
+  // <html data-grush-site="fgf"> overrides; otherwise the config's SITE.
+  const SITE = document.documentElement.dataset.grushSite || CFG.SITE || 'lfg';
+
+  if (!window.supabase || !window.supabase.createClient)
+    console.error('[grush] supabase-js must load BEFORE grush-auth.js');
+  if (!URL_ || !ANON)
+    console.error('[grush] lfg-config.js must load BEFORE grush-auth.js');
 
   const sb = window.supabase.createClient(URL_, ANON);
 
@@ -96,11 +118,63 @@ const GRUSH = (() => {
     return false;
   }
 
+  /* ---------- REST helpers for pages that don't use supabase-js ----------
+
+     admin.html talks to PostgREST with plain fetch(). Those requests must
+     carry the signed-in user's JWT, not the anon key, or RLS sees an
+     anonymous visitor and refuses every operator-only write.
+
+       apikey         always the anon key — that's the API gateway ticket.
+       Authorization  the session token when signed in, anon key otherwise.
+
+     Both headers are required. Sending only one gets a 401.
+  --------------------------------------------------------------------- */
+
+  // Current bearer token: the user's if signed in, else the anon key.
+  async function token() {
+    const s = await session();
+    return s?.access_token || ANON;
+  }
+
+  // Await this immediately before a fetch so the token is never stale.
+  async function headers(extra) {
+    return {
+      apikey: ANON,
+      Authorization: `Bearer ${await token()}`,
+      'Content-Type': 'application/json',
+      ...(extra || {})
+    };
+  }
+
+  // Thin fetch wrapper. path is everything after /rest/v1/ —
+  //   GRUSH.rest('lfg_photos?approval_status=eq.pending')
+  //   GRUSH.rest('lfg_photos?id=eq.' + id, { method:'PATCH', body:{...} })
+  async function rest(path, opts = {}) {
+    const { body, headers: extra, ...init } = opts;
+    const res = await fetch(`${URL_}/rest/v1/${path}`, {
+      ...init,
+      headers: await headers(extra),
+      body: body === undefined ? undefined
+           : (typeof body === 'string' ? body : JSON.stringify(body))
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`${opts.method || 'GET'} ${path} -> ${res.status} ${detail}`);
+    }
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  }
+
+  /* ---------- events ---------- */
+
+  // Fires on sign-in, sign-out, and silent token refresh. Pages that cache
+  // headers should re-sync here.
   sb.auth.onAuthStateChange((evt) => {
-    if (evt === 'SIGNED_IN' || evt === 'SIGNED_OUT')
-      document.dispatchEvent(new CustomEvent('grush:auth', { detail: evt }));
+    document.dispatchEvent(new CustomEvent('grush:auth', { detail: evt }));
   });
 
-  return { sb, SITE, crew, who, setWho, signOutCrew, stamp,
-           sendLink, session, isOperator, requireOperator, signOut };
+  return { sb, SITE, URL: URL_, ANON,
+           crew, who, setWho, signOutCrew, stamp,
+           sendLink, session, isOperator, requireOperator, signOut,
+           token, headers, rest };
 })();
