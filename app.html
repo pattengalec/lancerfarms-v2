@@ -79,7 +79,7 @@
      whichever way the page ground goes. grush-nav puts the burger here
      because this page runs rail-less. Nowrap + clamp so a long farm name
      shrinks instead of wrapping and thickening the bar. */
-  .sitebar{background:var(--bar-bg); display:flex; align-items:center; gap:10px;
+  .sitebar{flex:0 0 auto; background:var(--bar-bg); display:flex; align-items:center; gap:10px;
     padding:9px 10px; position:sticky; top:0; z-index:40; flex-wrap:nowrap;
     border-bottom:1px solid var(--bar-line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
   .sitebar img{width:34px; height:34px; flex:none; object-fit:contain; border-radius:50%;
@@ -93,7 +93,9 @@
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .sitebar .wm em{font-style:normal; font-weight:400; color:var(--bar-soft);}
 
-  .screen-head{padding:14px 16px 0;}
+  /* flex:0 0 auto — a flex child with default shrink can be squeezed by
+     the scroll pane next to it. Pin the chrome. */
+  .screen-head{flex:0 0 auto; padding:14px 16px 0;}
   .screen-head .title{font-family:'Fraunces',serif; font-weight:600; font-size:1.35rem; color:var(--ink); margin:0;}
 
   .iconbtn{width:44px; height:44px; border:none; background:transparent; border-radius:12px; font-size:24px;
@@ -529,6 +531,16 @@ const ACTIONS = {
 let state = { type:'activity', areaId:null, areaIds:[], areaLabel:null, who:null, what:null, areas:[], loggedAt:null };
 
 /* ---------- boot ---------- */
+/* No dev console on a phone. Surface uncaught errors as a toast so a
+   broken boot is visible instead of silent. */
+window.addEventListener('error', function(e){
+  if (typeof toast === 'function') toast('JS error: ' + (e.message || 'unknown'));
+});
+window.addEventListener('unhandledrejection', function(e){
+  var r = e.reason;
+  if (typeof toast === 'function') toast('Async error: ' + ((r && r.message) || r));
+});
+
 window.addEventListener('load', ()=>{
   const lang = localStorage.getItem('lfg_lang') || null;
   const role = localStorage.getItem('lfg_role') || null;
@@ -537,27 +549,42 @@ window.addEventListener('load', ()=>{
   // immediately re-checks it against is_operator() and drops it if the session
   // is gone or the operator was revoked.
   refreshAdminMode();
+  /* Five taps on the title = operator sign-in. DELEGATED from document
+     rather than bound to #bar-title directly: the previous version bound
+     once at load, so anything that replaced the element, or any listener
+     that swallowed the event, killed the gesture silently with no way to
+     tell from a phone. Delegation cannot miss.
+
+     It also now speaks on EVERY fifth tap. Before, an operator who was
+     already signed in got only a confirm() about signing out, which is
+     indistinguishable from a dead gesture if you cancel it. */
   (function(){
-    var t=document.getElementById('bar-title'); if(!t) return;
     var taps=0, timer=null;
-    t.addEventListener('click', async function(){
+    document.addEventListener('click', async function(e){
+      var t = e.target && e.target.closest ? e.target.closest('#bar-title') : null;
+      if(!t) return;
       taps++; clearTimeout(timer); timer=setTimeout(function(){ taps=0; }, 1500);
       if(taps<5) return;
       taps=0; clearTimeout(timer);
-      if(document.body.classList.contains('is-admin')){
-        if(confirm('Sign out of admin mode on this device?')){
-          await GRUSH.signOut(); setAdminMode(false); toast('Admin mode off');
+      try {
+        if(document.body.classList.contains('is-admin')){
+          toast('Already signed in as operator');
+          if(confirm('Sign out of admin mode on this device?')){
+            await GRUSH.signOut(); setAdminMode(false); toast('Admin mode off');
+          }
+          return;
         }
-      } else {
-        // Maybe the magic link already landed and we just haven't checked.
+        toast('Checking\u2026');
         if(await GRUSH.isOperator()){
-          setAdminMode(true); toast('Admin mode on — open the menu for Approval queue'); return;
+          setAdminMode(true); toast('Admin mode on \u2014 open the menu for Approval queue'); return;
         }
-        var email=prompt('Operator email — we\u2019ll send a one-time sign-in link'); 
-        if(email===null || !email.trim()) return;
+        var email=prompt('Operator email \u2014 we\u2019ll send a one-time sign-in link');
+        if(email===null || !email.trim()){ toast('Cancelled'); return; }
         toast('Sending\u2026');
         var r = await GRUSH.sendLink(email);
         toast(r.msg);
+      } catch(err){
+        toast('Sign-in error: ' + (err && err.message ? err.message : err));
       }
     });
   })();
@@ -1544,8 +1571,12 @@ window.GRUSH_NAV = {
           var cur = localStorage.getItem('lfg_lang') || 'en';
           var sp = document.createElement('span');
           sp.id = 'menu-lang'; sp.textContent = names[cur] || 'English';
-          var last = items[i].lastChild;
-          if (last && last.nodeType === 3) items[i].replaceChild(sp, last);
+          /* grush-nav renders items as <span class="ic">…</span><span>label</span>,
+             so the label is an ELEMENT, not a text node. The old check tested
+             for nodeType 3, never matched, and appended a second label —
+             the item read "English English". */
+          var last = items[i].lastElementChild;
+          if (last && !last.classList.contains('ic')) items[i].replaceChild(sp, last);
           else items[i].appendChild(sp);
         }
       }
