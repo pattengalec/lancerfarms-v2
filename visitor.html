@@ -3,16 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
 <title>Lancer Farms &amp; Gardens</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    color-scheme:dark;
+    color-scheme:light dark;
     --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
     --line:#45423A; --line-strong:#5A554A;
     --green:#7E9A6E; --green-d:#2A2620; --leaf:#A8B89A; --amber:#C9973F;
+    /* --green is a SURFACE colour (button backgrounds) and stays mid-tone in
+       both modes so the dark text on it keeps contrast. --green-ink is green
+       used as TEXT on the page ground, and darkens in light mode. Keeping
+       them one token is what would break: darkening the surface kills the
+       button labels, leaving it light kills the body text. */
+    --green-ink:#A8B89A;
+    /* inner panels that stay dark in BOTH modes, like the title bar.
+       They must set their own text colour or they inherit --ink and
+       become dark-on-dark the moment the ground flips. */
+    --panel:#2E342A; --panel-ink:#F0EDE2; --panel-accent:#AEC69E;
     --shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
     /* fixed plates — dark in BOTH modes, matching almanac/data */
     --bar-bg:#1F1C17; --bar-ink:#F0EDE2; --bar-accent:#D4A44E;
@@ -20,8 +30,27 @@
     --font-display:'Fraunces',Georgia,serif;
     --font-mono:ui-monospace,'Courier Prime',monospace;
   }
-  select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=file]){background:var(--paper);color:var(--ink);border:1.5px solid var(--line-strong);border-radius:8px;padding:8px;font-size:14px;font-family:inherit;}
-  select option,select optgroup{background:var(--paper);color:var(--ink);}
+
+  /* ── Light mode: only the page ground flips ──────────────────────
+     The title bar, the nav rail/drawer, the photo lightbox, the hub
+     tiles and the dark inner panels are PLATES: they carry their own
+     background AND their own text colour, so they look identical in
+     both modes. Only --paper, --card, --line, --ink and the green
+     used as text change below. */
+  @media (prefers-color-scheme: light){
+    :root{
+      --paper:#EFE9DA; --card:#FAF6EC;
+      --line:#D8CFB8; --line-strong:#C3B89C;
+      --ink:#2A2620; --ink-soft:#635B4C;
+      --green-ink:#3F5A33;
+      --shadow:0 1px 0 rgba(32,38,28,.05), 0 2px 10px rgba(32,38,28,.10);
+    }
+    /* On cream, a transparent-background icon button needs a darker
+       press state than the 5% black that reads fine on brown. */
+    .iconbtn:active{background:rgba(0,0,0,.09);}
+  }
+
+  select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=file]){background:var(--paper);color:var(--ink);border:1.5px solid var(--line-strong);border-radius:8px;padding:8px;font-size:14px;font-family:inherit;}  select option,select optgroup{background:var(--paper);color:var(--ink);}
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; min-height:100%;}
   body{font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;}
@@ -76,7 +105,7 @@
   /* sub screen (coming soon) */
   .screen{display:none;}
   .screen.active{display:block;}
-  .back{display:flex; align-items:center; gap:6px; border:none; background:transparent; color:var(--green);
+  .back{display:flex; align-items:center; gap:6px; border:none; background:transparent; color:var(--green-ink);
     font-size:16px; font-weight:600; padding:6px 0; margin-bottom:8px;}
   .soon{text-align:center; padding:56px 24px; color:var(--ink-soft);}
   .soon .ic{font-size:52px; display:block; margin-bottom:14px; opacity:.5;}
@@ -106,8 +135,8 @@
   .calc-field input{width:100%; border:1.5px solid var(--line-strong); border-radius:10px; padding:10px;
     font-size:16px; font-family:inherit; background:var(--paper); color:var(--ink);}
   .calc-field input:focus{outline:none; border-color:var(--green);}
-  .calc-out{background:#2E342A; border-radius:12px; padding:12px 14px; font-size:15px; line-height:1.55;}
-  .calc-out b{color:#AEC69E; font-size:19px;}
+  .calc-out{background:var(--panel); color:var(--panel-ink); border-radius:12px; padding:12px 14px; font-size:15px; line-height:1.55;}
+  .calc-out b{color:var(--panel-accent); font-size:19px;}
   .calc-note{font-size:12.5px; color:var(--ink-soft); margin-top:9px; line-height:1.45;}
   /* timeline / cycle strip */
   .tl{margin:4px 0 2px;}
@@ -117,7 +146,7 @@
   .tl-stage:before{content:''; position:absolute; left:-6px; top:13px; width:11px; height:11px;
     border-radius:50%; background:var(--green); border:2px solid var(--paper);}
   .tl-stage .sd{flex:0 0 96px; font-size:12.5px; color:var(--ink-soft); line-height:1.3;}
-  .tl-stage .sd .cd{display:block; color:#AEC69E; font-weight:600;}
+  .tl-stage .sd .cd{display:block; color:var(--green-ink); font-weight:600;}
   .tl-stage .sl{font-size:14.5px; font-weight:600;}
   .tl-stage .sn{font-size:12.5px; color:var(--ink-soft);}
   .harvest-callout{background:#3A3220; border:1px solid var(--amber); border-radius:14px; padding:13px 15px; margin:14px 0;}
@@ -128,12 +157,12 @@
   .do-share:active{background:var(--green-d);}
   .do-actions{display:flex; gap:10px; margin:18px 0 4px;}
   .do-actions .do-share{margin:0; flex:1;}
-  .do-share.alt{background:transparent; color:var(--green); border:1.5px solid var(--green);}
+  .do-share.alt{background:transparent; color:var(--green-ink); border:1.5px solid var(--green-ink);}
 
   /* ---------- LEARN: knowledge base ---------- */
   .sys-card{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
     border-radius:14px;padding:14px 16px;margin-bottom:14px;text-decoration:none;color:inherit;}
-  .sys-card .sys-ic{font-size:30px;flex:none;color:var(--green);}
+  .sys-card .sys-ic{font-size:30px;flex:none;color:var(--green-ink);}
   .sys-card .sys-t{display:block;font-weight:600;font-size:1rem;margin-bottom:3px;}
   .sys-card .sys-s{display:block;font-size:.85rem;color:var(--ink-soft);line-height:1.45;}
   .learn-search{width:100%; border:1.5px solid var(--line-strong); border-radius:14px; padding:12px 15px;
@@ -175,7 +204,7 @@
   .fact:last-child{border-bottom:none;}
   .fact .k{flex:0 0 42%; color:var(--ink-soft); font-weight:600;}
   .fact .v{flex:1 1 auto;}
-  .blessing{background:#34302A; border:1px solid var(--line-strong); border-left:4px solid var(--amber);
+  .blessing{background:var(--panel); color:var(--panel-ink); border:1px solid var(--line-strong); border-left:4px solid var(--amber);
     border-radius:12px; padding:12px 15px; margin-top:16px; font-size:15px; font-style:italic; line-height:1.5;}
   .grow-nudge{display:block; width:100%; text-align:center; background:var(--amber); color:#3a2c08; border:none;
     border-radius:14px; padding:15px; font-weight:600; font-size:16px; margin:22px 0 6px;}
