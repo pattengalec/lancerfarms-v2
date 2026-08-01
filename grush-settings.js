@@ -743,14 +743,58 @@ const GrushSettings = (() => {
   function injectUI() {
     injectCSS();
     buildOverlay();
+    mountControls();
 
-    /* hamburger: a clean Settings item that launches the console */
+    /* grush-nav.js mounts its drawer on DOMContentLoaded too, and script
+       order does not guarantee who wins. Watch for the drawer appearing
+       and mount into it whenever it shows up, then stop watching. */
+    if (!document.getElementById('grush-drawer') && window.MutationObserver) {
+      const obs = new MutationObserver(() => {
+        if (document.getElementById('grush-drawer')) { mountControls(); obs.disconnect(); }
+      });
+      obs.observe(document.body, { childList: true });
+      setTimeout(() => obs.disconnect(), 5000);   // never observe forever
+    }
+
+    /* site-wide tap sound, delegated; console voices its own */
+    document.addEventListener('click', e => {
+      const t = e.target.closest('button, .tile, .menu-item, .option-card, .grush-item');
+      if (t && !t.dataset.gsControl && !t.closest('.gs-console')) play('tap');
+    }, true);
+  }
+
+  /* Put a way into the console on whatever chrome this page happens to have.
+     Every branch is idempotent, so this can run more than once.
+
+     History worth keeping: this used to look only for `.topbar` and
+     `#panel`. admin.html has neither (it uses .admin-header), and when
+     visitor.html moved to grush-nav its .topbar and #panel were removed —
+     so the console kept applying a saved palette on both pages with no
+     way left to open it and change it. Hence the spread of mounts below. */
+  function mountControls() {
+    /* 1. grush-nav drawer — the current pattern. */
+    const drawer = document.getElementById('grush-drawer');
+    if (drawer && !drawer.querySelector('.gs-menu-item')) {
+      const lb = el('div', 'grush-group', 'Display');
+      lb.dataset.gsControl = '1';
+      const mi = el('button', 'grush-item gs-menu-item');
+      mi.type = 'button'; mi.dataset.gsControl = '1';
+      mi.appendChild(el('span', 'grush-ic', '\u2699\ufe0e'));
+      mi.appendChild(document.createTextNode(' Settings'));
+      mi.addEventListener('click', () => {
+        if (window.GrushNav && typeof window.GrushNav.close === 'function') window.GrushNav.close();
+        openSettings();
+      });
+      drawer.appendChild(lb); drawer.appendChild(mi);
+    }
+
+    /* 2. legacy hand-rolled drawer, for pages not yet on grush-nav. */
     const panel = document.getElementById('panel');
     if (panel && !panel.querySelector('.gs-menu-item')) {
       const mi = el('button', 'menu-item gs-menu-item');
       mi.type = 'button'; mi.dataset.gsControl = '1';
-      const ic = el('span', 'ic', '\u2699\ufe0e');
-      mi.appendChild(ic); mi.appendChild(document.createTextNode(' Settings'));
+      mi.appendChild(el('span', 'ic', '\u2699\ufe0e'));
+      mi.appendChild(document.createTextNode(' Settings'));
       mi.addEventListener('click', () => {
         if (typeof window.closeMenu === 'function') window.closeMenu();
         openSettings();
@@ -758,21 +802,45 @@ const GrushSettings = (() => {
       panel.appendChild(mi);
     }
 
-    /* topbar gear: same console, direct */
-    const topbar = document.querySelector('.topbar');
-    if (topbar && !topbar.querySelector('.gs-gear')) {
-      const gear = el('button', 'iconbtn gs-gear', '\u2699\ufe0e');
-      gear.type = 'button'; gear.setAttribute('aria-label', 'Settings');
+    /* 3. a gear in the page header, wherever that header lives.
+       First selector that matches wins; admin.html's .header-controls is
+       why the gear was missing there. */
+    const bar = document.querySelector(
+      '.topbar, .admin-header .header-controls, .header-right, .header-controls, .sitebar, .top'
+    );
+    if (bar && !bar.querySelector('.gs-gear')) {
+      const gear = el('button', 'iconbtn hdr-btn gs-gear', '\u2699\ufe0e');
+      gear.type = 'button';
+      gear.setAttribute('aria-label', 'Settings');
       gear.dataset.gsControl = '1';
       gear.addEventListener('click', openSettings);
-      topbar.appendChild(gear);
+      /* .sitebar lays its children out in a row; prepend would shove the
+         logo. Append everywhere — the gear reads as a trailing control. */
+      bar.appendChild(gear);
+      return;
     }
 
-    /* site-wide tap sound, delegated; console voices its own */
-    document.addEventListener('click', e => {
-      const t = e.target.closest('button, .tile, .menu-item, .option-card');
-      if (t && !t.dataset.gsControl && !t.closest('.gs-console')) play('tap');
-    }, true);
+    /* 4. Last resort: index.html, howto.html and about-grush.html have no
+       header chrome whatsoever. Rather than keep inventing selectors for
+       each new page, float one. The rule that matters is that NO page may
+       apply a saved palette with no way to change it — that is precisely
+       the state admin and visitor were stuck in. */
+    if (drawer || panel) return;                      // already reachable
+    if (document.querySelector('.gs-float')) return;
+    const f = el('button', 'gs-float gs-gear', '\u2699\ufe0e');
+    f.type = 'button';
+    f.setAttribute('aria-label', 'Settings');
+    f.dataset.gsControl = '1';
+    f.addEventListener('click', openSettings);
+    /* Top-right: bottom corners belong to the nav rail and the grush mark.
+       Below modal layers (1100+) so it never floats over a lightbox. */
+    f.style.cssText =
+      'position:fixed;top:calc(10px + env(safe-area-inset-top));right:10px;z-index:60;' +
+      'width:40px;height:40px;border-radius:50%;border:1px solid var(--card-border,#45423A);' +
+      'background:var(--surface,#34302A);color:var(--ink,#F0EDE2);font-size:18px;' +
+      'line-height:1;display:flex;align-items:center;justify-content:center;' +
+      'cursor:pointer;opacity:.85;-webkit-tap-highlight-color:transparent;';
+    document.body.appendChild(f);
   }
 
   function openSettings() {

@@ -11,12 +11,9 @@
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
 <link rel="stylesheet" href="lfg-theme.css">
 <link rel="stylesheet" href="grush-shell.css?v=1">
-<script>
-(function(){try{
-  var m = localStorage.getItem('lfg-mode');
-  if (m === 'dark') document.documentElement.setAttribute('data-mode','dark');
-}catch(e){}})();
-</script>
+<!-- The pre-paint 'lfg-mode' bootstrap that used to sit here is gone with
+     the local toggle. grush-settings.js runs its own applyTheme() from
+     <head> before first paint, so there is nothing left to restore. -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Source+Sans+3:wght@300;400;600&family=Courier+Prime&display=swap');
 
@@ -145,8 +142,6 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 .toast.show { transform:translateX(-50%) translateY(0); }
 
 /* ── MODE TOGGLE ── */
-.mode-toggle { width:36px; height:36px; border-radius:50%; background:var(--card); color:var(--ink-soft); border:var(--border-w) solid var(--card-border); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:transform 150ms ease; }
-.mode-toggle:hover { transform:translateY(-1px); color:var(--ink); }
 
 /* ── COMPLETION LOG VIEW ── */
 .completion-log { display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto; }
@@ -168,7 +163,7 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
 <script src="grush-auth.js?v=2"></script>
-<script src="grush-settings.js?v=8"></script>
+<script src="grush-settings.js?v=9"></script>
 </head>
 <body>
 <div class="shell shell-frame">
@@ -217,7 +212,6 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
       <div class="admin-header-top">
         <h1>🌿 LFG Admin <span>Lancer Farms &amp; Gardens</span></h1>
         <div class="header-controls">
-          <button class="mode-toggle" onclick="toggleMode()" aria-label="Toggle dark mode">☀</button>
           <button class="btn btn-ghost btn-sm" onclick="signOut()">Sign out</button>
         </div>
       </div>
@@ -790,18 +784,17 @@ async function markCommentReviewed(id) { return sbPatch('lfg_comments',{id},{sta
 
 let pendingComplete = null;
 
-// ─── Mode toggle ─────────────────────────────────────────────
-window.toggleMode = function() {
-  const html = document.documentElement;
-  const dark = html.getAttribute('data-mode') === 'dark';
-  dark ? html.removeAttribute('data-mode') : html.setAttribute('data-mode','dark');
-  try { localStorage.setItem('lfg-mode', dark ? 'light' : 'dark'); } catch(e){}
-  updateModeIcon();
-};
-function updateModeIcon() {
-  const dark = document.documentElement.getAttribute('data-mode') === 'dark';
-  document.querySelectorAll('.mode-toggle').forEach(b => b.textContent = dark ? '🌙' : '☀');
-}
+// ─── Display ─────────────────────────────────────────────────
+// This page used to own a light/dark toggle writing data-mode and a
+// 'lfg-mode' localStorage key. It is gone. grush-settings.js is the only
+// theme owner on this site: it snapshots :root, derives the palette, and
+// writes INLINE styles on <html>, which beat any stylesheet — so a local
+// toggle flipping data-mode had no visible effect and only competed.
+// The gear that grush-settings mounts in .header-controls is the control.
+//
+// updateModeIcon() is kept as a no-op purely because three call sites
+// below still reference it; removing those is a separate tidy.
+function updateModeIcon() {}
 
 // ─── Auth ────────────────────────────────────────────────────
 
