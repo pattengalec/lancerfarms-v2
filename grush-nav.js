@@ -166,6 +166,22 @@
     '<path d="M7.2 37.2h33.6c1.2 0 2.2.9 2.2 2.1 0 2.4-2.1 4.2-4.7 4.2H9.7C7.1 43.5 5 41.7 5 39.3c0-1.2 1-2.1 2.2-2.1Z" fill="#D89B45"/>' +
     '</svg>';
 
+  /* Hosted mode gets a plain three-line glyph in currentColor.
+     The sandwich above is a deliberate joke and it lands on the rail,
+     where it sits on a 76px amber tile at 40px. Dropped to 30px inside a
+     dark sitebar next to a serif wordmark it stops reading as a joke and
+     starts reading as clip art. Same reason a logo does not shrink well.
+
+     Override per page with GRUSH_NAV.burgerIcon:
+       'lines'    force the glyph
+       'sandwich' force the illustration
+       '<svg…>'   any raw markup you like                                */
+  var LINES =
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" ' +
+      'stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+    '<path d="M3.5 7h17"/><path d="M3.5 12h17"/><path d="M3.5 17h17"/>' +
+    '</svg>';
+
   var here = location.pathname.split('/').pop() || 'index.html';
 
   function makeItem(it, cls) {
@@ -216,6 +232,14 @@
   } else {
     burger.className = 'grush-burger-hosted';
   }
+
+  /* icon choice: explicit config wins, otherwise rail keeps the sandwich
+     and a hosted burger gets the glyph. */
+  var icon = CFG.burgerIcon;
+  if (icon === 'lines') burger.innerHTML = LINES;
+  else if (icon === 'sandwich') burger.innerHTML = BURGER;
+  else if (typeof icon === 'string' && icon.indexOf('<') === 0) burger.innerHTML = icon;
+  else if (RAILLESS) burger.innerHTML = LINES;
 
   /* ── scrim + drawer ── */
   var scrim = document.createElement('div');
