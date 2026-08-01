@@ -232,7 +232,7 @@
   .ph-filters{display:flex;gap:8px;margin:0 0 12px;}
   .ph-filters select{flex:1;min-width:0;background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:9px;font-size:14px;font-family:inherit;}
   .photo .cap b{color:var(--accent-2);font-weight:600;}
-  #lightbox{position:fixed;inset:0;background:rgba(12,14,10,.94);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:18px;}
+  #lightbox{position:fixed;inset:0;background:rgba(12,14,10,.94);z-index:1100;display:none;flex-direction:column;align-items:center;justify-content:center;padding:18px;}
   #lightbox.show{display:flex;}
   #lb-img{max-width:100%;max-height:66vh;border-radius:12px;object-fit:contain;}
   #lb-caption{color:#F0EDE6;font-size:1rem;line-height:1.45;margin-top:14px;text-align:center;max-width:520px;}
@@ -243,10 +243,10 @@
   #lb-x{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.12);border:0;color:#F0EDE6;font-size:26px;width:44px;height:44px;border-radius:50%;cursor:pointer;}
   .lb-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.10);border:0;color:#F0EDE6;font-size:24px;width:44px;height:64px;cursor:pointer;border-radius:10px;}
   #lb-prev{left:8px;} #lb-next{right:8px;}
-  #lb-count{position:absolute;bottom:14px;color:#F0EDE6;opacity:.55;font-size:.8rem;}
+  #lb-count{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));color:#F0EDE6;opacity:.55;font-size:.8rem;}
 
   .see-add{display:block;width:100%;text-align:center;background:var(--green);color:#1B1B17;border:none;border-radius:14px;padding:13px;font-weight:600;font-size:15px;margin:0 0 12px;cursor:pointer;}
-  .vs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:flex-end;justify-content:center;}
+  .vs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1200;display:flex;align-items:flex-end;justify-content:center;}
   .vs-sheet{background:var(--card);width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;}
   .vs-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);font-weight:600;}
   .vs-x{background:none;border:0;color:var(--ink-soft);font-size:26px;line-height:1;cursor:pointer;}
@@ -255,7 +255,7 @@
   .vs-card img{width:64px;height:64px;border-radius:10px;object-fit:cover;flex:0 0 auto;}
   .vs-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
   .vs-fields select,.vs-fields input{width:100%;min-width:0;background:var(--card);color:var(--ink);border:1.5px solid var(--line-strong);border-radius:8px;padding:8px;font-size:14px;font-family:inherit;}
-  .vs-actions{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line);}
+  .vs-actions{display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);}
   .vs-btn{flex:1;border:none;border-radius:12px;padding:13px;font-weight:600;font-size:15px;cursor:pointer;font-family:inherit;}
   .vs-btn.go{background:var(--green);color:#1B1B17;}
   .vs-btn.cancel{background:transparent;color:var(--ink);border:1.5px solid var(--line-strong);}
