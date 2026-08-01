@@ -505,10 +505,17 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
 <script>
-const SUPABASE_URL='https://gblizuknnvguxyxfequh.supabase.co';
-const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGl6dWtubnZndXh5eGZlcXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MzE5NjIsImV4cCI6MjA5OTIwNzk2Mn0.9m3e5T4S1kL9wusD0ZJBgIkshGt_Ws55iEcBE8bbLiE';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+// Credentials come from lfg-config.js. Nothing is hardcoded on this page.
+const SUPABASE_URL = window.LFG_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON = window.LFG_CONFIG.SUPABASE_ANON_KEY;
+
+// Reuse the client grush-auth.js already built rather than making a second
+// one. Two clients would each hold their own auth state, so a sign-in on one
+// wouldn't reach the other and writes here would still go out anonymous.
+const sb = GRUSH.sb;
 
 const CREW = ['Chad','Maria','Sam','Guest'];
 const ACTIONS = {
@@ -525,19 +532,31 @@ window.addEventListener('load', ()=>{
   const lang = localStorage.getItem('lfg_lang') || null;
   const role = localStorage.getItem('lfg_role') || null;
   if(localStorage.getItem('lfg_admin')==='1') document.body.classList.add('is-admin');
+  // The flag above is only a paint-flicker optimisation. refreshAdminMode()
+  // immediately re-checks it against is_operator() and drops it if the session
+  // is gone or the operator was revoked.
+  refreshAdminMode();
   (function(){
     var t=document.getElementById('bar-title'); if(!t) return;
     var taps=0, timer=null;
-    t.addEventListener('click', function(){
+    t.addEventListener('click', async function(){
       taps++; clearTimeout(timer); timer=setTimeout(function(){ taps=0; }, 1500);
       if(taps<5) return;
       taps=0; clearTimeout(timer);
       if(document.body.classList.contains('is-admin')){
-        if(confirm('Turn off admin mode on this device?')){ localStorage.removeItem('lfg_admin'); document.body.classList.remove('is-admin'); toast('Admin mode off'); }
+        if(confirm('Sign out of admin mode on this device?')){
+          await GRUSH.signOut(); setAdminMode(false); toast('Admin mode off');
+        }
       } else {
-        var pin=prompt('Enter admin PIN'); if(pin===null) return;
-        if(pin==='242301'){ localStorage.setItem('lfg_admin','1'); document.body.classList.add('is-admin'); if(typeof refreshApproveBadge==='function') refreshApproveBadge(); toast('Admin mode on — open the menu for Approval queue'); }
-        else toast('Wrong PIN');
+        // Maybe the magic link already landed and we just haven't checked.
+        if(await GRUSH.isOperator()){
+          setAdminMode(true); toast('Admin mode on — open the menu for Approval queue'); return;
+        }
+        var email=prompt('Operator email — we\u2019ll send a one-time sign-in link'); 
+        if(email===null || !email.trim()) return;
+        toast('Sending\u2026');
+        var r = await GRUSH.sendLink(email);
+        toast(r.msg);
       }
     });
   })();
@@ -547,6 +566,35 @@ window.addEventListener('load', ()=>{
     else if(role==='visitor'){ enterVisitor(); }
     else { document.getElementById('hero').classList.add('show'); }
   }, 1400);
+});
+
+/* ---------- operator mode ----------
+   'is-admin' on <body> reveals approve/rename/archive controls. It is a
+   CONVENIENCE ONLY — row-level security decides what actually succeeds.
+   The lfg_admin localStorage flag is kept in sync because howto.html reads
+   it to show its Archive card button. */
+function setAdminMode(on){
+  const was = document.body.classList.contains('is-admin');
+  if(on){ localStorage.setItem('lfg_admin','1'); document.body.classList.add('is-admin'); }
+  else  { localStorage.removeItem('lfg_admin'); document.body.classList.remove('is-admin'); }
+  // Only re-query when the mode actually flipped — otherwise every visitor
+  // load would fire a pointless count of the approval queue.
+  if(was!==on && typeof refreshApproveBadge==='function') refreshApproveBadge();
+}
+
+async function refreshAdminMode(){
+  const ok = await GRUSH.isOperator();
+  setAdminMode(ok);
+  if(ok && location.hash.includes('access_token')){
+    // Scrub the consumed token out of the address bar.
+    history.replaceState(null,'',location.pathname+location.search);
+    toast('Signed in — admin mode on');
+  }
+}
+
+// Catches the magic link resolving after the page has already loaded.
+document.addEventListener('grush:auth', e => {
+  if(e.detail==='SIGNED_IN' || e.detail==='SIGNED_OUT') refreshAdminMode();
 });
 
 function setLang(l, el){
@@ -983,7 +1031,7 @@ async function approveItem(kind,id){
 const _go=go; go=function(s){ _go(s); if(s==='approvals') loadApprovals(); if(s==='areas') loadAreasScreen(); if(s==='tasks') loadTasks(); if(s==='inventory') loadInventory(); if(s==='photos') loadPhotos(); };
 
 /* ---------- PHOTOS ---------- */
-const CLOUD_NAME='ddbsuxerb', UPLOAD_PRESET='lfg-photos';
+const CLOUD_NAME=window.LFG_CONFIG.CLOUDINARY_CLOUD, UPLOAD_PRESET=window.LFG_CONFIG.CLOUDINARY_PRESET;
 async function loadPhotos(){
   const ab=document.getElementById('actionbar');
   ab.style.display='block';
