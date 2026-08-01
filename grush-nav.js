@@ -79,6 +79,19 @@
   #grush-rail #grush-burger:active{ filter:brightness(.9); background:var(--nav-accent); }
   #grush-rail #grush-burger svg{ width:40px; height:40px; display:block; }
 
+  /* Rail-less mode: the burger is hosted by the page's own header.
+     app.html already owns the bottom of the screen with .actionbar, its
+     bottom sheets and a splash overlay, so a rail there would collide
+     with all three. Sized as a glove-friendly 44px target. */
+  .grush-burger-hosted{
+    flex:0 0 auto; width:44px; height:44px; padding:0; border:0;
+    display:flex; align-items:center; justify-content:center;
+    background:transparent; color:var(--bar-ink, var(--nav-ink, #F0EDE2));
+    border-radius:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .grush-burger-hosted:active{ background:rgba(255,255,255,.10); }
+  .grush-burger-hosted svg{ width:30px; height:30px; display:block; }
+
   /* ── scrim ── */
   #grush-scrim{
     position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.55);
@@ -175,10 +188,13 @@
     return el;
   }
 
-  /* ── rail ── */
-  var rail = document.createElement('nav');
-  rail.id = 'grush-rail';
-  rail.setAttribute('aria-label', 'Primary');
+  /* ── rail ──
+     GRUSH_NAV.rail === false opts out of the bottom rail entirely. The
+     drawer still works; only the burger moves. Use it on any page that
+     already owns the bottom of the screen — a fixed action bar, bottom
+     sheets, a full-screen splash. Set GRUSH_NAV.burgerHost to a selector
+     for where the burger should live; it defaults to the sitebar. */
+  var RAILLESS = CFG.rail === false;
 
   var burger = document.createElement('button');
   burger.id = 'grush-burger';
@@ -187,11 +203,19 @@
   burger.setAttribute('aria-expanded', 'false');
   burger.setAttribute('aria-controls', 'grush-drawer');
   burger.innerHTML = BURGER;
-  rail.appendChild(burger);
 
-  (CFG.rail || []).slice(0, 2).forEach(function (it) {
-    rail.appendChild(makeItem(it, ''));
-  });
+  var rail = null;
+  if (!RAILLESS) {
+    rail = document.createElement('nav');
+    rail.id = 'grush-rail';
+    rail.setAttribute('aria-label', 'Primary');
+    rail.appendChild(burger);
+    (CFG.rail || []).slice(0, 2).forEach(function (it) {
+      rail.appendChild(makeItem(it, ''));
+    });
+  } else {
+    burger.className = 'grush-burger-hosted';
+  }
 
   /* ── scrim + drawer ── */
   var scrim = document.createElement('div');
@@ -275,12 +299,23 @@
   function mount() {
     document.body.appendChild(scrim);
     document.body.appendChild(drawer);
-    document.body.appendChild(rail);
-    /* Reserve space so the rail never covers page content. */
-    var h = rail.offsetHeight || 78;
-    var prev = getComputedStyle(document.body).paddingBottom;
-    document.body.style.paddingBottom =
-      'calc(' + (parseInt(prev, 10) || 0) + 'px + ' + h + 'px)';
+
+    if (rail) {
+      document.body.appendChild(rail);
+      /* Reserve space so the rail never covers page content. */
+      var h = rail.offsetHeight || 78;
+      var prev = getComputedStyle(document.body).paddingBottom;
+      document.body.style.paddingBottom =
+        'calc(' + (parseInt(prev, 10) || 0) + 'px + ' + h + 'px)';
+    } else {
+      /* No rail: hand the burger to the page's header. No body padding,
+         because nothing is covering the bottom. */
+      var host = document.querySelector(
+        CFG.burgerHost || '.sitebar, .topbar, .admin-header .header-controls, .header-controls'
+      );
+      if (host) host.insertBefore(burger, host.firstChild);
+      else document.body.appendChild(burger);   // never leave it unreachable
+    }
     syncStaff();
   }
   if (document.readyState === 'loading') {

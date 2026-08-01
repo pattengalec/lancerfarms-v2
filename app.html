@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- class="grush-shell" opts into the fixed-chrome / scrolling-middle
+     layout. Delete that one class to fall back to document scrolling. -->
+<html lang="en" class="grush-shell">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,6 +9,7 @@
 <title>Lancer Farms &amp; Gardens</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="grush-shell.css?v=1">
 <style>
   :root{
     color-scheme:dark;
@@ -15,6 +18,10 @@
     --green:#7E9A6E; --green-d:#2A2620; --leaf:#A8B89A;
     --amber:#C9973F; --amber-bg:#4A3A22;
     --red:#D15A48; --red-bg:#3E2723;
+    /* fixed plates — carry their own background AND ink, so they read the
+       same whichever way the page ground goes. Matches almanac/visitor. */
+    --bar-bg:#1F1C17; --bar-ink:#F0EDE2; --bar-accent:#D4A44E;
+    --bar-soft:#B6C4A9; --bar-line:#45423A;
     --shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
     --tap:60px;
   }
@@ -67,37 +74,37 @@
     border-radius:999px; padding:8px 16px; font-size:14px; font-weight:600;}
   .lang-pill.on{background:var(--green); color:#1B1B17; border-color:var(--green);}
 
-  /* ---------- top bar ---------- */
-  .topbar{height:56px; flex:0 0 56px; display:flex; align-items:center; justify-content:space-between;
-    padding:0 12px; border-bottom:1px solid var(--line); background:var(--paper); position:sticky; top:0; z-index:40;}
+  /* ---------- site title bar (herbarium plate) ----------
+     A PLATE: it carries its own background AND ink, so it looks the same
+     whichever way the page ground goes. grush-nav puts the burger here
+     because this page runs rail-less. Nowrap + clamp so a long farm name
+     shrinks instead of wrapping and thickening the bar. */
+  .sitebar{background:var(--bar-bg); display:flex; align-items:center; gap:10px;
+    padding:9px 10px; position:sticky; top:0; z-index:40; flex-wrap:nowrap;
+    border-bottom:1px solid var(--bar-line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
+  .sitebar img{width:34px; height:34px; flex:none; object-fit:contain; border-radius:50%;
+    border:1px solid var(--bar-line); padding:2px;}
+  .sitebar .wrap{flex:1 1 auto; min-width:0; overflow:hidden;}
+  .sitebar .eb{font-family:ui-monospace,monospace; font-size:.58rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--bar-accent); margin-bottom:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sitebar .wm{font-family:'Fraunces',Georgia,serif; font-weight:700; line-height:1.05;
+    color:var(--bar-ink); letter-spacing:-.015em; font-size:clamp(.95rem, 4.4vw, 1.2rem);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sitebar .wm em{font-style:normal; font-weight:400; color:var(--bar-soft);}
+
+  .screen-head{padding:14px 16px 0;}
+  .screen-head .title{font-family:'Fraunces',serif; font-weight:600; font-size:1.35rem; color:var(--ink); margin:0;}
+
   .iconbtn{width:44px; height:44px; border:none; background:transparent; border-radius:12px; font-size:24px;
     display:flex; align-items:center; justify-content:center; color:var(--ink);}
   .iconbtn:active{background:rgba(0,0,0,.05);}
-  .topbar .title{font-family:'Fraunces',serif; font-weight:600; font-size:18px;}
 
-  /* ---------- hamburger panel ---------- */
-  #scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:90; opacity:0; pointer-events:none; transition:opacity .25s;}
-  #scrim.show{opacity:1; pointer-events:auto;}
-  /* This drawer holds 13 items plus group labels and a Settings entry —
-     more than fits on a phone. It was a flex column with no overflow
-     rule, so anything past the fold was simply unreachable. */
-  #panel{position:fixed; top:0; left:0; bottom:0; width:280px; max-width:82%; background:var(--card);
-    z-index:100; transform:translateX(-100%); transition:transform .28s cubic-bezier(.3,.7,.3,1);
-    box-shadow:2px 0 24px rgba(0,0,0,.18); display:flex; flex-direction:column;
-    padding:18px 14px calc(18px + env(safe-area-inset-bottom));
-    overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;}
-  #panel.show{transform:translateX(0);}
-  /* Keep the title and close button reachable while the list scrolls. */
-  #panel .phead{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
-    position:sticky; top:-18px; background:var(--card); padding:18px 0 8px; margin-top:-18px; z-index:1;}
-  #panel .phead h2{font-size:20px;}
-  .menu-item{display:flex; align-items:center; gap:13px; min-height:52px; padding:0 12px; border-radius:12px;
-    border:none; background:transparent; width:100%; font-size:16px; color:var(--ink); text-align:left;}
-  .menu-item:active{background:rgba(0,0,0,.05);}
-  .menu-item .ic{font-size:22px; width:24px; text-align:center;}
-  .menu-item.on{background:var(--paper);}
-  .menu-label{font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:var(--ink-soft); margin:14px 12px 4px;}
-  .menu-item .badge{margin-left:auto; background:var(--red); color:#fff; font-size:12px; font-weight:700; min-width:22px; height:22px; border-radius:11px; display:flex; align-items:center; justify-content:center; padding:0 6px;}
+  /* The hand-rolled #panel drawer is gone; grush-nav.js owns the drawer
+     now. Only the pieces the approval badge and admin gating still need
+     are kept. */
+  .grush-item .badge{margin-left:auto; background:var(--red); color:#fff; font-size:12px; font-weight:700;
+    min-width:22px; height:22px; border-radius:11px; display:flex; align-items:center; justify-content:center; padding:0 6px;}
   .admin-only{display:none;}
   body.is-admin .admin-only{display:flex;}
 
@@ -277,38 +284,25 @@
   </div>
 </div>
 
-<div id="scrim" onclick="closeMenu()"></div>
-<nav id="panel">
-  <div class="phead"><h2>Menu</h2><button class="iconbtn" onclick="closeMenu()">&times;</button></div>
-  <button class="menu-item" onclick="goHero()"><span class="ic">&#127968;</span> Home</button>
-  <button class="menu-item" onclick="go('hub');closeMenu()"><span class="ic">&#9632;</span> Hub</button>
-  <div class="menu-label">Record</div>
-  <button class="menu-item" onclick="go('log');closeMenu()"><span class="ic">&#9998;</span> Log activity</button>
-  <button class="menu-item" onclick="go('photos');closeMenu()"><span class="ic">&#128247;</span> Photos</button>
-  <div class="menu-label">Act</div>
-  <button class="menu-item" onclick="go('tasks');closeMenu()"><span class="ic">&#9745;</span> Tasks</button>
-  <div class="menu-label">Diagnose</div>
-  <button class="menu-item" onclick="location.href='/triage.html'"><span class="ic">&#129658;</span> Plant triage</button>
-  <div class="menu-label">Resources</div>
-  <button class="menu-item" onclick="go('inventory');closeMenu()"><span class="ic">&#128230;</span> Inventory</button>
-  <button class="menu-item" onclick="go('areas');closeMenu()"><span class="ic">&#128205;</span> Locations</button>
-  <button class="menu-item" onclick="location.href='/manual.html'"><span class="ic">&#128214;</span> Farm manual</button>
-  <button class="menu-item" onclick="location.href='/data.html'"><span class="ic">&#128202;</span> Live farm data</button>
-  <button class="menu-item" onclick="location.href='/almanac.html'"><span class="ic">&#9728;</span> Almanac</button>
-  <div class="menu-label">Admin</div>
-  <button class="menu-item admin-only" onclick="go('approvals');closeMenu()"><span class="ic">&#9989;</span> Approval queue <span class="badge" id="approve-badge" style="display:none">0</span></button>
-  <div class="menu-label">Language</div>
-  <button class="menu-item" onclick="cycleLang()"><span class="ic">&#127760;</span> <span id="menu-lang">English</span></button>
-</nav>
+<!-- The hand-rolled drawer that lived here is gone. grush-nav.js builds
+     the drawer from window.GRUSH_NAV at the bottom of this file. -->
 
-<div id="app">
-  <div class="topbar">
-    <button class="iconbtn" onclick="openMenu()">&#9776;</button>
-    <span class="title" id="bar-title">Lancer Farms</span>
-    <span style="width:44px"></span>
+<div id="app" class="shell-frame">
+  <!-- grush-nav inserts its burger as the first child of .sitebar,
+       because this page runs rail:false. -->
+  <div class="sitebar">
+    <img src="lfg-logo-192.webp" alt="">
+    <div class="wrap">
+      <div class="eb">Staff tool &middot; Zone 9b</div>
+      <div class="wm">Lancer Farms <em>&amp; Gardens</em></div>
+    </div>
   </div>
 
-  <main>
+  <div class="screen-head">
+    <h1 class="title" id="bar-title">Lancer Farms</h1>
+  </div>
+
+  <main class="shell-scroll">
     <!-- HUB -->
     <section class="screen active" id="screen-hub">
       <div class="pad">
@@ -614,7 +608,8 @@ function cycleLang(){
   let cur=localStorage.getItem('lfg_lang')||'en';
   let next=order[(order.indexOf(cur)+1)%3];
   localStorage.setItem('lfg_lang',next);
-  document.getElementById('menu-lang').textContent=names[next];
+  const ml=document.getElementById('menu-lang');
+  if(ml) ml.textContent=names[next];
   toast('Language: '+names[next]);
 }
 function chooseRole(r){
@@ -645,8 +640,21 @@ function go(scr){
   if(scr==='log'){ ab.style.display='block'; document.getElementById('primary-action').textContent='Log it'; document.getElementById('primary-action').onclick=submitLog; }
   else ab.style.display='none';
 }
-function openMenu(){ document.getElementById('panel').classList.add('show'); document.getElementById('scrim').classList.add('show'); }
-function closeMenu(){ document.getElementById('panel').classList.remove('show'); document.getElementById('scrim').classList.remove('show'); }
+/* The drawer is grush-nav's now. These two are kept as thin shims because
+   eleven call sites below still use them — and because grush-settings.js
+   calls window.closeMenu() before opening its console. */
+/* iOS app-shell caveat: with <body> locked, the browser reveals a focused
+   field by scrolling the DOCUMENT, which no longer scrolls. Fields low in
+   a sheet can end up behind the keyboard. Nudge them into view. */
+document.addEventListener('focusin', function(e){
+  if (!document.documentElement.classList.contains('grush-shell')) return;
+  var el = e.target;
+  if (!el.matches || !el.matches('input, select, textarea')) return;
+  setTimeout(function(){ el.scrollIntoView({ block:'center', behavior:'smooth' }); }, 250);
+});
+
+function openMenu(){ if (window.GrushNav) window.GrushNav.open(); }
+function closeMenu(){ if (window.GrushNav) window.GrushNav.close(); }
 
 /* ---------- toast ---------- */
 let toastT;
@@ -958,7 +966,10 @@ async function refreshApproveBadge(){
     sb.from('lfg_photos').select('*',{count:'exact',head:true}).eq('approval_status','pending')
   ]);
   const total=(logs.count||0)+(comments.count||0)+(photos.count||0);
+  /* The badge lives inside a drawer item that grush-nav builds, so it may
+     not exist yet on an early call. Guard rather than throw. */
   const b=document.getElementById('approve-badge');
+  if(!b) return;
   if(total>0){ b.style.display='flex'; b.textContent=total; } else b.style.display='none';
 }
 function _escA(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -1461,5 +1472,92 @@ async function uploadReviewed(){
 <div id="howto-view" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="hv-title">How-to</span><button class="pr-x" onclick="closeHowtoView()">&times;</button></div><div id="hv-body" style="padding:14px 16px;overflow-y:auto;font-size:1.05rem;line-height:1.6"></div><div class="pr-actions" id="hv-actions"><button class="pr-btn cancel" onclick="closeHowtoView()">Close</button></div></div></div>
 <div id="photo-edit" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">Edit photo</span><button class="pr-x" onclick="closePhotoEdit()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><img id="pe-img" src="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px"><input id="pe-caption" placeholder="Caption (optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><select id="pe-area" style="width:100%;margin-bottom:10px"></select><select id="pe-type" style="width:100%;margin-bottom:10px"></select><select id="pe-plant" style="width:100%;margin-bottom:10px"></select><select id="pe-status" style="width:100%"><option value="approved">Approved (public)</option><option value="pending">Pending (hidden)</option></select></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closePhotoEdit()">Cancel</button><button class="pr-btn go" onclick="savePhotoEdit()">Save</button></div></div></div>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
+
+<script>
+/* ── Navigation config for grush-nav.js ────────────────────────────────
+   rail:false is the important line. app.html already owns the bottom of
+   the screen — .actionbar (fixed, z30), #task-sheet and #inv-sheet, the
+   #toast pinned at bottom:90px, and a full-screen #splash. A bottom rail
+   would sit on top of every one of them, and would draw over the splash
+   for the 1.4s before it fades. So the burger goes in .sitebar instead
+   and the drawer opens from there.
+
+   The Admin group is appended by grush-nav only when is_operator()
+   returns true — the database decides, not a localStorage flag. */
+window.GRUSH_NAV = {
+  title: 'Staff tool',
+  rail: false,
+  burgerHost: '.sitebar',
+  groups: [
+    { items: [
+      { label:'Home', icon:'\u{1F3E0}', run:function(){ goHero(); } },
+      { label:'Hub',  icon:'\u25A0',    run:function(){ go('hub'); } }
+    ]},
+    { label:'Record', items:[
+      { label:'Log activity', icon:'\u270E',    run:function(){ go('log'); } },
+      { label:'Photos',       icon:'\u{1F4F7}', run:function(){ go('photos'); } }
+    ]},
+    { label:'Act', items:[
+      { label:'Tasks', icon:'\u2611', run:function(){ go('tasks'); } }
+    ]},
+    { label:'Diagnose', items:[
+      { label:'Plant triage', icon:'\u{1FA7A}', href:'triage.html' }
+    ]},
+    { label:'Resources', items:[
+      { label:'Inventory',      icon:'\u{1F4E6}', run:function(){ go('inventory'); } },
+      { label:'Locations',      icon:'\u{1F4CD}', run:function(){ go('areas'); } },
+      { label:'Farm manual',    icon:'\u{1F4D5}', href:'manual.html' },
+      { label:'Live farm data', icon:'\u{1F4CA}', href:'data.html' },
+      { label:'Almanac',        icon:'\u2600',    href:'almanac.html' }
+    ]},
+    { label:'Language', items:[
+      { label:'English', icon:'\u{1F310}', run:function(){ cycleLang(); } }
+    ]}
+  ],
+  staff: { label:'Admin', items:[
+    { label:'Approval queue', icon:'\u2705', run:function(){ go('approvals'); } }
+  ]}
+};
+</script>
+<script src="grush-nav.js?v=2"></script>
+<script>
+/* Two drawer items carry state that grush-nav does not model: the approval
+   count badge and the current language name. Re-attach the ids the existing
+   code already looks for, rather than rewriting that code. Runs after
+   grush-nav has mounted; the staff group arrives asynchronously once
+   is_operator() resolves, so watch for it. */
+(function(){
+  function enhance(){
+    var items = document.querySelectorAll('#grush-drawer .grush-item');
+    for (var i=0;i<items.length;i++){
+      var t = items[i].textContent.trim();
+      if (t.indexOf('Approval queue') === 0 && !document.getElementById('approve-badge')) {
+        var b = document.createElement('span');
+        b.className = 'badge'; b.id = 'approve-badge';
+        b.style.display = 'none'; b.textContent = '0';
+        items[i].appendChild(b);
+        if (typeof refreshApproveBadge === 'function') refreshApproveBadge();
+      }
+      if (t.indexOf('English') === 0 || t.indexOf('Espa') === 0 || t.indexOf('Portug') === 0) {
+        if (!document.getElementById('menu-lang')) {
+          var names = {en:'English', es:'Espa\u00f1ol', pt:'Portugu\u00eas'};
+          var cur = localStorage.getItem('lfg_lang') || 'en';
+          var sp = document.createElement('span');
+          sp.id = 'menu-lang'; sp.textContent = names[cur] || 'English';
+          var last = items[i].lastChild;
+          if (last && last.nodeType === 3) items[i].replaceChild(sp, last);
+          else items[i].appendChild(sp);
+        }
+      }
+    }
+  }
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(enhance,0); });
+  else setTimeout(enhance, 0);
+  /* the Admin group only appears after is_operator() resolves */
+  document.addEventListener('grush:auth', function(){ setTimeout(enhance, 300); });
+  setTimeout(enhance, 1200);
+})();
+</script>
 </body>
 </html>
