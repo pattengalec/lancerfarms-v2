@@ -561,7 +561,13 @@ window.addEventListener('load', ()=>{
   (function(){
     var taps=0, timer=null;
     document.addEventListener('click', async function(e){
-      var t = e.target && e.target.closest ? e.target.closest('#bar-title') : null;
+      /* Both titles count. There are two "Lancer Farms" on screen — the
+         wordmark in the dark bar and the screen heading below it — and the
+         bar is the one that LOOKS like a header, so that is what people
+         tap. Accepting either is cheaper than teaching anyone which. */
+      var t = e.target && e.target.closest
+            ? e.target.closest('#bar-title, .sitebar .wm, .sitebar .wrap')
+            : null;
       if(!t) return;
       taps++; clearTimeout(timer); timer=setTimeout(function(){ taps=0; }, 1500);
       if(taps<5) return;
