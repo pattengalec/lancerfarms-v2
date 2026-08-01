@@ -14,6 +14,11 @@
     --line:#45423A; --line-strong:#5A554A;
     --green:#7E9A6E; --green-d:#2A2620; --leaf:#A8B89A; --amber:#C9973F;
     --shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
+    /* fixed plates — dark in BOTH modes, matching almanac/data */
+    --bar-bg:#1F1C17; --bar-ink:#F0EDE2; --bar-accent:#D4A44E;
+    --bar-soft:#B6C4A9; --bar-line:#45423A;
+    --font-display:'Fraunces',Georgia,serif;
+    --font-mono:ui-monospace,'Courier Prime',monospace;
   }
   select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=file]){background:var(--paper);color:var(--ink);border:1.5px solid var(--line-strong);border-radius:8px;padding:8px;font-size:14px;font-family:inherit;}
   select option,select optgroup{background:var(--paper);color:var(--ink);}
@@ -25,28 +30,32 @@
 
   #app{max-width:520px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column;}
 
-  .topbar{height:56px; flex:0 0 56px; display:flex; align-items:center; justify-content:space-between;
-    padding:0 12px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--paper); z-index:40;}
+  /* ── Site title bar (herbarium plate) ──
+     A PLATE, not page ground: it stays dark in light mode, matching
+     almanac/data/about-grush. Only --paper and --card flip. */
+  .sitebar{background:var(--bar-bg); display:flex; align-items:center; gap:13px;
+    padding:13px 14px 11px; position:sticky; top:0; z-index:40;
+    border-bottom:1px solid var(--bar-line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
+  .sitebar img{width:46px; height:46px; flex:none; object-fit:contain; border-radius:50%;
+    border:1px solid var(--bar-line); padding:2px;}
+  .sitebar .wrap{flex:1; min-width:0;}
+  .sitebar .eb{font-family:var(--font-mono); font-size:.7rem; font-weight:700; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--bar-accent); margin-bottom:4px;}
+  .sitebar .wm{font-family:var(--font-display); font-size:1.3rem; font-weight:700;
+    color:var(--bar-ink); line-height:1; letter-spacing:-.015em;}
+  .sitebar .wm em{font-style:normal; font-weight:400; color:var(--bar-soft);}
+  @media (max-width:360px){ .sitebar .wm{font-size:1.15rem;} .sitebar img{width:40px; height:40px;} }
+
+  /* per-screen heading, formerly the topbar title */
+  .screen-head{padding:16px 16px 0;}
+  .screen-head .title{font-family:'Fraunces',Georgia,serif; font-weight:600; font-size:1.45rem;
+    color:var(--ink); margin:0;}
+
   .iconbtn{width:44px; height:44px; border:none; background:transparent; border-radius:12px; font-size:24px;
     display:flex; align-items:center; justify-content:center; color:var(--ink);}
   .iconbtn:active{background:rgba(0,0,0,.05);}
-  .topbar .title{font-family:'Fraunces',serif; font-weight:600; font-size:18px;}
   .lang-mini{border:1.5px solid var(--line-strong); background:var(--card); color:var(--ink-soft);
     border-radius:999px; padding:6px 13px; font-size:13px; font-weight:600;}
-
-  /* hamburger panel */
-  #scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:90; opacity:0; pointer-events:none; transition:opacity .25s;}
-  #scrim.show{opacity:1; pointer-events:auto;}
-  #panel{position:fixed; top:0; left:0; bottom:0; width:280px; max-width:82%; background:var(--card);
-    z-index:100; transform:translateX(-100%); transition:transform .28s cubic-bezier(.3,.7,.3,1);
-    box-shadow:2px 0 24px rgba(0,0,0,.18); display:flex; flex-direction:column; padding:18px 14px;}
-  #panel.show{transform:translateX(0);}
-  #panel .phead{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
-  .menu-item{display:flex; align-items:center; gap:13px; min-height:52px; padding:0 12px; border-radius:12px;
-    border:none; background:transparent; width:100%; font-size:16px; color:var(--ink); text-align:left;}
-  .menu-item:active{background:var(--paper);}
-  .menu-item .ic{font-size:22px; width:24px; text-align:center;}
-  .menu-label{font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:var(--ink-soft); margin:14px 12px 4px;}
 
   main{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px;}
   .intro{font-size:15px; color:var(--ink-soft); margin:2px 0 18px;}
@@ -230,26 +239,18 @@
 </head>
 <body>
 
-<div id="scrim" onclick="closeMenu()"></div>
-<nav id="panel">
-  <div class="phead"><h2 data-i18n="menu.title">Menu</h2><button class="iconbtn" onclick="closeMenu()">&times;</button></div>
-  <button class="menu-item" onclick="location.href='/index.html'"><span class="ic">&#127968;</span> Home</button>
-  <div class="menu-label">Explore</div>
-  <button class="menu-item" onclick="show('see');closeMenu()"><span class="ic">&#128247;</span> See</button>
-  <button class="menu-item" onclick="show('learn');closeMenu()"><span class="ic">&#127793;</span> Learn</button>
-  <button class="menu-item" onclick="show('do');closeMenu()"><span class="ic">&#9998;</span> Do</button>
-  <button class="menu-item" onclick="show('share');closeMenu()"><span class="ic">&#128172;</span> Share</button>
-  <div class="menu-label">More</div>
-  <button class="menu-item" onclick="location.href='/manual.html'"><span class="ic">&#128214;</span> Farm manual</button>
-  <div class="menu-label">Language</div>
-  <div class="menu-item" style="display:flex;align-items:center;gap:10px"><span class="ic">&#127760;</span> <span data-lang-switch></span></div>
-</nav>
-
 <div id="app">
-  <div class="topbar">
-    <button class="iconbtn" onclick="openMenu()">&#9776;</button>
-    <span class="title" id="bar-title">Lancer Farms</span>
+  <div class="sitebar">
+    <img src="lfg-logo-192.webp" alt="">
+    <div class="wrap">
+      <div class="eb">Zone 9b &middot; Riverside</div>
+      <div class="wm">Lancer Farms <em>&amp; Gardens</em></div>
+    </div>
     <span data-lang-switch></span>
+  </div>
+
+  <div class="screen-head">
+    <h1 class="title" id="bar-title">Lancer Farms</h1>
   </div>
 
   <main>
@@ -349,10 +350,16 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
 <script>
-var SUPABASE_URL='https://gblizuknnvguxyxfequh.supabase.co';
-var SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGl6dWtubnZndXh5eGZlcXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MzE5NjIsImV4cCI6MjA5OTIwNzk2Mn0.9m3e5T4S1kL9wusD0ZJBgIkshGt_Ws55iEcBE8bbLiE';
-var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+// Credentials come from lfg-config.js. Nothing is hardcoded on this page.
+var SUPABASE_URL = window.LFG_CONFIG.SUPABASE_URL;
+var SUPABASE_ANON = window.LFG_CONFIG.SUPABASE_ANON_KEY;
+// Reuse the client grush-auth.js already built so a signed-in operator's
+// session is visible here too — that is what lets grush-nav decide whether
+// to show the Staff group.
+var sb = GRUSH.sb;
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 var TITLES={hub:'Lancer Farms',see:'See',learn:'Learn',do:'Do',share:'Share'};
@@ -367,14 +374,15 @@ function show(scr){
   if(scr==='learn') openLearn();
   if(scr==='do') openDo();
 }
-function openMenu(){ document.getElementById('panel').classList.add('show'); document.getElementById('scrim').classList.add('show'); }
-function closeMenu(){ document.getElementById('panel').classList.remove('show'); document.getElementById('scrim').classList.remove('show'); }
+/* The drawer and bottom rail are rendered by grush-nav.js (config at the
+   bottom of this file). openMenu()/closeMenu() are gone with the old
+   hand-rolled panel. */
 
 /* ---------- SEE: approved photo gallery ---------- */
 var photosLoaded=false;
 var seePhotos=[], seeAreaMap={};
 function _capW(x){ x=String(x||''); return x?x.charAt(0).toUpperCase()+x.slice(1):''; }
-var VCLOUD='ddbsuxerb', VPRESET='lfg-photos';
+var VCLOUD=window.LFG_CONFIG.CLOUDINARY_CLOUD, VPRESET=window.LFG_CONFIG.CLOUDINARY_PRESET;
 var vsubFiles=[], vsubURLs=[];
 function vTypeOptions(){ return '<option value="">What is it?</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option>'; }
 function vsubPick(input){
@@ -890,6 +898,41 @@ window.onLangChange=function(l){ refreshBarTitle(); };
   <button class="lb-arrow" id="lb-next" onclick="lbNav(1)">&#8250;</button>
   <span id="lb-count"></span>
 </div>
-<a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
+<a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:calc(88px + env(safe-area-inset-bottom));right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
+
+<script>
+/* Navigation config for grush-nav.js. The four visitor screens live in the
+   drawer now instead of a hand-rolled panel; grush-nav renders the rail,
+   the burger and the drawer, and reserves body padding so the rail never
+   covers content.
+
+   The Staff group is appended only if grush-auth reports an operator.
+   That is a convenience, not a boundary — RLS is the boundary. */
+window.GRUSH_NAV = {
+  title: 'Lancer Farms',
+  rail: [ { label:'Farm', icon:'\u{1F3E0}', run:function(){ show('hub'); } } ],
+  groups: [
+    { label:'This visit', items:[
+      { label:'See',   icon:'\u{1F4F7}', run:function(){ show('see');   } },
+      { label:'Learn', icon:'\u{1F331}', run:function(){ show('learn'); } },
+      { label:'Do',    icon:'\u270E',    run:function(){ show('do');    } },
+      { label:'Share', icon:'\u{1F4AC}', run:function(){ show('share'); } }
+    ]},
+    { label:'Explore', items:[
+      { label:'Home',         icon:'\u{1F3E0}', href:'index.html'   },
+      { label:'Farm data',    icon:'\u{1F4CA}', href:'data.html'    },
+      { label:'Almanac',      icon:'\u{1F326}', href:'almanac.html' },
+      { label:'Plant triage', icon:'\u{1FA7A}', href:'triage.html'  },
+      { label:'How-to cards', icon:'\u{1F4D6}', href:'howto.html'   },
+      { label:'Farm manual',  icon:'\u{1F4D5}', href:'manual.html'  }
+    ]}
+  ],
+  staff: { label:'Staff', items:[
+      { label:'Staff tool', icon:'\u{1F9F0}', href:'app.html'   },
+      { label:'Admin',      icon:'\u2699\uFE0F', href:'admin.html' }
+  ]}
+};
+</script>
+<script src="grush-nav.js?v=1"></script>
 </body>
 </html>
