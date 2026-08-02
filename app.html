@@ -1545,6 +1545,15 @@ window.GRUSH_NAV = {
     ]},
     { label:'Language', items:[
       { label:'English', icon:'\u{1F310}', run:function(){ cycleLang(); } }
+    ]},
+    /* UNGATED on purpose. Every other link to admin.html lives in a staff
+       group that grush-nav only mounts once is_operator() returns true —
+       but you get a session by signing in ON admin.html, so signed out
+       there was no way to reach it except typing the URL. admin.html has
+       its own magic-link wall, so showing the door costs nothing: a
+       stranger who follows it gets asked for an email and gets nowhere. */
+    { label:'Manage', items:[
+      { label:'Admin panel', icon:'\u2699\uFE0F', href:'admin.html' }
     ]}
   ],
   staff: { label:'Admin', items:[
