@@ -898,24 +898,79 @@ function toggleWhenPicker(){
   inp.value=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
   box.style.display='block'; inp.focus();
 }
-async function addLocationInline(){
-  const name=prompt('New location name:'); if(!name||!name.trim()) return;
-  /* area_type is NOT NULL with no default and a CHECK constraint, so an
-     insert without it is refused every time. This has never once worked;
-     it just showed the toast below. 'other' is the neutral member of the
-     allowed set (raised_bed, tree, shrub, ground, container, other, zone,
-     landmark) — a quick add has no way to know which it is. */
-  const {data,error}=await sb.from('lfg_growing_areas')
-    .insert({name:name.trim(), zone:'Grounds', area_type:'other'})
+/* ---------- one door for creating locations ----------
+   Every add path (log chip, Locations form, photo editor) goes through
+   resolveOrCreateArea so a name can only exist once. There is no unique
+   index on lfg_growing_areas.name, so without this the same bed can be
+   typed in three times and become three rows with three histories.
+
+   Matching is normalised, not literal: case, spaces and punctuation are
+   stripped, so "Bed 3H", "bed 3h" and "Bed-3H" all resolve to one record.
+   Deliberately NOT fuzzy — bed names here differ by a single character
+   ("Bed 3F" / "Bed 3G"), so edit-distance matching would flag every
+   legitimate new bed as a duplicate. */
+function normAreaName(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
+
+/* Looks across ALL areas including archived ones. state.areas only holds
+   active rows, so an in-memory check would silently re-create anything
+   that had been archived. */
+async function findAreaByName(name){
+  const key=normAreaName(name);
+  if(!key) return null;
+  const {data,error}= await sb.from('lfg_growing_areas').select('id,name,zone,area_type,archived_at');
+  if(error) return null;
+  return (data||[]).find(a=>normAreaName(a.name)===key)||null;
+}
+
+/* Returns {area, action} where action is 'existing' | 'restored' | 'created',
+   or null if the user backed out. Never inserts a duplicate. */
+async function resolveOrCreateArea(name, zone, area_type){
+  name=String(name||'').trim();
+  if(!name){ toast('Name required'); return null; }
+  const hit=await findAreaByName(name);
+
+  if(hit && !hit.archived_at){
+    return {area:hit, action:'existing'};
+  }
+
+  if(hit && hit.archived_at){
+    if(!confirm('"'+hit.name+'" already exists but was archived.\n\nRestore it instead of creating a second one?')) return null;
+    const {error}= await sb.from('lfg_growing_areas').update({archived_at:null}).eq('id',hit.id);
+    if(error){ toast('Restore failed: '+(error.message||'unknown')); return null; }
+    return {area:Object.assign({}, hit, {archived_at:null}), action:'restored'};
+  }
+
+  const {data,error}= await sb.from('lfg_growing_areas')
+    .insert({name:name, zone:(String(zone||'').trim()||'Grounds'), area_type:(area_type||'other')})
     .select().single();
-  if(error){ toast('Could not add location: ' + (error.message||'unknown')); return; }
-  state.areas=[...(state.areas||[]),data];
+  if(error){ toast('Could not add location: '+(error.message||'unknown')); return null; }
+  return {area:data, action:'created'};
+}
+
+/* Keeps state.areas in step after any of the three paths resolves. */
+function upsertStateArea(a){
+  state.areas=state.areas||[];
+  const i=state.areas.findIndex(x=>x.id===a.id);
+  if(i>-1) state.areas[i]=a; else state.areas.push(a);
+}
+
+async function addLocationInline(){
+  const name=prompt('New location name:'); if(name===null||!name.trim()) return;
+  /* area_type is NOT NULL with a CHECK constraint; a one-field quick add has
+     no way to know which member it is, so 'other' is the neutral default.
+     Zone defaults to Grounds — retype it on the Locations screen if it
+     belongs to a numbered zone. */
+  const res=await resolveOrCreateArea(name, 'Grounds', 'other');
+  if(!res) return;
+  upsertStateArea(res.area);
   renderAreaChips();
-  const newBtn=document.querySelector('#where-groups [data-area="'+data.id+'"]');
-  if(newBtn) pickArea(newBtn, data.id, data.name);
+  const btn=document.querySelector('#where-groups [data-area="'+res.area.id+'"]');
+  if(btn && !btn.classList.contains('on')) pickArea(btn, res.area.id, res.area.name);
   const areasScr=document.getElementById('screen-areas');
   if(areasScr && areasScr.classList.contains('active') && typeof loadAreasScreen==='function') loadAreasScreen();
-  toast('Location added');
+  toast(res.action==='created' ? 'Location added'
+      : res.action==='restored' ? 'Restored \u2014 selected'
+      : 'Already on the list \u2014 selected');
 }
 function openWhenPicker(){
   const inp=document.getElementById('when-input');
@@ -1436,10 +1491,13 @@ async function addAreaFromForm(){
   const type=document.getElementById('na-type').value;
   const zone=document.getElementById('na-zone').value.trim()||'Grounds';
   if(!name){ toast('Name required'); return; }
-  const {error}= await sb.from('lfg_growing_areas').insert({name:name, zone:zone, area_type:type});
-  if(error){ toast('Could not add'); return; }
+  const res=await resolveOrCreateArea(name, zone, type);
+  if(!res) return;
   document.getElementById('na-name').value='';
-  toast('Location added'); loadAreas(); loadAreasScreen();
+  toast(res.action==='created' ? 'Location added'
+      : res.action==='restored' ? 'Restored from archive'
+      : 'Already exists \u2014 no duplicate made');
+  await loadAreas(); loadAreasScreen();
 }
 async function renameArea(id){
   const nn=prompt('Rename location', _areaById(id).name||''); if(nn===null) return;
@@ -1465,10 +1523,13 @@ async function restoreArea(id){
 async function quickAddArea(){
   const name=prompt('New location name'); if(name===null||!name.trim()) return null;
   const zone=prompt('Zone (e.g. Grounds, Zone 2)','Grounds'); if(zone===null) return null;
-  const {data,error}= await sb.from('lfg_growing_areas').insert({name:name.trim(), zone:(zone.trim()||'Grounds'), area_type:'landmark'}).select().single();
-  if(error){ toast('Could not add'); return null; }
-  toast('Location added'); await loadAreas();
-  return data;
+  const res=await resolveOrCreateArea(name, zone, 'landmark');
+  if(!res) return null;
+  toast(res.action==='created' ? 'Location added'
+      : res.action==='restored' ? 'Restored from archive'
+      : 'Already exists \u2014 using it');
+  await loadAreas();
+  return res.area;
 }
 async function peAreaChange(){
   const sel=document.getElementById('pe-area');
