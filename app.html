@@ -1683,41 +1683,57 @@ window.GRUSH_NAV = {
   title: 'Staff tool',
   rail: false,
   burgerHost: '.sitebar',
+
+  /* Grouped by the four verbs of the farm's teaching model:
+       PLAN   decide what to do next
+       DO     the work itself, and recording it
+       LEARN  reference you read while working
+       TEACH  instructor sandbox — not built yet, so not shown
+
+     Two entries are deliberately absent rather than present-and-broken:
+     Farm calendar (Plan) and the whole Teach group. A drawer item that
+     404s is worse than one that is not there yet. */
+
   groups: [
     { items: [
       { label:'Home', icon:'\u{1F3E0}', run:function(){ goHero(); } },
       { label:'Hub',  icon:'\u25A0',    run:function(){ go('hub'); } }
     ]},
-    { label:'Record', items:[
+
+    { label:'Plan', items:[
+      { label:'Almanac',   icon:'\u{1F326}', href:'almanac.html' },
+      { label:'Farm data', icon:'\u{1F4CA}', href:'data.html'    }
+      /* { label:'Farm calendar', icon:'\u{1F4C5}', href:'calendar.html' } — when built */
+    ]},
+
+    { label:'Do', items:[
+      { label:'Tasks',        icon:'\u2611',    run:function(){ go('tasks'); } },
       { label:'Log activity', icon:'\u270E',    run:function(){ go('log'); } },
-      { label:'Photos',       icon:'\u{1F4F7}', run:function(){ go('photos'); } }
+      { label:'Photos',       icon:'\u{1F4F7}', run:function(){ go('photos'); } },
+      { label:'Inventory',    icon:'\u{1F4E6}', run:function(){ go('inventory'); } },
+      { label:'Locations',    icon:'\u{1F4CD}', run:function(){ go('areas'); } }
     ]},
-    { label:'Act', items:[
-      { label:'Tasks', icon:'\u2611', run:function(){ go('tasks'); } }
-    ]},
-    { label:'Diagnose', items:[
+
+    { label:'Learn', items:[
+      { label:'Farm manual',  icon:'\u{1F4D5}', href:'manual.html' },
+      { label:'How-to cards', icon:'\u{1F4D6}', href:'howto.html'  },
       { label:'Plant triage', icon:'\u{1FA7A}', href:'triage.html' }
     ]},
-    { label:'Resources', items:[
-      { label:'Inventory',      icon:'\u{1F4E6}', run:function(){ go('inventory'); } },
-      { label:'Locations',      icon:'\u{1F4CD}', run:function(){ go('areas'); } },
-      { label:'Farm manual',    icon:'\u{1F4D5}', href:'manual.html' },
-      { label:'Live farm data', icon:'\u{1F4CA}', href:'data.html' },
-      { label:'Almanac',        icon:'\u2600',    href:'almanac.html' }
-    ]},
+
     { label:'Language', items:[
       { label:'English', icon:'\u{1F310}', run:function(){ cycleLang(); } }
     ]},
+
     /* UNGATED on purpose. Every other link to admin.html lives in a staff
        group that grush-nav only mounts once is_operator() returns true —
        but you get a session by signing in ON admin.html, so signed out
        there was no way to reach it except typing the URL. admin.html has
-       its own magic-link wall, so showing the door costs nothing: a
-       stranger who follows it gets asked for an email and gets nowhere. */
+       its own magic-link wall, so showing the door costs nothing. */
     { label:'Manage', items:[
       { label:'Admin panel', icon:'\u2699\uFE0F', href:'admin.html' }
     ]}
   ],
+
   staff: { label:'Admin', items:[
     { label:'Approval queue', icon:'\u2705', run:function(){ go('approvals'); } }
   ]}
