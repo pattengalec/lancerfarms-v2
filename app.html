@@ -111,7 +111,10 @@
   body.is-admin .admin-only{display:flex;}
 
   /* ---------- screens ---------- */
-  main{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:96px;}
+  /* The action bar is fixed: 12px + 58px button + 12px + the iOS home-indicator
+     inset. 96px flat was shorter than that on a notched phone, so the Note box
+     sat underneath it. */
+  main{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:calc(112px + env(safe-area-inset-bottom));}
   .screen{display:none; animation:screenin .2s ease;}
   .screen.active{display:block;}
   @keyframes screenin{from{opacity:0; transform:translateY(4px);}to{opacity:1; transform:none;}}
@@ -835,7 +838,7 @@ function renderAreaChips(){
   const picked=(state.areaIds||[]).map(a=>a.id);
   const groups={};
   areas.forEach(a=>{ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
-  let html='';
+  let html='<div class="btn-grid" style="margin-bottom:4px"><button class="chip" style="min-height:52px;border-style:dashed;opacity:.75;grid-column:1/-1" data-addarea="1">&#43; New location</button></div>';
   Object.keys(groups).forEach(z=>{
     html+='<div class="zone-h">'+esc(z)+'</div><div class="btn-grid">';
     groups[z].forEach(a=>{
@@ -844,8 +847,7 @@ function renderAreaChips(){
     });
     html+='</div>';
   });
-  html+='<div class="btn-grid" style="margin-top:8px"><button class="chip" style="min-height:52px;border-style:dashed;opacity:.75;grid-column:1/-1" data-addarea="1">&#43; New location</button></div>';
-  el.innerHTML=html||'<div class="btn-grid"><button class="chip" style="min-height:52px;border-style:dashed" data-addarea="1">&#43; New location</button></div>';
+  el.innerHTML=html;
 }
 
 /* One delegated listener instead of inline onclick — area names can contain
