@@ -222,6 +222,16 @@
     color:var(--red); font-size:16px; font-weight:600; margin-top:10px;}
   .btn-danger:active{background:var(--red-bg);}
   .btn-ghost{width:100%; min-height:48px; border:none; background:transparent; color:var(--ink-soft); font-size:16px; margin-top:6px;}
+  /* The plant editor reuses the bottom-sheet pattern of the task and
+     inventory sheets. Same layer (110/120) so it sits above the action bar
+     and below the toast, exactly like its siblings. */
+  #plant-scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:110; opacity:0; pointer-events:none; transition:opacity .25s;}
+  #plant-scrim.show{opacity:1; pointer-events:auto;}
+  #plant-sheet{position:fixed; left:0; right:0; bottom:0; max-width:520px; margin:0 auto; background:var(--paper);
+    z-index:120; border-radius:22px 22px 0 0; padding:12px 18px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(100%); transition:transform .3s cubic-bezier(.3,.7,.3,1);
+    max-height:88dvh; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;}
+  #plant-sheet.show{transform:translateY(0);}
   #inv-scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:110; opacity:0; pointer-events:none; transition:opacity .25s;}
   #inv-scrim.show{opacity:1; pointer-events:auto;}
   #inv-sheet{position:fixed; left:0; right:0; bottom:0; max-width:520px; margin:0 auto; background:var(--paper);
@@ -505,6 +515,58 @@
     <button class="btn-primary" onclick="saveInv()" style="margin-top:8px">Save item</button>
     <button id="inv-delete-btn" class="btn-danger" onclick="deleteInv()" style="display:none">Remove item</button>
     <button class="btn-ghost" onclick="closeInvEditor()">Cancel</button>
+  </div>
+
+  <!-- PLANT EDITOR SHEET -->
+  <div id="plant-scrim" onclick="closePlantEditor()"></div>
+  <div id="plant-sheet">
+    <div class="sheet-grip"></div>
+    <h2 id="plant-sheet-title" style="margin-bottom:4px">Plant record</h2>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;line-height:1.4">
+      The first four fields make it visible in Learn and light up any photos
+      linked to it. The grower details below feed the calculators and can wait.
+    </p>
+
+    <div class="field">
+      <div class="field-label">Name</div>
+      <input id="pl-name" class="text-in" autocomplete="off">
+    </div>
+    <div class="field">
+      <div class="field-label">Category</div>
+      <select id="pl-category" class="text-in">
+        <option>Vegetable</option><option>Fruit</option><option>Herb</option>
+        <option>Flower</option><option>Tree</option><option>Shrub</option>
+        <option>Grain</option><option>Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <div class="field-label">Botanical name <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
+      <input id="pl-botanical" class="text-in" placeholder="e.g. Abelmoschus esculentus" autocomplete="off">
+    </div>
+    <div class="field">
+      <div class="field-label">Summary <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
+      <textarea id="pl-summary" class="notebox" placeholder="A sentence or two for visitors&hellip;"></textarea>
+    </div>
+
+    <div class="field-label" style="margin-top:6px;opacity:.75">Grower details &mdash; all optional</div>
+    <div class="field" style="display:flex;gap:10px">
+      <div style="flex:1"><div class="field-label">Days to maturity</div>
+        <input id="pl-dtm" class="text-in" type="number" inputmode="numeric"></div>
+      <div style="flex:1"><div class="field-label">Spacing (in)</div>
+        <input id="pl-spacing" class="text-in" type="number" inputmode="decimal" step="0.5"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">Planting windows</div>
+      <input id="pl-windows" class="text-in" placeholder="e.g. Mar&ndash;May, Aug&ndash;Sep" autocomplete="off">
+    </div>
+    <div class="field">
+      <div class="field-label">Watering</div>
+      <input id="pl-water" class="text-in" placeholder="e.g. deep soak twice weekly" autocomplete="off">
+    </div>
+
+    <button class="btn-primary" onclick="savePlant(true)" style="margin-top:8px">Save &amp; approve</button>
+    <button class="btn-ghost" onclick="savePlant(false)">Save, keep pending</button>
+    <button class="btn-ghost" onclick="closePlantEditor()">Cancel</button>
   </div>
 
   <div class="actionbar" id="actionbar" style="display:none">
@@ -1074,8 +1136,10 @@ async function loadApprovals(){
     html+='<div style="font-size:.8rem;opacity:.65;margin:2px 0 8px">Name-only stubs. Fill in the plant record, then set it approved \u2014 linked photos light up automatically.</div>';
     stubs.forEach(function(p){
       const n=pcounts[p.id]||0;
-      html+='<div class="inv-row"><div class="inv-body"><span class="inv-cat">'+esc(p.plant_name)+'</span>'
-        +'<div style="font-size:.78rem;opacity:.6">'+n+' photo'+(n===1?'':'s')+' waiting on this plant</div></div></div>';
+      html+='<div class="inv-row" style="cursor:pointer" onclick="openPlantEditor(\''+p.id+'\')">'
+        +'<div class="inv-body"><span class="inv-cat">'+esc(p.plant_name)+'</span>'
+        +'<div style="font-size:.78rem;opacity:.6">'+n+' photo'+(n===1?'':'s')+' waiting on this plant</div></div>'
+        +'<button class="chip" style="min-height:40px">Fill in</button></div>';
     });
   }
   el.innerHTML=html;
@@ -1084,6 +1148,68 @@ async function loadApprovals(){
     s.addEventListener('change', function(){ plantSelChange(s, prev); });
   });
 }
+/* ---------- plant editor ----------
+   The "Plants to complete" queue used to be a to-do list with no way to do
+   the to-dos: the cards were plain divs and nothing anywhere on the site
+   could edit or approve a plant record. Supabase's table editor was the only
+   route, which is a 27-column desktop form.
+
+   This asks for the four fields that make a plant LINKABLE AND VISIBLE, then
+   the grower fields that feed the calculators. Everything else in the schema
+   stays blank on purpose — no invented values. */
+let editingPlantId = null;
+
+window.openPlantEditor = async function(id){
+  editingPlantId = id;
+  const {data,error} = await sb.from('lfg_master_plants').select('*').eq('id',id).single();
+  if(error||!data){ toast('Could not open plant: '+((error&&error.message)||'not found')); return; }
+  document.getElementById('plant-sheet-title').textContent = data.plant_name || 'Plant record';
+  document.getElementById('pl-name').value      = data.plant_name || '';
+  document.getElementById('pl-category').value  = data.category || 'Other';
+  document.getElementById('pl-botanical').value = data.botanical_name || '';
+  document.getElementById('pl-summary').value   = data.summary || '';
+  document.getElementById('pl-dtm').value       = data.days_to_maturity ?? '';
+  document.getElementById('pl-spacing').value   = data.spacing_inches ?? '';
+  document.getElementById('pl-windows').value   = data.planting_windows || '';
+  document.getElementById('pl-water').value     = data.watering_plans || '';
+  document.getElementById('plant-scrim').classList.add('show');
+  document.getElementById('plant-sheet').classList.add('show');
+};
+
+window.closePlantEditor = function(){
+  editingPlantId = null;
+  document.getElementById('plant-scrim').classList.remove('show');
+  document.getElementById('plant-sheet').classList.remove('show');
+};
+
+window.savePlant = async function(approve){
+  if(!editingPlantId) return;
+  const name = document.getElementById('pl-name').value.trim();
+  if(!name){ toast('Give the plant a name'); return; }
+  /* Empty strings must become NULL. days_to_maturity is integer and
+     spacing_inches is numeric — '' is not a number and Postgres would
+     reject the whole row, not just the field. */
+  const num = el => { const v = document.getElementById(el).value.trim(); return v===''? null : Number(v); };
+  const txt = el => document.getElementById(el).value.trim() || null;
+  const row = {
+    plant_name:       name,
+    category:         document.getElementById('pl-category').value,
+    botanical_name:   txt('pl-botanical'),
+    summary:          txt('pl-summary'),
+    days_to_maturity: num('pl-dtm'),
+    spacing_inches:   num('pl-spacing'),
+    planting_windows: txt('pl-windows'),
+    watering_plans:   txt('pl-water')
+  };
+  if(approve){ row.approval_status = 'approved'; row.approved_at = new Date().toISOString(); }
+  const {error} = await sb.from('lfg_master_plants').update(row).eq('id',editingPlantId);
+  if(error){ toast('Could not save: '+(error.message||'unknown')); return; }
+  toast(approve ? 'Approved \u2014 linked photos are live' : 'Saved, still pending');
+  closePlantEditor();
+  staffPlants = null;          // force the dropdown cache to rebuild
+  loadApprovals();
+};
+
 async function approveItem(kind,id){
   let error;
   if(kind==='log'){ ({error}= await sb.from('lfg_log').update({approval_status:'approved'}).eq('id',id)); }
