@@ -218,7 +218,7 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
       <div class="tab-bar">
         <button class="tab-btn active" onclick="switchTab('review',this);loadReview()">Review <span class="badge" id="review-count" style="display:none"></span></button>
         <button class="tab-btn" onclick="switchTab('dashboard',this)">Dashboard</button>
-        <button class="tab-btn" onclick="switchTab('tasks',this)">Tasks</button>
+        <button class="tab-btn" onclick="switchTab('tasks',this);ensureAdminHowtos()">Tasks</button>
         <button class="tab-btn" onclick="switchTab('areas',this)">Areas</button>
         <button class="tab-btn" onclick="switchTab('inventory',this)">Inventory</button>
         <button class="tab-btn" onclick="switchTab('reports',this)">Reports</button>
@@ -242,7 +242,7 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 
     <div class="tab-panel" id="tab-dashboard">
       <div class="stat-grid" id="stat-grid">
-        <div class="stat-card" onclick="switchTab('tasks',document.querySelectorAll('.tab-btn')[1])">
+        <div class="stat-card" onclick="switchTab('tasks',document.querySelectorAll('.tab-btn')[1]);ensureAdminHowtos()">
           <div class="stat-num" id="stat-tasks">—</div>
           <div class="stat-label">Tasks today</div>
         </div>
@@ -334,6 +334,20 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
           <div class="form-group">
             <label>Sort Order <span style="font-weight:400;opacity:0.6;">(position in list — lower = earlier)</span></label>
             <input type="number" id="t-sort-order" placeholder="99" min="1" max="999" value="99">
+          </div>
+        </div>
+
+        <!-- How-to card. Previously admin could not attach one at all, so a
+             task created here could never carry steps. -->
+        <div class="form-group">
+          <label>How-to card <span style="font-weight:400;opacity:0.6;">(optional)</span></label>
+          <div id="t-howto-suggest"></div>
+          <select id="t-howto">
+            <option value="">No steps &mdash; just the task</option>
+          </select>
+          <div id="t-howto-empty" style="font-size:0.72rem;color:var(--ink-soft);margin-top:6px;line-height:1.45;">
+            Attaching a card means whoever picks this up gets step-by-step
+            instructions on their phone instead of asking you.
           </div>
         </div>
 
@@ -834,6 +848,75 @@ let pendingComplete = null;
 // below still reference it; removing those is a separate tidy.
 function updateModeIcon() {}
 
+/* ─── How-to cards on tasks ────────────────────────────────────
+   admin.html previously had no way to attach one, so tasks created here
+   could never carry steps. Same matcher as the staff tool: it looks for a
+   card you already have rather than letting you write a second one. */
+let adminHowtos = null;
+
+async function ensureAdminHowtos(){
+  if(adminHowtos) return adminHowtos;
+  try{ adminHowtos = await sbGet('lfg_howto_cards','archived_at=is.null&order=title.asc'); }
+  catch(e){ adminHowtos = []; }
+  const sel = document.getElementById('t-howto');
+  if(sel){
+    sel.innerHTML = '<option value="">No steps — just the task</option>'
+      + adminHowtos.map(c => '<option value="' + c.id + '">' + esc(c.title) + '</option>').join('');
+  }
+  return adminHowtos;
+}
+
+const A_STOP = new Set(['the','and','for','with','from','into','onto','this','that',
+  'all','any','out','off','get','put','use','zone','bed','beds','farm','area','plant','plants']);
+function aWords(str){
+  return String(str||'').toLowerCase().split(/[^a-z0-9]+/)
+    .filter(w => w.length >= 4 && !A_STOP.has(w))
+    .map(w => w.replace(/ies$/,'y').replace(/(ses|xes|ches|shes)$/, m => m.slice(0,-2))
+                .replace(/([^s])s$/,'$1'));
+}
+
+function suggestAdminHowto(){
+  const box = document.getElementById('t-howto-suggest');
+  const sel = document.getElementById('t-howto');
+  if(!box || !sel) return;
+  box.innerHTML = '';
+  if(sel.value) return;                       // already chosen
+  const title = (document.getElementById('t-title').value || '').trim();
+  if(title.length < 4 || !(adminHowtos||[]).length) return;
+
+  const want = aWords(title);
+  let best = null, bestScore = 0;
+  (adminHowtos||[]).forEach(function(c){
+    const have = aWords(c.title);
+    const shared = want.filter(w => have.indexOf(w) !== -1);
+    if(!shared.length) return;
+    const score = shared.length > 1 ? shared.length : (shared[0].length >= 6 ? 1 : 0);
+    if(score > bestScore){ bestScore = score; best = c; }
+  });
+  if(!best) return;
+
+  box.innerHTML = '<div style="background:var(--surface);border:1.5px dashed var(--accent);'
+    + 'border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:0.8rem;line-height:1.45">'
+    + 'You already have a card that looks like this: <strong>' + esc(best.title) + '</strong>'
+    + '<div style="margin-top:8px;display:flex;gap:8px">'
+    + '<button class="btn btn-primary btn-sm" onclick="useAdminHowto(\'' + best.id + '\')">Use it</button>'
+    + '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'t-howto-suggest\').innerHTML=\'\'">Not this one</button>'
+    + '</div></div>';
+}
+
+function useAdminHowto(id){
+  const sel = document.getElementById('t-howto');
+  if(sel) sel.value = id;
+  document.getElementById('t-howto-suggest').innerHTML = '';
+}
+
+let _aSugT;
+document.addEventListener('input', function(e){
+  if(e.target && e.target.id === 't-title'){
+    clearTimeout(_aSugT); _aSugT = setTimeout(suggestAdminHowto, 400);
+  }
+});
+
 /* ─── Access requests ──────────────────────────────────────────
    RLS: anyone may insert, only operators may read or update. So this tab
    is the only place these rows are visible anywhere. */
@@ -1227,7 +1310,12 @@ window.addTask = async function() {
       season_end,
       is_core: document.getElementById('t-core').checked,
       priority: parseInt(document.getElementById('t-priority').value) || 3,
-      sort_order: parseInt(document.getElementById('t-sort-order').value) || 99
+      sort_order: parseInt(document.getElementById('t-sort-order').value) || 99,
+      /* howto_ids is NOT NULL with a {} default, so it must be an array
+         even when empty — a null would be rejected outright. */
+      howto_id: document.getElementById('t-howto').value || null,
+      howto_ids: document.getElementById('t-howto').value
+                   ? [document.getElementById('t-howto').value] : []
     });
     showToast('Task added!');
     document.getElementById('t-title').value = '';
@@ -1287,6 +1375,12 @@ window.editTask = function(idx) {
   document.getElementById('t-recurrence').value = t.recurrence_type || 'visit';
   document.getElementById('t-priority').value = t.priority || 3;
   document.getElementById('t-sort-order').value = t.sort_order || 99;
+  ensureAdminHowtos().then(function(){
+    const sel = document.getElementById('t-howto');
+    if(sel) sel.value = (t.howto_ids && t.howto_ids.length ? t.howto_ids[0] : t.howto_id) || '';
+    const box = document.getElementById('t-howto-suggest');
+    if(box) box.innerHTML = '';
+  });
   document.getElementById('t-core').checked = !!t.is_core;
   toggleRecurringFields();
   // Fill recurrence-specific fields
@@ -1336,7 +1430,12 @@ window.updateTask = async function() {
       recurrence_type: type, recurrence_days, recurrence_interval, due_date, season_start, season_end,
       is_core: document.getElementById('t-core').checked,
       priority: parseInt(document.getElementById('t-priority').value) || 3,
-      sort_order: parseInt(document.getElementById('t-sort-order').value) || 99
+      sort_order: parseInt(document.getElementById('t-sort-order').value) || 99,
+      /* howto_ids is NOT NULL with a {} default, so it must be an array
+         even when empty — a null would be rejected outright. */
+      howto_id: document.getElementById('t-howto').value || null,
+      howto_ids: document.getElementById('t-howto').value
+                   ? [document.getElementById('t-howto').value] : []
     });
     showToast('Task updated!');
     cancelTaskEdit();

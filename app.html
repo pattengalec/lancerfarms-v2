@@ -169,6 +169,16 @@
   /* Says out loud that steps exist. The old bare clipboard emoji gave no
      clue it was tappable, or what it would do. */
   .howto-flag{color:var(--leaf); font-weight:600;}
+  .howto-empty{font-size:12.5px;color:var(--ink-soft);line-height:1.4;margin:0 2px 10px;}
+  /* Suggestion appears only when an existing card looks like a match, so it
+     reads as help rather than as a permanent nag. */
+  .howto-sug{background:var(--card);border:1.5px dashed var(--leaf);border-radius:12px;
+    padding:11px 13px;margin-bottom:10px;font-size:13.5px;line-height:1.4;}
+  .howto-sug b{color:var(--leaf);}
+  .howto-sug .row{display:flex;gap:8px;margin-top:9px;}
+  .howto-sug button{flex:1;min-height:40px;border-radius:10px;font-size:14px;font-family:inherit;}
+  .howto-sug .yes{border:none;background:var(--green);color:#fff;font-weight:600;}
+  .howto-sug .no{border:1.5px solid var(--line-strong);background:transparent;color:var(--ink-soft);}
   .task-edit{flex:0 0 auto; width:40px; height:40px; align-self:center; margin-right:4px;
     border:1.5px solid var(--line-strong); background:transparent; color:var(--ink-soft);
     border-radius:11px; font-size:17px; display:flex; align-items:center; justify-content:center;}
@@ -506,7 +516,11 @@
     </div>
     <div class="field">
       <div class="field-label">How-to steps <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional, in order)</span></div>
+      <div id="task-howto-suggest"></div>
       <div id="task-howto-list"></div>
+      <div id="task-howto-empty" class="howto-empty">
+        No steps yet. Adding them means anyone can do this task without asking you how.
+      </div>
       <select id="task-howto-add" class="text-in" onchange="addHowtoToTask()"><option value="">Add a how-to card&hellip;</option></select>
     </div>
     <button class="btn-primary" onclick="saveTask()" style="margin-top:8px">Save task</button>
@@ -1003,6 +1017,9 @@ async function openTaskEditor(id){
   editRecur = t? (t.recurrence_type||'one_time') : 'one_time';
   document.querySelectorAll('.recur-chip').forEach(c=>c.classList.toggle('on', c.dataset.recur===editRecur));
   document.getElementById('task-delete-btn').style.display = t? 'block':'none';
+  suggestDismissed = false;
+  document.getElementById('task-howto-suggest').innerHTML = '';
+  suggestHowto();
   document.getElementById('task-sheet').classList.add('show');
   document.getElementById('sheet-scrim').classList.add('show');
 }
@@ -1012,6 +1029,14 @@ function closeTaskEditor(){
   editingTaskId=null;
 }
 function pickRecur(el){ document.querySelectorAll('.recur-chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); editRecur=el.dataset.recur; }
+/* Debounced so the suggestion does not flicker on every keystroke. */
+let _sugT;
+document.addEventListener('input', function(e){
+  if(e.target && e.target.id === 'task-title-in' && !suggestDismissed){
+    clearTimeout(_sugT); _sugT = setTimeout(suggestHowto, 400);
+  }
+});
+
 async function saveTask(){
   const title=document.getElementById('task-title-in').value.trim();
   if(!title){ toast('Give the task a name'); return; }
@@ -1435,6 +1460,72 @@ function howtoOptionsHTML(sel){
 }
 let editHowtos=[];
 function _htTitle(id){ const c=(howtoCards||[]).find(function(x){return x.id===id;}); return c? c.title : '(missing card)'; }
+/* ── suggesting an existing card ──────────────────────────────
+   Matches the task title against the titles of cards you already have.
+   The point is to stop a second "Rake debris" card being written because
+   nobody remembered the first one — that is how a card library rots.
+
+   Deliberately conservative: stopwords are dropped, a word must be 4+
+   characters to count, and one shared word is not enough unless it is a
+   long distinctive one. A suggestion that is usually wrong gets ignored,
+   and then the right one gets ignored too. */
+const HOWTO_STOP = new Set(['the','and','for','with','from','into','onto','this','that',
+  'all','any','out','off','get','put','use','zone','bed','beds','farm','area','plant','plants']);
+
+function howtoWords(str){
+  return String(str||'').toLowerCase().split(/[^a-z0-9]+/)
+    .filter(w => w.length >= 4 && !HOWTO_STOP.has(w))
+    /* Crude stemming so "trellises" matches a card called "Trellis vine
+       crops". Without it the most useful suggestions are the ones that
+       miss, because people rarely phrase a task the way the card is
+       titled. Not linguistics — just enough to catch plurals. */
+    .map(w => w.replace(/ies$/, 'y').replace(/(ses|xes|ches|shes)$/, m => m.slice(0, -2))
+                .replace(/([^s])s$/, '$1'));
+}
+
+function suggestHowto(){
+  const box = document.getElementById('task-howto-suggest');
+  if(!box) return;
+  box.innerHTML = '';
+  const title = (document.getElementById('task-title-in').value || '').trim();
+  if(title.length < 4 || !(howtoCards||[]).length) return;
+
+  const want = howtoWords(title);
+  if(!want.length) return;
+
+  let best = null, bestScore = 0;
+  (howtoCards||[]).forEach(function(c){
+    if(editHowtos.indexOf(c.id) !== -1) return;      // already attached
+    const have = howtoWords(c.title);
+    const shared = want.filter(w => have.indexOf(w) !== -1);
+    if(!shared.length) return;
+    /* Two shared words is a real match. One is only enough if it is long
+       and distinctive — "trellises" yes, "clean" no. */
+    const score = shared.length > 1 ? shared.length
+                : (shared[0].length >= 6 ? 1 : 0);
+    if(score > bestScore){ bestScore = score; best = c; }
+  });
+  if(!best) return;
+
+  box.innerHTML =
+    '<div class="howto-sug">You already have a card that looks like this: '
+    + '<b>' + esc(best.title) + '</b>'
+    + '<div class="row">'
+    +   '<button class="yes" onclick="acceptSuggestion(\'' + best.id + '\')">Use it</button>'
+    +   '<button class="no" onclick="dismissSuggestion()">Not this one</button>'
+    + '</div></div>';
+}
+
+function acceptSuggestion(id){
+  if(editHowtos.indexOf(id) === -1) editHowtos.push(id);
+  renderHowtoConfig();
+}
+function dismissSuggestion(){
+  document.getElementById('task-howto-suggest').innerHTML = '';
+  suggestDismissed = true;
+}
+let suggestDismissed = false;
+
 function renderHowtoConfig(){
   const list=document.getElementById('task-howto-list');
   list.innerHTML=editHowtos.map(function(id,i){
@@ -1446,6 +1537,9 @@ function renderHowtoConfig(){
       +'<button class="chip" style="min-height:36px;padding:0 10px" onclick="removeHowto('+i+')">&#10005;</button>'
       +'</div>';
   }).join('');
+  const empty=document.getElementById('task-howto-empty');
+  if(empty) empty.style.display = editHowtos.length ? 'none' : 'block';
+
   const add=document.getElementById('task-howto-add');
   let opts='<option value="">Add a how-to card&hellip;</option>';
   (howtoCards||[]).forEach(function(c){ if(editHowtos.indexOf(c.id)===-1) opts+='<option value="'+c.id+'">'+esc(c.title)+'</option>'; });
