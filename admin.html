@@ -1190,7 +1190,11 @@ window.confirmComplete = async function() {
   const name = document.getElementById('completer-name').value.trim();
   if (!name) { showToast('Enter a name'); return; }
   const note = document.getElementById('completer-note').value.trim();
-  const { taskId, idx } = pendingComplete;
+  /* taskTitle was missing from this destructure while being used below, so
+     every ✓ Done threw a ReferenceError straight into the catch and showed
+     the generic "Could not log" toast. Completions logged from app.html
+     worked fine, which is why the table has rows and this never did. */
+  const { taskId, taskTitle, idx } = pendingComplete;
   const row = document.getElementById('task-row-' + idx);
   if (row) row.style.opacity = '0.4';
   document.getElementById('name-prompt').classList.remove('visible');
@@ -1199,7 +1203,13 @@ window.confirmComplete = async function() {
     await dbCompleteTask(taskId, taskTitle, name, note);
     showToast('Logged — completed by ' + name);
     setTimeout(loadTasks, 600);
-  } catch(e) { showToast('Could not log — try again'); }
+  } catch(e) {
+    /* Say what actually failed. The bare message above hid a plain
+       ReferenceError for weeks. */
+    console.error('confirmComplete:', e);
+    showToast('Could not log: ' + (e && e.message ? e.message : 'unknown error'));
+    if (row) row.style.opacity = '';
+  }
 };
 
 window.archiveTaskRow = async function(id) {
