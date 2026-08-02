@@ -166,6 +166,13 @@
   .task-title{font-size:16px; font-weight:600; color:var(--ink);}
   .task-sub{font-size:12.5px; color:var(--ink-soft); margin-top:1px;}
   .task-row.bad .task-sub{color:var(--red);}
+  /* Says out loud that steps exist. The old bare clipboard emoji gave no
+     clue it was tappable, or what it would do. */
+  .howto-flag{color:var(--leaf); font-weight:600;}
+  .task-edit{flex:0 0 auto; width:40px; height:40px; align-self:center; margin-right:4px;
+    border:1.5px solid var(--line-strong); background:transparent; color:var(--ink-soft);
+    border-radius:11px; font-size:17px; display:flex; align-items:center; justify-content:center;}
+  .task-edit:active{background:var(--paper);}
 
   /* ---------- inventory ---------- */
   .inv-row{display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px;
@@ -408,7 +415,7 @@
     <!-- TASKS -->
     <section class="screen" id="screen-tasks">
       <div class="pad">
-        <p class="screen-h">Tasks needing attention float to the top. Tap a task to edit; tap the circle to complete.</p>
+        <p class="screen-h">Tasks needing attention float to the top. Tap a task to open its steps, the circle to complete it, or the pencil to edit.</p>
         <div id="task-list"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
         <button class="add-line" onclick="openTaskEditor()">&#43; Add task</button>
       </div>
@@ -948,7 +955,23 @@ function renderTasks(list){
     else if(t._color==='bad') sub='Overdue \u2014 2 visits missed';
     else if(t._color==='warn') sub='Carried forward \u2014 1 missed';
     else sub=recurLabel(t);
-    return '<div class="task-row '+cls+'"><button class="task-check" onclick="event.stopPropagation();completeTask(\''+t.id+'\',\''+(t.title||'').replace(/\x27/g,'')+'\')"></button><div class="task-body" onclick="openTaskEditor(\''+t.id+'\')"><div class="task-title">'+esc(t.title||'Untitled')+'</div><div class="task-sub">'+sub+'</div></div>'+(((t.howto_ids&&t.howto_ids.length)||t.howto_id)?'<button class="chip" style="min-height:40px;align-self:center;margin-right:6px" onclick="event.stopPropagation();openHowtoTask(\''+t.id+'\')">&#128203;</button>':'')+'</div>';
+    /* A task with instructions attached: tapping the row OPENS THE STEPS,
+       not the editor. Doing the task is why someone taps it; renaming it is
+       an occasional admin act. The row also says so in words — a bare
+       clipboard emoji does not announce itself as "instructions here".
+       Editing moves to its own small button so it stays reachable. */
+    const hasHowto = (t.howto_ids && t.howto_ids.length) || t.howto_id;
+    const rowTap = hasHowto ? 'openHowtoTask' : 'openTaskEditor';
+    if (hasHowto) sub = 'Step-by-step guide \u2014 tap to start';
+
+    return '<div class="task-row '+cls+'">'
+      + '<button class="task-check" onclick="event.stopPropagation();completeTask(\''+t.id+'\',\''+(t.title||'').replace(/\x27/g,'')+'\')"></button>'
+      + '<div class="task-body" onclick="'+rowTap+'(\''+t.id+'\')">'
+      +   '<div class="task-title">'+esc(t.title||'Untitled')+'</div>'
+      +   '<div class="task-sub">'+(hasHowto?'<span class="howto-flag">&#128203; ':'')+sub+(hasHowto?'</span>':'')+'</div>'
+      + '</div>'
+      + '<button class="task-edit" onclick="event.stopPropagation();openTaskEditor(\''+t.id+'\')" aria-label="Edit task">&#9998;</button>'
+      + '</div>';
   }).join('');
 }
 function recurLabel(t){ const m={visit:'Every visit',daily:'Daily',weekly:'Weekly',biweekly:'Every 2 weeks',monthly:'Monthly',interval:'Recurring',one_time:'One time',seasonal:'Seasonal'}; return m[t.recurrence_type]||'Pending'; }
