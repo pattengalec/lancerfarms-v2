@@ -803,7 +803,12 @@ const GrushSettings = (() => {
       lb.dataset.gsControl = '1';
       const mi = el('button', 'grush-item gs-menu-item');
       mi.type = 'button'; mi.dataset.gsControl = '1';
-      mi.appendChild(el('span', 'grush-ic', '\u2699\ufe0e'));
+      /* class must be 'ic' — that is what grush-nav sizes (.grush-item .ic).
+         'grush-ic' matched nothing, so the gear rendered unstyled and tiny.
+         \ufe0f (emoji presentation) rather than \ufe0e (text) so it sits
+         alongside the emoji icons on the other items instead of looking
+         like a stray glyph. */
+      mi.appendChild(el('span', 'ic', '\u2699\ufe0f'));
       mi.appendChild(document.createTextNode(' Settings'));
       mi.addEventListener('click', () => {
         if (window.GrushNav && typeof window.GrushNav.close === 'function') window.GrushNav.close();
