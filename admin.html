@@ -226,6 +226,8 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
         <button class="tab-btn" onclick="switchTab('log',this)">Field Log</button>
         <button class="tab-btn" onclick="switchTab('comments',this)">Comments</button>
         <button class="tab-btn" onclick="switchTab('completions',this)">Task Log</button>
+        <button class="tab-btn" onclick="switchTab('crew',this);loadCrewAdmin()">Crew</button>
+        <button class="tab-btn" onclick="switchTab('access',this);loadAccessRequests()">Requests <span class="badge" id="access-count" style="display:none"></span></button>
       </div>
     </div>
 
@@ -612,6 +614,43 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
       <div class="data-list" id="completions-list"><div class="empty-state"><span class="spinner"></span> Loading…</div></div>
     </div>
 
+    <!-- ══ CREW ══
+         The names offered under "Who" in the staff tool. This is
+         ATTRIBUTION, not access: anyone can use the staff tool without a
+         password, and adding a name here grants nothing. Operator access is
+         a separate list (grush_operators) and is managed in the database.
+         Crew rows live in grush_people, shared with other Grush sites, so
+         everything here is scoped to site = 'lfg'. -->
+    <div class="tab-panel" id="tab-crew">
+      <div class="card">
+        <h3>Add crew member</h3>
+        <div class="form-group">
+          <label>Name as it should appear</label>
+          <input type="text" id="crew-name" placeholder="e.g. Fabio" autocomplete="off">
+        </div>
+        <button class="btn btn-primary" onclick="addCrew()">Add to crew</button>
+        <p style="font-size:0.72rem;color:var(--ink-soft);margin-top:10px;line-height:1.45;">
+          This is who staff can credit work to. It grants no access &mdash; the
+          staff tool needs no password, and admin access is a separate list.
+        </p>
+      </div>
+      <div class="section-label">Crew</div>
+      <div class="data-list" id="crew-list"><div class="empty-state"><span class="spinner"></span> Loading&hellip;</div></div>
+    </div>
+
+    <!-- ══ ACCESS REQUESTS ══
+         Approving a CREW request is one tap: it adds a name to grush_people,
+         which grants nothing — the staff tool has no gate. Approving an
+         OPERATOR request is deliberately NOT one tap: an operator can publish
+         to the public site and delete records, so that row goes in by hand.
+         The friction is the point. -->
+    <div class="tab-panel" id="tab-access">
+      <div class="section-label">Waiting</div>
+      <div class="data-list" id="access-list"><div class="empty-state"><span class="spinner"></span> Loading&hellip;</div></div>
+      <div class="section-label" style="margin-top:22px">Handled</div>
+      <div class="data-list" id="access-done"></div>
+    </div>
+
     </div><!-- /shell-scroll -->
 
   </div><!-- /main-ui -->
@@ -794,6 +833,152 @@ let pendingComplete = null;
 // updateModeIcon() is kept as a no-op purely because three call sites
 // below still reference it; removing those is a separate tidy.
 function updateModeIcon() {}
+
+/* ─── Access requests ──────────────────────────────────────────
+   RLS: anyone may insert, only operators may read or update. So this tab
+   is the only place these rows are visible anywhere. */
+
+async function loadAccessRequests(){
+  const waiting = document.getElementById('access-list');
+  const done    = document.getElementById('access-done');
+  if(!waiting) return;
+  let rows;
+  try{
+    rows = await sbGet('lfg_access_requests','order=created_at.desc');
+  }catch(e){
+    waiting.innerHTML = '<div class="empty-state">Could not load: ' + (e.message||'') + '</div>';
+    return;
+  }
+  const open_ = rows.filter(r => r.status === 'new');
+  const shut  = rows.filter(r => r.status !== 'new');
+
+  const badge = document.getElementById('access-count');
+  if(badge){
+    if(open_.length){ badge.style.display='inline-flex'; badge.textContent=open_.length; }
+    else badge.style.display='none';
+  }
+
+  waiting.innerHTML = open_.length ? open_.map(card).join('')
+    : '<div class="empty-state">No requests waiting.</div>';
+  done.innerHTML = shut.length ? shut.map(handled).join('')
+    : '<div class="empty-state">Nothing handled yet.</div>';
+
+  function card(r){
+    const isOp = r.requested_role === 'operator';
+    return '<div class="data-row" style="flex-direction:column;align-items:stretch;gap:8px">'
+      + '<div><strong>' + esc(r.display_name) + '</strong>'
+      + '<span style="margin-left:8px;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;'
+      + 'color:' + (isOp ? 'var(--alert)' : 'var(--ink-soft)') + '">'
+      + (isOp ? 'admin access' : 'crew') + '</span></div>'
+      + '<div style="font-size:0.78rem;color:var(--ink-soft)">' + esc(r.email)
+      + ' &middot; ' + new Date(r.created_at).toLocaleDateString() + '</div>'
+      + (r.reason ? '<div style="font-size:0.82rem">' + esc(r.reason) + '</div>' : '')
+      + (isOp
+          ? '<div style="font-size:0.75rem;color:var(--alert);line-height:1.45">'
+            + 'Admin access is not granted from here. Add a row to <code>grush_operators</code> '
+            + 'with their email, then mark this approved.</div>'
+          : '')
+      + '<div style="display:flex;gap:8px">'
+      + (isOp ? '' : '<button class="btn btn-primary btn-sm" onclick="approveRequest(\'' + r.id + '\',\'' + esc(r.display_name).replace(/'/g,"") + '\')">Add to crew</button>')
+      + '<button class="btn btn-ghost btn-sm" onclick="markRequest(\'' + r.id + '\',\'approved\')">Mark approved</button>'
+      + '<button class="btn btn-ghost btn-sm" onclick="markRequest(\'' + r.id + '\',\'declined\')">Decline</button>'
+      + '</div></div>';
+  }
+  function handled(r){
+    return '<div class="data-row" style="opacity:.6">'
+      + '<div style="flex:1"><strong>' + esc(r.display_name) + '</strong>'
+      + '<div style="font-size:0.72rem;color:var(--ink-soft)">' + esc(r.email)
+      + ' &middot; ' + r.status + '</div></div></div>';
+  }
+}
+
+/* Crew approval is one tap: the name grants nothing. */
+async function approveRequest(id, name){
+  try{
+    await sbPost('grush_people', { site: 'lfg', display_name: name });
+  }catch(e){
+    showToast('Could not add to crew: ' + (e.message||'unknown')); return;
+  }
+  await markRequest(id, 'approved', true);
+  showToast(name + ' added to crew');
+}
+
+async function markRequest(id, status, quiet){
+  try{
+    await sbPatch('lfg_access_requests', { id },
+      { status: status, handled_at: new Date().toISOString(), handled_by: 'admin' });
+    if(!quiet) showToast('Marked ' + status);
+    loadAccessRequests();
+  }catch(e){ showToast('Could not update: ' + (e.message||'unknown')); }
+}
+
+/* ─── Crew ─────────────────────────────────────────────────────
+   grush_people is shared with other Grush sites, so every query here is
+   scoped to site='lfg'. RLS already says: anyone may read ACTIVE crew,
+   only operators may write. Removing someone sets active=false rather
+   than deleting, because past log entries reference the name and history
+   should not change when someone leaves. */
+const CREW_SITE = 'lfg';
+
+async function loadCrewAdmin(){
+  const el = document.getElementById('crew-list');
+  if(!el) return;
+  let rows;
+  try{
+    rows = await sbGet('grush_people',
+      'site=eq.' + CREW_SITE + '&order=active.desc,sort_order.asc,display_name.asc');
+  }catch(e){
+    el.innerHTML = '<div class="empty-state">Could not load crew: ' + (e.message||'') + '</div>';
+    return;
+  }
+  if(!rows.length){ el.innerHTML = '<div class="empty-state">No crew yet.</div>'; return; }
+  el.innerHTML = rows.map(function(p){
+    const off = !p.active;
+    return '<div class="data-row"' + (off ? ' style="opacity:.55"' : '') + '>'
+      + '<div style="flex:1"><strong>' + esc(p.display_name) + '</strong>'
+      + (off ? '<div style="font-size:0.7rem;color:var(--ink-soft)">Not shown in the staff tool</div>' : '')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="renameCrew(\'' + p.id + '\')">Rename</button>'
+      + '<button class="btn btn-ghost btn-sm" onclick="setCrewActive(\'' + p.id + '\',' + (off?'true':'false') + ')">'
+      + (off ? 'Restore' : 'Remove') + '</button>'
+      + '</div>';
+  }).join('');
+}
+
+async function addCrew(){
+  const input = document.getElementById('crew-name');
+  const name = input.value.trim();
+  if(!name){ showToast('Enter a name'); return; }
+  try{
+    await sbPost('grush_people', { site: CREW_SITE, display_name: name });
+    input.value = '';
+    showToast(name + ' added to crew');
+    loadCrewAdmin();
+  }catch(e){
+    /* The most likely failure is RLS refusing a non-operator, so say so
+       rather than a bare "could not add". */
+    showToast('Could not add: ' + (e.message || 'you may not be signed in as an operator'));
+  }
+}
+
+async function renameCrew(id){
+  const name = prompt('New name');
+  if(name === null || !name.trim()) return;
+  try{
+    await sbPatch('grush_people', { id }, { display_name: name.trim() });
+    showToast('Renamed');
+    loadCrewAdmin();
+  }catch(e){ showToast('Could not rename: ' + (e.message||'unknown')); }
+}
+
+async function setCrewActive(id, makeActive){
+  if(!makeActive && !confirm('Remove from the crew list? Past log entries keep their name.')) return;
+  try{
+    await sbPatch('grush_people', { id }, { active: makeActive });
+    showToast(makeActive ? 'Restored' : 'Removed from the list');
+    loadCrewAdmin();
+  }catch(e){ showToast('Could not update: ' + (e.message||'unknown')); }
+}
 
 // ─── Auth ────────────────────────────────────────────────────
 

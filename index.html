@@ -62,6 +62,36 @@
   .grush-sig{font-family:'Yellowtail',cursive; font-style:normal; font-size:20px; line-height:1; text-decoration:underline; text-underline-offset:2px; cursor:pointer;}
   #splash .grush-sig{color:#C34044;}
   #hero .grush-sig{color:#C34044;}
+
+  /* ── access request ── */
+  .req-link{background:none;border:none;color:var(--ink-soft);font-size:13.5px;
+    text-decoration:underline;margin-top:18px;padding:10px;font-family:inherit;}
+  #req-scrim{position:fixed;inset:0;background:rgba(20,24,16,.5);z-index:300;
+    opacity:0;pointer-events:none;transition:opacity .25s;}
+  #req-scrim.show{opacity:1;pointer-events:auto;}
+  /* svh, not dvh — the sheet is pinned to the bottom and svh is the height
+     with the browser toolbar showing. Flex column so the fields scroll and
+     the buttons stay reachable. */
+  #req-sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;
+    background:var(--paper);color:var(--ink);z-index:310;border-radius:22px 22px 0 0;
+    padding:12px 20px calc(18px + env(safe-area-inset-bottom));
+    transform:translateY(100%);transition:transform .3s cubic-bezier(.3,.7,.3,1);
+    max-height:88svh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;text-align:left;}
+  #req-sheet.show{transform:translateY(0);}
+  .req-grip{width:44px;height:5px;border-radius:3px;background:var(--line-strong);margin:4px auto 14px;}
+  #req-sheet h2{font-family:'Fraunces',Georgia,serif;font-size:1.3rem;margin:0 0 6px;}
+  .req-note{font-size:13px;color:var(--ink-soft);line-height:1.5;margin:0 0 18px;}
+  .req-lab{display:block;font-size:12px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.8px;color:var(--ink-soft);margin:0 0 6px;}
+  .req-in{width:100%;min-height:50px;border:1.5px solid var(--line-strong);border-radius:12px;
+    padding:12px 14px;font-size:16px;font-family:inherit;background:var(--card);
+    color:var(--ink);margin-bottom:16px;}
+  textarea.req-in{min-height:74px;resize:vertical;}
+  .req-in:focus{outline:none;border-color:var(--green);}
+  .req-msg{font-size:13.5px;line-height:1.45;margin-bottom:10px;min-height:1.2em;color:var(--ink-soft);}
+  .req-cancel{width:100%;min-height:46px;border:none;background:transparent;
+    color:var(--ink-soft);font-size:15px;font-family:inherit;margin-top:4px;}
 </style>
 <script src="i18n.js"></script>
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
@@ -89,8 +119,44 @@
   </button>
   <div class="langrow"><span data-lang-switch></span></div>
   <div class="tiny" data-i18n="role.tiny">Tap to choose &mdash; we&rsquo;ll remember next time.</div>
+  <button class="req-link" onclick="openRequest()">Work here? Request access</button>
 </div>
 
+<!-- ── ACCESS REQUEST ──
+     Deliberately understated. The staff tool needs no password, so most
+     people who tap Staff are already done. This is for someone who wants
+     their name on the crew list, or admin access. -->
+<div id="req-scrim" onclick="closeRequest()"></div>
+<div id="req-sheet">
+  <div class="req-grip"></div>
+  <h2>Request access</h2>
+  <p class="req-note">
+    You don&rsquo;t need this to use the staff tool &mdash; tap <strong>Staff</strong>
+    and start logging. Ask here if you want your name on the crew list so your
+    work is credited to you, or if you need admin access.
+  </p>
+  <label class="req-lab">Your name</label>
+  <input id="req-name" class="req-in" autocomplete="name" placeholder="First and last">
+  <label class="req-lab">Email</label>
+  <input id="req-email" class="req-in" type="email" autocomplete="email"
+         inputmode="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com">
+  <label class="req-lab">What do you need?</label>
+  <select id="req-role" class="req-in">
+    <option value="crew">My name on the crew list</option>
+    <option value="operator">Admin access &mdash; approve and manage</option>
+  </select>
+  <label class="req-lab">Anything we should know? <span style="opacity:.6;font-weight:400">(optional)</span></label>
+  <textarea id="req-reason" class="req-in" rows="3" placeholder="e.g. I volunteer Tuesdays with Dr. Koo"></textarea>
+  <div id="req-msg" class="req-msg"></div>
+  <button id="req-send" class="role-btn role-staff" style="min-height:58px;justify-content:center;font-size:17px" onclick="sendRequest()">Send request</button>
+  <button class="req-cancel" onclick="closeRequest()">Cancel</button>
+</div>
+
+<!-- Identity stack. Needed only so the access-request form can write a row;
+     this page has no other database use. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
 <script>
 /* Splash → role chooser (always). Language pref remembered. */
 window.addEventListener('load', function(){
@@ -106,6 +172,52 @@ function chooseRole(r){
 }
 
 function go(url){ window.location.href = url; }
+
+/* ── access request ──
+   Writes to lfg_access_requests. RLS lets anyone insert but only as
+   status='new', and only an operator can read the table back — these rows
+   hold someone's name, email and reason, which must not be readable with
+   the anon key printed in this page. A trigger emails Chad on insert. */
+function openRequest(){
+  document.getElementById('req-msg').textContent = '';
+  document.getElementById('req-scrim').classList.add('show');
+  document.getElementById('req-sheet').classList.add('show');
+  setTimeout(function(){ document.getElementById('req-name').focus(); }, 320);
+}
+function closeRequest(){
+  document.getElementById('req-scrim').classList.remove('show');
+  document.getElementById('req-sheet').classList.remove('show');
+}
+async function sendRequest(){
+  var name  = document.getElementById('req-name').value.trim();
+  var email = document.getElementById('req-email').value.trim();
+  var msg   = document.getElementById('req-msg');
+  if(!name){ msg.textContent = 'Please give your name.'; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent = 'That email does not look right.'; return; }
+
+  var btn = document.getElementById('req-send');
+  btn.disabled = true; msg.textContent = 'Sending\u2026';
+
+  var row = {
+    display_name:   name,
+    email:          email,
+    requested_role: document.getElementById('req-role').value,
+    reason:         document.getElementById('req-reason').value.trim() || null
+  };
+  var res = await GRUSH.sb.from('lfg_access_requests').insert(row);
+  if(res.error){
+    msg.textContent = 'Could not send: ' + (res.error.message || 'please try again');
+    btn.disabled = false;
+    return;
+  }
+  /* No read-back: the insert cannot be selected afterwards, by design. */
+  msg.textContent = 'Sent. Chad has been emailed and will get back to you.';
+  btn.disabled = false;
+  document.getElementById('req-name').value = '';
+  document.getElementById('req-email').value = '';
+  document.getElementById('req-reason').value = '';
+  setTimeout(closeRequest, 2200);
+}
 </script>
 </body>
 </html>
