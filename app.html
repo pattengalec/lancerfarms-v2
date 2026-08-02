@@ -747,8 +747,15 @@ function toggleWhenPicker(){
 }
 async function addLocationInline(){
   const name=prompt('New location name:'); if(!name||!name.trim()) return;
-  const {data,error}=await sb.from('lfg_growing_areas').insert({name:name.trim(),zone:'Grounds'}).select().single();
-  if(error){ toast('Could not add location'); return; }
+  /* area_type is NOT NULL with no default and a CHECK constraint, so an
+     insert without it is refused every time. This has never once worked;
+     it just showed the toast below. 'other' is the neutral member of the
+     allowed set (raised_bed, tree, shrub, ground, container, other, zone,
+     landmark) — a quick add has no way to know which it is. */
+  const {data,error}=await sb.from('lfg_growing_areas')
+    .insert({name:name.trim(), zone:'Grounds', area_type:'other'})
+    .select().single();
+  if(error){ toast('Could not add location: ' + (error.message||'unknown')); return; }
   state.areas=[...(state.areas||[]),data];
   renderAreas();
   const newBtn=document.querySelector('[data-area="'+data.id+'"]');
