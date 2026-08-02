@@ -838,7 +838,8 @@ function renderAreaChips(){
   const picked=(state.areaIds||[]).map(a=>a.id);
   const groups={};
   areas.forEach(a=>{ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
-  let html='<div class="btn-grid" style="margin-bottom:4px"><button class="chip" style="min-height:52px;border-style:dashed;opacity:.75;grid-column:1/-1" data-addarea="1">&#43; New location</button></div>';
+  let html='<div id="where-hint" style="font-size:12px;opacity:.65;margin:0 0 8px">'+whereHintText()+'</div>';
+  html+='<div class="btn-grid" style="margin-bottom:4px"><button class="chip" style="min-height:52px;border-style:dashed;opacity:.75;grid-column:1/-1" data-addarea="1">&#43; New location</button></div>';
   Object.keys(groups).forEach(z=>{
     html+='<div class="zone-h">'+esc(z)+'</div><div class="btn-grid">';
     groups[z].forEach(a=>{
@@ -875,6 +876,24 @@ function pickType(el,t){
   else { state.type=null; }
   renderWhat();
 }
+/* The Where field has always been multi-select — chips toggle independently
+   and across zones — but nothing on screen said so, and the save path threw
+   away everything after the first pick. This line makes the behaviour
+   visible; submitLog() now writes a row per selection. */
+function whereHintText(){
+  const n=(state.areaIds||[]).length;
+  if(!n) return 'Tap as many as apply \u2014 they can be in different zones. Leave blank for the whole farm.';
+  return n+' selected \u2014 this will be logged on '+(n===1?'1 location':'each of the '+n)+'.';
+}
+function updateWhereHint(){
+  const h=document.getElementById('where-hint');
+  if(h) h.textContent=whereHintText();
+  const btn=document.getElementById('primary-action');
+  if(btn && !btn.disabled){
+    const n=(state.areaIds||[]).length;
+    btn.textContent = n>1 ? ('Log it on '+n+' locations') : 'Log it';
+  }
+}
 function pickArea(el,id,label){
   el.classList.toggle('on');
   if(!state.areaIds) state.areaIds=[];
@@ -882,6 +901,7 @@ function pickArea(el,id,label){
   else { state.areaIds=state.areaIds.filter(a=>a.id!==id); }
   state.areaId=state.areaIds.length?state.areaIds[0].id:null;
   state.areaLabel=state.areaIds.map(a=>a.label).join(', ');
+  updateWhereHint();
 }
 function pickWho(el,n){ el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); state.who=n; }
 function pickWhat(el,a){
@@ -1013,6 +1033,19 @@ function setWhen(v){
   document.getElementById('when-label').textContent = isToday? ('Today '+t) : (d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+t);
 }
 
+/* crypto.randomUUID needs a secure context and Safari 15.4+. The site is
+   HTTPS so it should always be there, but a log entry silently failing on an
+   older iPad is not a trade worth making. */
+function newGroupId(){
+  try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+  const b=new Uint8Array(16);
+  (window.crypto&&crypto.getRandomValues) ? crypto.getRandomValues(b)
+    : b.forEach(function(_,i){ b[i]=Math.floor(Math.random()*256); });
+  b[6]=(b[6]&0x0f)|0x40; b[8]=(b[8]&0x3f)|0x80;
+  const h=Array.from(b, function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+  return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
+}
+
 async function submitLog(){
   if(!state.what){ toast('Tap what was done'); return; }
   const btn=document.getElementById('primary-action'); btn.disabled=true; btn.textContent='Saving\u2026';
@@ -1020,19 +1053,35 @@ async function submitLog(){
   noteParts.push('['+state.type.toUpperCase()+'] '+state.what);
   const extra=document.getElementById('log-note').value.trim();
   if(extra) noteParts.push(extra);
-  const row={
-    area_id: state.areaId,
-    location_label: state.areaLabel,
-    note: noteParts.join(' \u2014 '),
-    logged_by: state.who || 'Staff',
-    approval_status: 'pending',
-    submitted_by: state.who || 'Staff'
-  };
-  if(state.loggedAt) row.logged_at = state.loggedAt;
-  const {error}= await sb.from('lfg_log').insert(row);
+  /* One row per selected location. Previously this wrote a single row using
+     state.areaId — the FIRST pick only — and left the other names stranded in
+     location_label as free text, so those beds got no history and nothing
+     could filter by them. An empty selection still writes one row with a null
+     area_id, which is the whole-farm entry. */
+  const picks=(state.areaIds && state.areaIds.length) ? state.areaIds : [null];
+  const stamp=state.loggedAt || new Date().toISOString();
+  const note=noteParts.join(' \u2014 ');
+  /* Every row of one action carries the same group_id. This is what ties a
+     multi-location entry together — not the timestamp, which was only ever a
+     lucky coincidence of how these rows get written. */
+  const gid=newGroupId();
+  const rows=picks.map(function(p){
+    return {
+      area_id: p ? p.id : null,
+      location_label: p ? p.label : null,
+      note: note,
+      logged_by: state.who || 'Staff',
+      approval_status: 'pending',
+      submitted_by: state.who || 'Staff',
+      logged_at: stamp,
+      group_id: gid
+    };
+  });
+  const {error}= await sb.from('lfg_log').insert(rows);
   btn.disabled=false; btn.textContent='Log it';
   if(error){ toast('Save failed \u2014 try again'); return; }
-  toast('Logged \u2014 pending review');
+  toast(rows.length>1 ? ('Logged on '+rows.length+' locations \u2014 pending review')
+                      : 'Logged \u2014 pending review');
   // reset lightly
   document.getElementById('log-note').value='';
   state.what=null; state.loggedAt=null; state.areaIds=[]; state.areaId=null; state.areaLabel=null;
@@ -1040,6 +1089,7 @@ async function submitLog(){
   document.getElementById('when-picker').style.display='none';
   document.getElementById('when-label').textContent='Now';
   document.querySelectorAll('#what-grid .chip').forEach(c=>c.classList.remove('on'));
+  updateWhereHint();
   refreshApproveBadge();
   go('hub');
 }
@@ -1278,6 +1328,22 @@ async function refreshApproveBadge(){
   if(total>0){ b.style.display='flex'; b.textContent=total; } else b.style.display='none';
 }
 function _escA(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* A multi-location entry is N rows in lfg_log — one per bed — because that
+   is what gives each bed real history. Grouping is now by group_id (migration
+   008), which submitLog stamps on every row of one action. The column is NOT
+   NULL with a gen_random_uuid() default, so a row written by any other path
+   is simply its own group and needs no special handling.
+   Rows keep their incoming order (logged_at desc), so groups stay sorted. */
+function groupPendingLogs(logs){
+  const m=new Map();
+  (logs||[]).forEach(function(r){
+    const k=r.group_id || ('row:'+r.id);
+    if(!m.has(k)) m.set(k,[]);
+    m.get(k).push(r);
+  });
+  return Array.from(m.values());
+}
+
 async function loadApprovals(){
   const el=document.getElementById('approve-list');
   await ensurePlants();
@@ -1295,10 +1361,20 @@ async function loadApprovals(){
   let html='';
   if(logs.length){
     html+='<div class="approve-group">Field logs</div>';
-    html+=logs.map(r=>(
-      '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(r.location_label||'\u2014')+'</div><div class="inv-cat">'+_escA(r.note)+' &middot; '+_escA(r.submitted_by||'?')+'</div></div>'+
-      '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'log\',\''+r.id+'\')">&#10003;</button></div>'
-    )).join('');
+    html+=groupPendingLogs(logs).map(function(g){
+      const ids=g.map(function(r){return r.id;}).join(',');
+      const labels=g.map(function(r){return r.location_label;}).filter(Boolean);
+      let name;
+      if(!labels.length) name='\u2014';
+      else if(labels.length<=4) name=labels.join(', ');
+      else name=labels.slice(0,3).join(', ')+' +'+(labels.length-3)+' more';
+      const meta=_escA(g[0].note)+' &middot; '+_escA(g[0].submitted_by||'?')+
+        (g.length>1 ? ' &middot; '+g.length+' locations' : '');
+      return '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(name)+'</div>'+
+        '<div class="inv-cat">'+meta+'</div></div>'+
+        '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" '+
+        'onclick="approveLogGroup(\''+(g[0].group_id||'')+'\',\''+ids+'\')">&#10003;'+(g.length>1?('&nbsp;'+g.length):'')+'</button></div>';
+    }).join('');
   }
   if(comments.length){
     html+='<div class="approve-group">Visitor notes</div>';
@@ -1401,9 +1477,34 @@ window.savePlant = async function(approve){
   loadApprovals();
 };
 
+/* Approving by group_id rather than by the id list the screen happened to
+   render: if another device added a location to this action after the queue
+   was painted, the id list is stale and would leave an orphan pending row.
+   Falls back to the id list for any legacy row without a group. */
+async function approveLogGroup(groupId, idList){
+  let error, n;
+  if(groupId){
+    const res= await sb.from('lfg_log').update({approval_status:'approved'})
+      .eq('group_id',groupId).eq('approval_status','pending').select('id');
+    error=res.error; n=(res.data||[]).length;
+  } else {
+    const ids=String(idList||'').split(',').filter(Boolean);
+    const res= await sb.from('lfg_log').update({approval_status:'approved'}).in('id',ids).select('id');
+    error=res.error; n=(res.data||[]).length;
+  }
+  if(error){ toast('Failed'); return; }
+  toast(n>1 ? ('Approved '+n+' locations') : 'Approved');
+  loadApprovals(); refreshApproveBadge();
+}
+
 async function approveItem(kind,id){
   let error;
-  if(kind==='log'){ ({error}= await sb.from('lfg_log').update({approval_status:'approved'}).eq('id',id)); }
+  let n=1;
+  if(kind==='log'){
+    const ids=String(id).split(',').filter(Boolean);
+    n=ids.length;
+    ({error}= await sb.from('lfg_log').update({approval_status:'approved'}).in('id',ids));
+  }
   else if(kind==='comment'){ ({error}= await sb.from('lfg_comments').update({status:'reviewed'}).eq('id',id)); }
   else if(kind==='photo'){
     const _ar=document.querySelector('.ap-area[data-id="'+id+'"]'), _ty=document.querySelector('.ap-type[data-id="'+id+'"]');
@@ -1412,7 +1513,8 @@ async function approveItem(kind,id){
     ({error}= await sb.from('lfg_photos').update(_upd).eq('id',id));
   }
   if(error){ toast('Failed'); return; }
-  toast('Approved'); loadApprovals(); refreshApproveBadge();
+  toast(n>1 ? ('Approved '+n+' locations') : 'Approved');
+  loadApprovals(); refreshApproveBadge();
 }
 // wire approvals screen load
 const _go=go; go=function(s){ _go(s); if(s==='approvals') loadApprovals(); if(s==='areas') loadAreasScreen(); if(s==='tasks') loadTasks(); if(s==='inventory') loadInventory(); if(s==='photos') loadPhotos(); };
