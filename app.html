@@ -911,33 +911,56 @@ function toggleWhenPicker(){
    legitimate new bed as a duplicate. */
 function normAreaName(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
 
-/* Looks across ALL areas including archived ones. state.areas only holds
-   active rows, so an in-memory check would silently re-create anything
-   that had been archived. */
+/* The RLS read policy on lfg_growing_areas is `archived_at IS NULL`, so a
+   plain select can NEVER see an archived row — Postgres filters it out before
+   the client sees anything. A direct query here would report "no match" for an
+   archived location and happily create a second one with the same name.
+   area_name_status() is SECURITY DEFINER so the existence check can see past
+   that policy; it only ever returns a single exact normalised match, so it
+   can't be used to enumerate the archived list.
+
+   Returns {ok, hit, error}. A failed lookup is NOT treated as "no match" —
+   see resolveOrCreateArea, which refuses to insert rather than risk a dup. */
 async function findAreaByName(name){
-  const key=normAreaName(name);
-  if(!key) return null;
-  const {data,error}= await sb.from('lfg_growing_areas').select('id,name,zone,area_type,archived_at');
-  if(error) return null;
-  return (data||[]).find(a=>normAreaName(a.name)===key)||null;
+  if(!normAreaName(name)) return {ok:true, hit:null};
+  const {data,error}= await sb.rpc('area_name_status', {p_name:String(name)});
+  if(error) return {ok:false, hit:null, error:error};
+  return {ok:true, hit:(data&&data.length)?data[0]:null};
 }
 
 /* Returns {area, action} where action is 'existing' | 'restored' | 'created',
-   or null if the user backed out. Never inserts a duplicate. */
+   or null if the user backed out or the check could not be completed. */
 async function resolveOrCreateArea(name, zone, area_type){
   name=String(name||'').trim();
   if(!name){ toast('Name required'); return null; }
-  const hit=await findAreaByName(name);
 
-  if(hit && !hit.archived_at){
-    return {area:hit, action:'existing'};
+  const look=await findAreaByName(name);
+  if(!look.ok){
+    /* Deliberately refuse. Falling through to an insert on a failed lookup is
+       exactly how duplicates get made. */
+    toast('Could not check for duplicates \u2014 nothing created. ' + ((look.error&&look.error.message)||''));
+    return null;
+  }
+  const hit=look.hit;
+
+  if(hit && !hit.archived){
+    return {area:{id:hit.id, name:hit.name, zone:hit.zone, area_type:hit.area_type}, action:'existing'};
   }
 
-  if(hit && hit.archived_at){
+  if(hit && hit.archived){
+    /* Restoring is an UPDATE, and the update policy requires is_operator().
+       Crew can't do it, so tell them plainly instead of failing at the
+       database and leaving them staring at a raw error. */
+    let isOp=false;
+    try{ isOp = !!(window.GRUSH && await GRUSH.isOperator()); }catch(e){ isOp=false; }
+    if(!isOp){
+      toast('"'+hit.name+'" exists but is archived \u2014 an operator needs to restore it');
+      return null;
+    }
     if(!confirm('"'+hit.name+'" already exists but was archived.\n\nRestore it instead of creating a second one?')) return null;
     const {error}= await sb.from('lfg_growing_areas').update({archived_at:null}).eq('id',hit.id);
     if(error){ toast('Restore failed: '+(error.message||'unknown')); return null; }
-    return {area:Object.assign({}, hit, {archived_at:null}), action:'restored'};
+    return {area:{id:hit.id, name:hit.name, zone:hit.zone, area_type:hit.area_type}, action:'restored'};
   }
 
   const {data,error}= await sb.from('lfg_growing_areas')
