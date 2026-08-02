@@ -6,7 +6,12 @@
 <meta name="color-scheme" content="dark">
 <title>How-to · Lancer Farms</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Identity stack. Order is load-bearing: supabase-js defines
+     window.supabase, lfg-config.js defines window.LFG_CONFIG, and
+     grush-auth.js consumes both the moment it parses. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
 <style>
 :root{
   color-scheme:dark;
@@ -18,7 +23,10 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;}
 body{background:var(--paper);color:var(--ink);font-family:var(--font-body);display:flex;flex-direction:column;}
-.view{display:none;flex:1;flex-direction:column;padding:22px 20px calc(80px + env(safe-area-inset-bottom));
+/* bottom padding is 22px, not 80: grush-nav reserves the rail's height on
+   <body> itself. The old 80px was clearing .lfback and would now stack
+   on top of the rail's reservation, leaving a dead band under every step. */
+.view{display:none;flex:1;flex-direction:column;padding:22px 20px;
   max-width:520px;width:100%;margin:0 auto;}
 .view.on{display:flex;}
 #tl{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;margin-bottom:18px;min-height:18px;}
@@ -68,17 +76,15 @@ body.mats-done .btn.go{background:#F0EDE2;color:#1E241A;animation:pulseGo 1.1s e
 .err{margin:auto;text-align:center;color:var(--ink-soft);padding:30px;line-height:1.6;}
 .archive-link{margin-top:14px;text-align:center;font-size:.85rem;color:var(--ink-soft);text-decoration:underline;cursor:pointer;}
 
-.lfback{position:fixed;left:0;right:0;bottom:0;display:flex;gap:9px;background:#1E1B16;
-  border-top:1.5px solid #45423A;padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:900;}
-.lfback a{flex:1;min-height:56px;display:flex;align-items:center;justify-content:center;
-  background:#34302A;border:1.5px solid #45423A;border-radius:12px;color:#F0EDE2;
-  text-decoration:none;font-size:1rem;font-weight:600;font-family:inherit;}
-.lfback a:active{background:#3E5C42;border-color:#7E9A6E;}
-body{padding-bottom:calc(96px + env(safe-area-inset-bottom));}
+/* .lfback — a hand-rolled fixed bottom bar — is gone; grush-nav renders
+   the rail and drawer instead, and reserves the body padding itself, so
+   the hardcoded 96px below went with it. No sitebar here on purpose: this
+   is a full-screen step player and a title bar would eat the vertical
+   space the steps need. The burger in the rail is the way out. */
 </style>
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
-<script src="grush-settings.js?v=9"></script>
+<script src="grush-settings.js?v=11"></script>
 </head>
 <body>
 
@@ -116,9 +122,12 @@ body{padding-bottom:calc(96px + env(safe-area-inset-bottom));}
 <div class="view" id="v-err"><div class="err" id="err-msg">Couldn&rsquo;t load this how-to.</div></div>
 
 <script>
-const SUPABASE_URL='https://gblizuknnvguxyxfequh.supabase.co';
-const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGl6dWtubnZndXh5eGZlcXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MzE5NjIsImV4cCI6MjA5OTIwNzk2Mn0.9m3e5T4S1kL9wusD0ZJBgIkshGt_Ws55iEcBE8bbLiE';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+// Credentials come from lfg-config.js. Nothing is hardcoded on this page.
+const SUPABASE_URL = window.LFG_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON = window.LFG_CONFIG.SUPABASE_ANON_KEY;
+// Reuse grush-auth's client so a signed-in operator's JWT rides along —
+// which is what makes the archive below actually succeed under RLS.
+const sb = GRUSH.sb;
 let cards=[], seq=[], idx=-1, matItems=[], coverTitle='', singleCard=null, totalSteps=0;
 
 const ICONS=[
@@ -235,8 +244,14 @@ function buildCover(){
     mh+='<div class="mat" onclick="matToggle(this)"><span class="box">\u2713</span><span>'+esc(m)+'</span></div>';
   });
   if(mh){ mEl.innerHTML='<div class="mat-h">You need</div>'+mh; }
-  if(singleCard && localStorage.getItem('lfg_admin')==='1' && !singleCard.archived_at){
-    document.getElementById('c-archive').style.display='block';
+  /* The Archive control used to appear whenever the 'lfg_admin' localStorage
+     flag was set — a value anyone can write by hand in devtools. It now asks
+     the database. RLS refuses the write either way (lfg_howto_cards UPDATE is
+     operator-only), but a button that cannot work should not be drawn. */
+  if(singleCard && !singleCard.archived_at){
+    GRUSH.isOperator().then(function(ok){
+      if(ok) document.getElementById('c-archive').style.display='block';
+    }).catch(function(){ /* not signed in; leave it hidden */ });
   }
 }
 
@@ -284,12 +299,40 @@ async function archiveCard(){
   if(!singleCard) return;
   if(!confirm('Archive this how-to card? Tasks keep their link; it leaves the picker.')) return;
   const {error}= await sb.from('lfg_howto_cards').update({archived_at:new Date().toISOString()}).eq('id',singleCard.id);
-  if(error){ alert('Archive failed'); return; }
+  if(error){
+    /* Most likely cause is RLS refusing a non-operator, so say so rather
+       than the old bare 'Archive failed'. */
+    alert('Archive failed: ' + (error.message || 'you may not be signed in as an operator'));
+    return;
+  }
   document.getElementById('c-archive').style.display='none';
   alert('Card archived');
 }
 load();
 </script>
-<div class="lfback"><a href="app.html">&#8249; Staff tool</a></div>
+<script>
+/* Navigation config for grush-nav.js. Rail keeps the one thing this page
+   always needed — the way back to the staff tool — and the drawer carries
+   everything else. */
+window.GRUSH_NAV = {
+  title: 'How-to',
+  rail: [ { label:'Staff tool', icon:'\u{1F9F0}', href:'app.html' } ],
+  groups: [
+    { label:'Explore', items:[
+      { label:'Home',           icon:'\u{1F3E0}', href:'index.html'   },
+      { label:'Visit the farm', icon:'\u{1F6B6}', href:'visitor.html' },
+      { label:'Farm data',      icon:'\u{1F4CA}', href:'data.html'    },
+      { label:'Almanac',        icon:'\u{1F326}', href:'almanac.html' },
+      { label:'Farm manual',    icon:'\u{1F4D5}', href:'manual.html'  },
+      { label:'Plant triage',   icon:'\u{1FA7A}', href:'triage.html'  }
+    ]}
+  ],
+  staff: { label:'Staff', items:[
+    { label:'Staff tool', icon:'\u{1F9F0}', href:'app.html'   },
+    { label:'Admin',      icon:'\u2699\uFE0F', href:'admin.html' }
+  ]}
+};
+</script>
+<script src="grush-nav.js?v=3"></script>
 </body>
 </html>
