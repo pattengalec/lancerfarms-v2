@@ -694,7 +694,7 @@ async function getVisitDays() {
 let _areasCache = null, _areasCacheTime = 0;
 async function getAreas(force) {
   if (_areasCache && !force && (Date.now()-_areasCacheTime)<300000) return _areasCache;
-  _areasCache = await sbGet('lfg_growing_areas','archived_at=is.null&order=zone.asc,name.asc');
+  _areasCache = await sbGet('lfg_growing_areas','archived_at=is.null&order=zone.asc,sort_order.asc.nullslast,name.asc');
   _areasCacheTime = Date.now();
   return _areasCache;
 }
@@ -1459,7 +1459,7 @@ async function loadReview(){
       sbGet('lfg_photos','approval_status=eq.pending&order=uploaded_at.desc'),
       sbGet('lfg_comments','status=eq.new&order=submitted_at.desc'),
       sbGet('lfg_log','approval_status=eq.pending&order=logged_at.desc'),
-      sbGet('lfg_growing_areas','select=id,name,zone&archived_at=is.null&order=zone')
+      sbGet('lfg_growing_areas','select=id,name,zone&archived_at=is.null&order=zone.asc,sort_order.asc.nullslast,name.asc')
     ]);
     photos=r[0]||[]; notes=r[1]||[]; logs=r[2]||[]; areas=r[3]||[];
   }catch(e){ el.innerHTML='<div class="empty-state">Could not load review queue</div>'; return; }

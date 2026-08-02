@@ -695,7 +695,7 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 
 /* ---------- LOG: build pickers ---------- */
 async function loadAreas(){
-  const {data,error}= await sb.from('lfg_growing_areas').select('id,name,zone,area_type').is('archived_at',null).order('zone').order('name');
+  const {data,error}= await sb.from('lfg_growing_areas').select('id,name,zone,area_type').is('archived_at',null).order('zone').order('sort_order', {nullsFirst:false}).order('name');
   if(error){ document.getElementById('where-groups').innerHTML='<div class="empty">Could not load areas</div>'; return; }
   state.areas=data;
   const groups={};
@@ -1099,7 +1099,7 @@ async function loadPhotos(){
   if(error){ el.innerHTML='<div class="empty">Could not load photos</div>'; return; }
   const isAdmin=document.body.classList.contains('is-admin');
   albumPhotos=(data||[]).filter(p=>isAdmin || p.approval_status==='approved');
-  if(!state.areas||!state.areas.length){ try{ const r=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null); state.areas=r.data||[]; }catch(e){} }
+  if(!state.areas||!state.areas.length){ try{ const r=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null).order('zone').order('sort_order',{nullsFirst:false}).order('name'); state.areas=r.data||[]; }catch(e){} }
   albumAreaMap={}; (state.areas||[]).forEach(function(a){ albumAreaMap[a.id]=a.name; });
   buildAlbumFilters(); applyAlbumFilter();
 }
@@ -1139,7 +1139,7 @@ function applyAlbumFilter(){
 async function loadAreasScreen(){
   const el=document.getElementById('areas-list');
   const [ar, ph, tk] = await Promise.all([
-    sb.from('lfg_growing_areas').select('id,name,zone,area_type,archived_at').order('zone').order('name'),
+    sb.from('lfg_growing_areas').select('id,name,zone,area_type,archived_at').order('zone').order('sort_order', {nullsFirst:false}).order('name'),
     sb.from('lfg_photos').select('area_id'),
     sb.from('lfg_tasks').select('area_id').is('archived_at',null)
   ]);
@@ -1450,7 +1450,7 @@ async function reviewPhotos(input){
   const files=input.files; if(!files||!files.length) return;
   reviewFiles=Array.prototype.slice.call(files);
   if(!state.areas || !state.areas.length){
-    try{ const r=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null).order('zone').order('name'); state.areas=r.data||[]; }catch(e){ state.areas=state.areas||[]; }
+    try{ const r=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null).order('zone').order('sort_order', {nullsFirst:false}).order('name'); state.areas=r.data||[]; }catch(e){ state.areas=state.areas||[]; }
   }
   const areaOpts=areaOptionsHTML(), typeOpts=typeOptionsHTML();
   reviewURLs.forEach(function(u){ URL.revokeObjectURL(u); }); reviewURLs=[];

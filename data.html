@@ -535,7 +535,7 @@ let activeZone = '';
 async function loadBeds() {
   const grid = document.getElementById('beds-grid');
   try {
-    allAreas = await sbGet('lfg_growing_areas','archived_at=is.null&order=zone.asc,name.asc');
+    allAreas = await sbGet('lfg_growing_areas','archived_at=is.null&order=zone.asc,sort_order.asc.nullslast,name.asc');
     const events = await sbGet('lfg_area_events','order=event_date.desc&limit=500');
 
     // Map last event per area
