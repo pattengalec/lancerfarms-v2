@@ -227,11 +227,23 @@
      and below the toast, exactly like its siblings. */
   #plant-scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:110; opacity:0; pointer-events:none; transition:opacity .25s;}
   #plant-scrim.show{opacity:1; pointer-events:auto;}
+  /* svh, not dvh: svh is the SMALL viewport — the height with Safari's
+     toolbar showing. dvh tracks the current state, and for a sheet pinned to
+     the bottom that means the buttons can end up under the toolbar in
+     portrait. Landscape hid the toolbar, which is why it looked fine there.
+     The sheet is a flex column so the fields scroll and the buttons don't. */
   #plant-sheet{position:fixed; left:0; right:0; bottom:0; max-width:520px; margin:0 auto; background:var(--paper);
-    z-index:120; border-radius:22px 22px 0 0; padding:12px 18px calc(20px + env(safe-area-inset-bottom));
+    z-index:120; border-radius:22px 22px 0 0; padding:12px 0 0;
     transform:translateY(100%); transition:transform .3s cubic-bezier(.3,.7,.3,1);
-    max-height:88dvh; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;}
+    max-height:85svh; display:flex; flex-direction:column;}
   #plant-sheet.show{transform:translateY(0);}
+  #plant-body{flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain; padding:0 18px;}
+  /* Actions never scroll away, and clear the home indicator. */
+  #plant-actions{flex:0 0 auto; padding:10px 18px calc(14px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line); background:var(--paper);}
+  #plant-actions .btn-primary, #plant-actions .btn-ghost{margin-top:8px;}
+  #plant-actions .btn-primary:first-child{margin-top:0;}
   #inv-scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:110; opacity:0; pointer-events:none; transition:opacity .25s;}
   #inv-scrim.show{opacity:1; pointer-events:auto;}
   #inv-sheet{position:fixed; left:0; right:0; bottom:0; max-width:520px; margin:0 auto; background:var(--paper);
@@ -521,6 +533,7 @@
   <div id="plant-scrim" onclick="closePlantEditor()"></div>
   <div id="plant-sheet">
     <div class="sheet-grip"></div>
+    <div id="plant-body">
     <h2 id="plant-sheet-title" style="margin-bottom:4px">Plant record</h2>
     <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;line-height:1.4">
       The first four fields make it visible in Learn and light up any photos
@@ -564,9 +577,13 @@
       <input id="pl-water" class="text-in" placeholder="e.g. deep soak twice weekly" autocomplete="off">
     </div>
 
-    <button class="btn-primary" onclick="savePlant(true)" style="margin-top:8px">Save &amp; approve</button>
-    <button class="btn-ghost" onclick="savePlant(false)">Save, keep pending</button>
-    <button class="btn-ghost" onclick="closePlantEditor()">Cancel</button>
+    </div><!-- /plant-body -->
+
+    <div id="plant-actions">
+      <button class="btn-primary" onclick="savePlant(true)">Save &amp; approve</button>
+      <button class="btn-ghost" onclick="savePlant(false)">Save, keep pending</button>
+      <button class="btn-ghost" onclick="closePlantEditor()">Cancel</button>
+    </div>
   </div>
 
   <div class="actionbar" id="actionbar" style="display:none">
