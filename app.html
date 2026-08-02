@@ -606,7 +606,20 @@ const SUPABASE_ANON = window.LFG_CONFIG.SUPABASE_ANON_KEY;
 // wouldn't reach the other and writes here would still go out anonymous.
 const sb = GRUSH.sb;
 
-const CREW = ['Chad','Maria','Sam','Guest'];
+/* Crew names come from grush_people, not a hardcoded array. That table was
+   seeded for exactly this and app.html never read it — which is why Fabio
+   could not attribute his own work. Adding or removing someone is now a
+   database row managed from the admin panel, not a code edit and deploy.
+
+   The fallback below only applies if the query fails outright; an empty
+   crew list would leave the Who field unusable. */
+let CREW = ['Guest'];
+async function loadCrew(){
+  try{
+    const names = (await GRUSH.crew()).map(p => p.display_name);
+    if(names.length) CREW = names.concat(names.includes('Guest') ? [] : ['Guest']);
+  }catch(e){ console.error('crew load failed', e); }
+}
 const ACTIONS = {
   activity:['Watered','Weeded','Planted','Harvested','Pruned','Fertilized','Mulched','Observed','Repaired'],
   problem:['Pest damage','Irrigation issue','Broken structure','Disease','Weather damage','Other'],
@@ -793,7 +806,8 @@ async function loadAreas(){
     html+='</div>';
   });
   document.getElementById('where-groups').innerHTML=html;
-  // who
+  // who — names from grush_people, fetched before the grid is painted
+  await loadCrew();
   document.getElementById('who-grid').innerHTML=CREW.map(n=>'<button class="chip" style="min-height:52px" onclick="pickWho(this,\''+n+'\')">'+n+'</button>').join('');
   renderWhat();
 }
