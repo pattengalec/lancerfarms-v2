@@ -11,12 +11,9 @@
 <!-- The 'lfg-mode' pre-paint bootstrap that used to sit here is gone with
      this page's local ☀ toggle. grush-settings.js owns theming site-wide and
      runs its own applyTheme() from <head> before first paint. -->
-<!-- Deliberately NOT linking lfg-theme.css yet. This page defines its own
-     25-token :root below, and an inline <style> beats a linked sheet, so the
-     link would win nothing on the 16 overlapping tokens while setting up a
-     silent conflict. Deduping them flips this page's default from dark to
-     light — a real visual change that deserves its own commit, not a ride
-     along with a nav conversion. -->
+<!-- Shared design tokens. This page's own :root below now carries only
+     what it genuinely differs on; everything else comes from here. -->
+<link rel="stylesheet" href="lfg-theme.css?v=6">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
 <script src="grush-auth.js?v=2"></script>
@@ -24,17 +21,13 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:         #2A2620;
-  --surface:    #34302A;
-  --card:       #34302A;
-  --card-border:#45423A;
-  --ink:        #F0EDE2;
-  --ink-soft:   #B0A99C;
-  --accent:     #7E9A6E;
-  --accent-2:   #A8B89A;
-  --on-accent:  #1B1B17;
-  --alert:      #C97A4A;
-  --mist:       #3A362E;
+  /* The 13 colour tokens that used to sit here are gone — they were
+     byte-identical to lfg-theme.css, which is linked above. One palette for
+     grush-settings.js to snapshot instead of two copies drifting apart.
+
+     What remains is what this page genuinely differs on: its own serif
+     (IM Fell English, not the theme's Georgia), a lighter shadow, the
+     green accents used by the bed cards, and the title-bar plates. */
   --forest:     #A8B89A;
   --lime:       #7E9A6E;
   --lime-pale:  #A8B89A;
@@ -45,9 +38,7 @@
   --bar-accent: #D4A44E;
   --bar-soft:   #B6C4A9;
   --bar-line:   #45423A;
-  --border-w:   1.5px;
   --shadow:     0 2px 16px rgba(61,74,62,0.08);
-  --radius:     10px;
   --font-head:  'IM Fell English', Georgia, serif;
   --font-body:  'Source Sans 3', sans-serif;
   --font-mono:  'Courier Prime', monospace;

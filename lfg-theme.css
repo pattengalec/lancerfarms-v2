@@ -1,59 +1,35 @@
-/* LANCER FARMS & GARDENS — DESIGN TOKENS v5
+/* LANCER FARMS & GARDENS — DESIGN TOKENS v6
    Shared colour + type variables. Nothing else.
 
-   WHAT THIS IS NOT: a theme engine. grush-settings.js owns theming on
-   every page — it snapshots :root from whatever stylesheet it finds,
-   derives a light palette, applies the OKLCH hue/tone/depth/chroma
-   transforms, and writes the result as INLINE styles on <html>. Inline
-   beats any stylesheet, so the values below are the STARTING POINT that
-   grush-settings reads, not the final word.
+   :root HOLDS THE DARK PALETTE. That is not a style preference — it is a
+   contract with grush-settings.js, which owns theming on every page:
 
-   That is why the light and dark blocks here can look near-identical and
-   still be correct: grush-settings derives light itself. What matters is
-   that :root is complete and internally consistent.
+     it snapshots :root, and when someone picks light it either substitutes
+     from its own LIGHT map or runs lightFlip() on the raw value.
+     Dark is the INPUT. Light is DERIVED.
+
+   v4 got this backwards. It made :root light and added a
+   [data-mode="light"] block, so grush-settings snapshotted LIGHT values as
+   the base — and in DARK mode handed them straight back untransformed,
+   because no transform runs unless the person has chosen light. That is why
+   admin.html rendered pale. v5 kept the mistake while pruning dead rules.
+
+   v6 restores :root to dark and drops the [data-mode] blocks entirely.
+   They were dead anyway: grush-settings writes INLINE custom properties on
+   <html> and sets data-themeBase, never data-mode, so nothing matched them.
+
+   One deliberate change survives from v4: --on-alert is dark ink rather
+   than cream. Cream on --alert scored 2.97 — an outright WCAG AA failure on
+   .badge-urgent. Dark ink on the same orange reads 5.24.
 
    HISTORY. v3 was renamed to ARCHIVE-lfg-theme.css on 24 July while
-   admin.html still linked it, leaving admin with every variable
-   undefined. v4 restored it and authored a real light palette. v5 keeps
-   the tokens and drops 44 dead class rules — 61% of the file — that
-   styled systems.html and the old index, both long gone. The survivors
-   were all already styled inline by the pages that use them, except
-   .form-group, which is kept below.
+   admin.html still linked it, leaving admin with every variable undefined
+   for weeks. v5 cut 44 dead class rules — 61% of the file — that styled
+   systems.html and the old index.
 
-   CONSUMERS: admin.html. data.html and manual.html each still carry a
-   duplicate :root block inline and should link this instead — one
-   palette for grush-settings to snapshot, rather than three.          */
+   CONSUMERS: admin.html, data.html.                                     */
 
-:root, [data-mode="light"] {
-  --bg:        #EFE9DA;   /* paper  */
-  --surface:   #FAF6EC;   /* raised */
-  --surface2:  #F4EEE0;
-  --mist:      #E7E0CE;   /* image + upload placeholders */
-  --ink:       #2A2620;   /* 12.4:1 on --bg */
-  --ink-soft:  #635B4C;   /*  5.5:1 on --bg */
-  --accent:    #7E9A6E;   /* surface only -- see header note */
-  --accent-2:  #A8B89A;   /* focus rings */
-  --on-accent: #1B1B17;   /*  5.5:1 on --accent */
-  --alert:     #9A4E22;   /* works as text AND as surface */
-  --on-alert:  #FDF1E8;   /*  5.4:1 on --alert */
-  --card:      #FAF6EC;
-  --card-border: #D8CFB8;
-  --line:      #D8CFB8;   /* admin.html asks for this; v3 never defined it */
-
-  --cat-explore: #5FA0A8;
-  --cat-act:     #C9973F;
-  --cat-manage:  #7E9A6E;
-  --cat-entry:   #A8784F;
-
-  --font-head: Georgia, serif;
-  --font-body: 'Source Sans 3', 'Helvetica Neue', sans-serif;
-  --radius:    10px;
-  --border-w:  1.5px;
-  --shadow:    0 2px 12px rgba(32,38,28,0.10);
-}
-
-[data-mode="dark"] {
-  /* unchanged from v3 -- this is what the site looks like today */
+:root {
   --bg:        #2A2620;
   --surface:   #34302A;
   --surface2:  #2F2B25;
