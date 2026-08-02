@@ -818,20 +818,50 @@ async function loadAreas(){
   const {data,error}= await sb.from('lfg_growing_areas').select('id,name,zone,area_type').is('archived_at',null).order('zone').order('sort_order', {nullsFirst:false}).order('name');
   if(error){ document.getElementById('where-groups').innerHTML='<div class="empty">Could not load areas</div>'; return; }
   state.areas=data;
-  const groups={};
-  data.forEach(a=>{ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
-  let html='';
-  Object.keys(groups).forEach(z=>{
-    html+='<div class="zone-h">'+z+'</div><div class="btn-grid">';
-    groups[z].forEach(a=>{ html+='<button class="chip" style="min-height:52px" data-area="'+a.id+'" onclick="pickArea(this,\''+a.id+'\',\''+a.name.replace(/'/g,"")+'\')">'+a.name+'</button>'; });
-    html+='</div>';
-  });
-  document.getElementById('where-groups').innerHTML=html;
+  renderAreaChips();
   // who — names from grush_people, fetched before the grid is painted
   await loadCrew();
   document.getElementById('who-grid').innerHTML=CREW.map(n=>'<button class="chip" style="min-height:52px" onclick="pickWho(this,\''+n+'\')">'+n+'</button>').join('');
   renderWhat();
 }
+/* Paints the WHERE chips from state.areas. Safe to call any time — it
+   re-applies the current selection from state.areaIds, so re-rendering
+   after adding a location does not lose what the user already picked,
+   and does not touch the WHO / WHAT grids the way loadAreas() does. */
+function renderAreaChips(){
+  const el=document.getElementById('where-groups');
+  if(!el) return;
+  const areas=state.areas||[];
+  const picked=(state.areaIds||[]).map(a=>a.id);
+  const groups={};
+  areas.forEach(a=>{ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
+  let html='';
+  Object.keys(groups).forEach(z=>{
+    html+='<div class="zone-h">'+esc(z)+'</div><div class="btn-grid">';
+    groups[z].forEach(a=>{
+      const on=picked.indexOf(a.id)>-1?' on':'';
+      html+='<button class="chip'+on+'" style="min-height:52px" data-area="'+esc(a.id)+'">'+esc(a.name)+'</button>';
+    });
+    html+='</div>';
+  });
+  html+='<div class="btn-grid" style="margin-top:8px"><button class="chip" style="min-height:52px;border-style:dashed;opacity:.75;grid-column:1/-1" data-addarea="1">&#43; New location</button></div>';
+  el.innerHTML=html||'<div class="btn-grid"><button class="chip" style="min-height:52px;border-style:dashed" data-addarea="1">&#43; New location</button></div>';
+}
+
+/* One delegated listener instead of inline onclick — area names can contain
+   quotes and apostrophes, which used to be stripped out of the handler string. */
+document.addEventListener('click', function(ev){
+  const host=document.getElementById('where-groups');
+  if(!host) return;
+  const btn=ev.target.closest('button');
+  if(!btn||!host.contains(btn)) return;
+  if(btn.hasAttribute('data-addarea')){ addLocationInline(); return; }
+  const id=btn.getAttribute('data-area');
+  if(!id) return;
+  const a=(state.areas||[]).find(x=>x.id===id);
+  pickArea(btn, id, a?a.name:'');
+});
+
 function renderWhat(){
   document.getElementById('what-grid').innerHTML=ACTIONS[state.type].map(a=>'<button class="chip" style="min-height:52px" onclick="pickWhat(this,\''+a+'\')">'+a+'</button>').join('');
   state.what=null;
@@ -878,9 +908,11 @@ async function addLocationInline(){
     .select().single();
   if(error){ toast('Could not add location: ' + (error.message||'unknown')); return; }
   state.areas=[...(state.areas||[]),data];
-  renderAreas();
-  const newBtn=document.querySelector('[data-area="'+data.id+'"]');
+  renderAreaChips();
+  const newBtn=document.querySelector('#where-groups [data-area="'+data.id+'"]');
   if(newBtn) pickArea(newBtn, data.id, data.name);
+  const areasScr=document.getElementById('screen-areas');
+  if(areasScr && areasScr.classList.contains('active') && typeof loadAreasScreen==='function') loadAreasScreen();
   toast('Location added');
 }
 function openWhenPicker(){
