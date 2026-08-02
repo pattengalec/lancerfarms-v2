@@ -8,12 +8,9 @@
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Source+Sans+3:wght@300;400;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-<script>
-(function(){try{
-  var m = localStorage.getItem('lfg-mode');
-  /* mode toggle removed — manual is dark-only, matching the site */
-}catch(e){}})();
-</script>
+<!-- A 'lfg-mode' bootstrap used to sit here; it was already a no-op, reading
+     the value and doing nothing with it. grush-settings.js owns theming and
+     runs its own applyTheme() from <head> before first paint. -->
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -478,7 +475,7 @@ html, body {
 
 /* Bottom home button */
 .home-fab {
-  position: fixed; bottom: 1.25rem; right: 1.25rem;
+  position: fixed; bottom: calc(1.25rem + 78px + env(safe-area-inset-bottom)); right: 1.25rem;
   background: #3E5C42;
   color: var(--lime-pale);
   border: 2px solid var(--lime);
@@ -489,6 +486,7 @@ html, body {
   display: none; align-items: center; gap: 0.4rem;
   z-index: 200;
   -webkit-tap-highlight-color: transparent;
+  /* clears grush-nav's rail, which is 78px tall and fixed at bottom:0 */
 }
 .home-fab.visible { display: flex; }
 
@@ -538,7 +536,7 @@ html, body {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
 <script src="grush-auth.js?v=2"></script>
-<script src="grush-settings.js?v=9"></script>
+<script src="grush-settings.js?v=11"></script>
 </head>
 <body>
 
@@ -1432,18 +1430,13 @@ function updateAdminUI() {
 // ══════════════════════════════════════════════════════════════
 // DARK MODE — matches v2 pattern
 // ══════════════════════════════════════════════════════════════
-function toggleMode() {
-  const html = document.documentElement;
-  const dark = html.getAttribute('data-mode') === 'dark';
-  dark ? html.removeAttribute('data-mode') : html.setAttribute('data-mode', 'dark');
-  try { localStorage.setItem('lfg-mode', dark ? 'light' : 'dark'); } catch(e) {}
-  updateModeIcon();
-}
-function updateModeIcon() {
-  const dark = document.documentElement.getAttribute('data-mode') === 'dark';
-  const btn = document.getElementById('mode-btn');
-  if (btn) btn.textContent = dark ? '🌙' : '☀';
-}
+/* The local ☀ toggle is gone. It flipped data-mode between two near-identical
+   DARK palettes, because theme v3 shipped with dark values in its light block —
+   so the button did almost nothing. grush-settings.js is the only theme owner
+   now, reached from Display → Settings in the drawer.
+   Kept as no-ops because call sites below still reference them. */
+function toggleMode() {}
+function updateModeIcon() {}
 
 // ══════════════════════════════════════════════════════════════
 // MODAL SYSTEM
@@ -1903,5 +1896,30 @@ function showToast(msg) {
   <button class="nav-b" onclick="navBack()"><span class="nb-ic">&#8249;</span>Back</button>
   <button class="nav-b" onclick="goHome()"><span class="nb-ic">&#9776;</span>All topics</button>
 </div>
+<script>
+/* Navigation config for grush-nav.js. The manual is a DOCUMENT — no
+   grush-shell, because you scroll a long way through it and Safari's URL
+   bar collapsing is worth more than fixed chrome. The home screen keeps
+   its own title block; this adds the rail and the site-wide drawer. */
+window.GRUSH_NAV = {
+  title: 'Farm manual',
+  rail: [ { label:'Staff tool', icon:'\u{1F9F0}', href:'app.html' } ],
+  groups: [
+    { label:'Explore', items:[
+      { label:'Home',           icon:'\u{1F3E0}', href:'index.html'   },
+      { label:'Visit the farm', icon:'\u{1F6B6}', href:'visitor.html' },
+      { label:'Farm data',      icon:'\u{1F4CA}', href:'data.html'    },
+      { label:'Almanac',        icon:'\u{1F326}', href:'almanac.html' },
+      { label:'How-to cards',   icon:'\u{1F4D6}', href:'howto.html'   },
+      { label:'Plant triage',   icon:'\u{1FA7A}', href:'triage.html'  }
+    ]}
+  ],
+  staff: { label:'Staff', items:[
+    { label:'Staff tool', icon:'\u{1F9F0}', href:'app.html'   },
+    { label:'Admin',      icon:'\u2699\uFE0F', href:'admin.html' }
+  ]}
+};
+</script>
+<script src="grush-nav.js?v=3"></script>
 </body>
 </html>
