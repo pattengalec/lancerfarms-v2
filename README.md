@@ -21,6 +21,7 @@ Live at **[lancerfarms.com](https://lancerfarms.com)** (see `CNAME`).
 | `almanac.html` | Weather, sun and moon | Public |
 | `howto.html` | Step-by-step how-to card player | Public; archiving needs operator |
 | `triage.html` | Plant triage diagnostic with a 3D model | Public |
+| `bed.html` | **Landing page for a scanned bed sign.** `?b=1E` | Public; content varies by role |
 | `about-grush.html` | Colophon for the Grush platform | Public |
 
 **To reach the admin panel:** `app.html` → burger → Manage → Admin panel.
@@ -131,7 +132,7 @@ Supabase project `gblizuknnvguxyxfequh`. Farm data lives in `lfg_*`; the
 
 | Table | Purpose |
 |-------|---------|
-| `lfg_growing_areas` | Beds, trees, orchard, grounds — zone, manager, blessing |
+| `lfg_growing_areas` | Beds, trees, orchard, grounds — zone, manager, blessing. Also `code` (the QR key), `sort_order` (left-to-right position) and `lat`/`lng` |
 | `lfg_area_events` | Plant / harvest / prune / observe events per area |
 | `lfg_tasks` | Task definitions: recurrence, instructions, priority, sort order |
 | `lfg_task_completions` | Who completed what, and when |
@@ -258,29 +259,60 @@ nothing else references them.
 
 ## Bed signs and QR codes
 
-Each raised bed gets a tile sign carrying its code in large text and a QR code:
+Every raised bed has a tile sign carrying its code in large text and a QR code:
 
 ```
 https://lancerfarms.com/bed.html?b=1E
 ```
 
-**Why this shape**, since the codes get glued to tile and are then permanent:
+### Why this shape
+
+The QR gets glued to tile and is then permanent. Everything below follows from
+that.
 
 - **A dedicated page, not a link into `app.html`.** What a scan should show will
-  change; the QR cannot. Pointing it at today's page welds today's design to
-  physical tile.
-- **The bed code, not the UUID.** Readable, matches the text printed on the same
-  sign, typeable if a code will not scan in bright sun. A UUID is 36 characters
-  of noise that makes the code denser.
-- **One page, three audiences** — visitor, crew, operator — resolved by role
-  rather than by three different codes.
+  change; the tile will not. Pointing the code at today's page would weld
+  today's design to physical tile.
+- **The `code` column, not the uuid or the name.** `code` is a separate column
+  precisely so it can stay fixed while `name` changes. Parsing the code out of
+  the display name would mean renaming a bed breaks 23 signs. It is also
+  readable, matches the text printed on the same sign, and can be typed by hand
+  if a code will not scan in bright sun. Unique index on `upper(code)`, so two
+  beds can never share a QR target.
+- **One page, both audiences**, resolved by role rather than by two sets of
+  codes.
 
-QR settings that matter outdoors: **error correction Q**, 2 inches minimum,
+### How `bed.html` behaves
+
+The bed code renders first and largest — that is how you confirm you scanned the
+right bed before anything else loads.
+
+Then a **role gate**, but only when no role is stored. Someone working through
+twenty beds should not answer it twenty times; the choice is remembered, with a
+*Viewing as … · switch* link at the foot.
+
+| | Visitor | Staff |
+|---|---|---|
+| Code, name, zone, blessing | yes | yes |
+| Photos, what is growing | yes | yes |
+| Open tasks, recent work log | — | yes |
+| Actions | Explore farm · Almanac | Log work here · Farm data |
+
+Tasks and work logs are operational detail: useful standing at the bed with a
+trowel, noise to someone on a tour.
+
+**Photos and logs are filtered to approved only**, because anyone can scan a
+sign. Unmoderated content must not be the first thing a visitor sees.
+
+### Printing the signs
+
+QR settings that matter outdoors: **error correction Q**, **2 inches minimum**,
 black on white, square modules, clear quiet zone, no URL shortener. The
-procedure is a how-to card in the system, *Make the bed signs with QR codes*.
+procedure is a how-to card in the system — *Make the bed signs with QR codes* —
+attached to a task, so whoever picks it up gets it step by step on their phone.
 
-**Not built yet:** `bed.html` itself, and the `code` column that `?b=1E`
-resolves against. Do not mount signs before both exist.
+Codes were generated with `segno` at error correction Q and machine-verified:
+every one decoded back to its own bed before printing.
 
 ---
 
@@ -332,6 +364,13 @@ Nothing references a bed by name — photos, logs, events, comments, reports,
 requests and tasks all join on `area_id`. Renaming a bed is therefore free, and
 history follows the physical bed rather than the label.
 
+Each bed also carries a **`code`** (`1E`) — the short stable key printed on its
+sign and used by the QR. Separate from `name` on purpose; see Bed signs.
+
+**`lat` / `lng` are ready but empty.** Mounting day is the one occasion when
+somebody stands at all 23 beds with a phone, so that is when coordinates get
+captured. They also feed the GIS coursework.
+
 ---
 
 ## Editing this site
@@ -355,9 +394,13 @@ it — no UI, and its INSERT is operator-only, which is probably wrong for a cre
 action. Zero rows. This is the missing half of a *farm* calendar rather than an
 activity feed, and the largest open item.
 
-**`bed.html` does not exist, and beds have no `code` column.** Both are needed
-before any QR sign is mounted. Beds also want `lat` / `lng` — mounting day is
-the one chance to capture coordinates, and that data feeds the GIS coursework.
+**Bed GPS is not captured.** `lat` / `lng` exist and are empty. Mounting day is
+the one occasion someone stands at every bed with a phone; after that it is a
+special trip.
+
+**`bed.html` shows plants from `lfg_area_events`, which has no rows** — so the
+"Growing here" section is empty on every bed until plantings can be recorded.
+See the item above.
 
 **The calendar has no page.** `lfg_calendar()` is live and self-backfilling; the
 month grid is not built. Its drawer entry sits commented out in `app.html`.
