@@ -23,10 +23,15 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;}
 body{background:var(--paper);color:var(--ink);font-family:var(--font-body);display:flex;flex-direction:column;}
-/* bottom padding is 22px, not 80: grush-nav reserves the rail's height on
-   <body> itself. The old 80px was clearing .lfback and would now stack
-   on top of the rail's reservation, leaving a dead band under every step. */
-.view{display:none;flex:1;flex-direction:column;padding:22px 20px;
+/* The bottom padding is back, and here is why it has to be.
+   grush-nav reserves the rail's height by adding padding-bottom to <body> —
+   which works on a page that scrolls its content. THIS page does not: body
+   is height:100% and display:flex, so the layout is height-constrained and
+   that padding has nowhere to push into. The rail then draws straight over
+   the Back/Next row at the bottom of every step.
+   Fabio hit this on step 11 and could not advance. */
+.view{display:none;flex:1;flex-direction:column;
+  padding:22px 20px calc(86px + env(safe-area-inset-bottom));
   max-width:520px;width:100%;margin:0 auto;}
 .view.on{display:flex;}
 #tl{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;margin-bottom:18px;min-height:18px;}

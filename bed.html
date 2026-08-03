@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Bed — Lancer Farms &amp; Gardens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+
+<!-- Identity stack. Order is load-bearing. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+<script src="grush-settings.js?v=11"></script>
+
+<style>
+  :root{
+    color-scheme:dark;
+    --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+    --line:#45423A; --line-strong:#5A554A;
+    --green:#7E9A6E; --leaf:#A8B89A; --amber:#C9973F;
+    --bar-bg:#1F1C17; --bar-ink:#F0EDE2; --bar-accent:#D4A44E;
+    --bar-soft:#B6C4A9; --bar-line:#45423A;
+    --font-head:'Fraunces',Georgia,serif;
+    --font-body:'Source Sans 3',system-ui,sans-serif;
+    --font-mono:'Courier Prime',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:var(--font-head);margin:0;}
+
+  .sitebar{background:var(--bar-bg);display:flex;align-items:center;gap:10px;
+    padding:9px 12px;position:sticky;top:0;z-index:40;flex-wrap:nowrap;
+    border-bottom:1px solid var(--bar-line);box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
+  .sitebar img{width:34px;height:34px;flex:none;object-fit:contain;border-radius:50%;
+    border:1px solid var(--bar-line);padding:2px;}
+  .sitebar .wrap{flex:1 1 auto;min-width:0;overflow:hidden;}
+  .sitebar .eb{font-family:var(--font-mono);font-size:.58rem;font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--bar-accent);margin-bottom:2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sitebar .wm{font-family:var(--font-head);font-weight:700;line-height:1.05;
+    color:var(--bar-ink);font-size:clamp(.95rem,4.4vw,1.2rem);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sitebar .wm em{font-style:normal;font-weight:400;color:var(--bar-soft);}
+
+  .wrap-main{max-width:560px;margin:0 auto;padding:18px 16px 40px;}
+
+  /* The bed code is the hero — it matches the sign you just scanned, which
+     is how you know you are looking at the right bed. */
+  .hero{text-align:center;padding:14px 0 20px;}
+  .hero .code{font-family:var(--font-head);font-weight:700;font-size:4rem;
+    line-height:1;letter-spacing:-.02em;color:var(--leaf);}
+  .hero .nm{font-family:var(--font-head);font-size:1.35rem;margin-top:6px;}
+  .hero .meta{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-top:8px;}
+
+  .sect{margin-top:24px;}
+  .sect h2{font-size:.72rem;font-family:var(--font-mono);font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--bar-accent);
+    margin-bottom:10px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:13px 15px;margin-bottom:9px;}
+  .card .t{font-weight:600;}
+  .card .s{font-size:.8rem;color:var(--ink-soft);margin-top:3px;}
+  .empty{color:var(--ink-soft);font-size:.88rem;padding:10px 2px;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .ph{aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--card);
+    border:1px solid var(--line);position:relative;}
+  .ph img{width:100%;height:100%;object-fit:cover;display:block;}
+  .ph .cap{position:absolute;left:0;right:0;bottom:0;padding:14px 8px 6px;
+    background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:.72rem;}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;
+    min-height:56px;border-radius:14px;border:none;width:100%;
+    font-size:1rem;font-weight:600;font-family:inherit;text-decoration:none;
+    margin-bottom:9px;}
+  .btn.primary{background:var(--green);color:#fff;}
+  .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line-strong);}
+
+  .note{font-size:.78rem;color:var(--ink-soft);line-height:1.5;margin-top:18px;
+    padding-top:14px;border-top:1px solid var(--line);}
+  .err{text-align:center;padding:50px 20px;}
+  .err .big{font-size:2.6rem;margin-bottom:10px;}
+
+  /* Role chooser. Shown only when no role is stored — a first scan, or a
+     visitor who has never opened the site. Staff scanning twenty beds in a
+     session should not pay a tap each time. */
+  .role-ask{text-align:center;padding:8px 0 4px;}
+  .role-ask p{color:var(--ink-soft);font-size:.95rem;line-height:1.5;margin:0 0 18px;}
+  .role-btn{display:flex;align-items:center;gap:14px;width:100%;min-height:74px;
+    border-radius:16px;border:none;padding:0 20px;margin-bottom:12px;
+    font-size:1.15rem;font-weight:600;font-family:inherit;text-align:left;}
+  .role-btn .ic{font-size:1.8rem;}
+  .role-btn small{display:block;font-weight:400;font-size:.78rem;opacity:.8;margin-top:2px;}
+  .role-btn.staff{background:var(--green);color:#fff;}
+  .role-btn.visitor{background:var(--card);color:var(--ink);border:1.5px solid var(--line-strong);}
+  .whoami{text-align:center;font-size:.72rem;color:var(--ink-soft);
+    font-family:var(--font-mono);margin-top:20px;}
+  .whoami button{background:none;border:none;color:var(--leaf);font-family:inherit;
+    font-size:.72rem;text-decoration:underline;padding:6px;}
+</style>
+</head>
+<body>
+
+<div class="sitebar">
+  <img src="lfg-logo-192.webp" alt="">
+  <div class="wrap">
+    <div class="eb">Zone 9b &middot; Riverside</div>
+    <div class="wm">Lancer Farms <em>&amp; Gardens</em></div>
+  </div>
+</div>
+
+<div class="wrap-main" id="main">
+  <div class="empty" style="text-align:center;padding:60px 0">Loading&hellip;</div>
+</div>
+
+<a id="grush-mark" href="about-grush.html" title="managed by grush"
+   style="position:fixed;bottom:calc(88px + env(safe-area-inset-bottom));right:14px;z-index:50;
+   font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;
+   text-decoration:none;opacity:.92">grush</a>
+
+<script>
+/* ── bed.html ─────────────────────────────────────────────────────────
+   The landing page for a QR code glued to a bed sign.
+
+   The QR is PERMANENT — it goes on tile with adhesive. This page is not.
+   That separation is the whole reason the codes point here rather than
+   straight into app.html: what a scan should show will change, and this
+   is the piece that can change with it.
+
+   Looked up by CODE, not by uuid or name. The code is what is printed on
+   the same sign, so it can be typed by hand if a scan fails, and renaming
+   a bed does not break 23 signs.                                        */
+
+const qp   = new URLSearchParams(location.search);
+const code = (qp.get('b') || '').trim().toUpperCase();
+const el   = document.getElementById('main');
+
+function esc(s){ return String(s==null?'':s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fail(title, detail){
+  el.innerHTML = '<div class="err"><div class="big">\u{1F33F}</div>'
+    + '<h1 style="font-size:1.3rem">' + esc(title) + '</h1>'
+    + '<p style="color:var(--ink-soft);line-height:1.5;margin-top:10px">' + detail + '</p>'
+    + '<a class="btn ghost" style="margin-top:22px" href="visitor.html">Visit the farm</a>'
+    + '<a class="btn ghost" href="index.html">Home</a></div>';
+}
+
+(async function(){
+  if(!code){
+    fail('No bed specified',
+      'This page needs a bed code, like <code>?b=1E</code>. Scan a bed sign, or browse the farm below.');
+    return;
+  }
+
+  let bed;
+  try{
+    const r = await GRUSH.sb.from('lfg_growing_areas')
+      .select('id,name,code,zone,area_type,manager,blessing,lat,lng')
+      .eq('code', code).is('archived_at', null).maybeSingle();
+    if(r.error) throw r.error;
+    bed = r.data;
+  }catch(e){
+    fail('Could not reach the farm records', 'Check your signal and try again.<br><small>' + esc(e.message||'') + '</small>');
+    return;
+  }
+
+  if(!bed){
+    fail('Bed ' + esc(code) + ' not found',
+      'That code is not on the farm records. If the sign says ' + esc(code)
+      + ', let Chad know \u2014 the sign and the records disagree.');
+    return;
+  }
+
+  /* Render the header immediately, then fill the rest in. Someone standing
+     in the sun wants confirmation they scanned the right bed before they
+     want its photo history. */
+  el.innerHTML =
+      '<div class="hero"><div class="code">' + esc(bed.code) + '</div>'
+    + '<div class="nm">' + esc(bed.name) + '</div>'
+    + '<div class="meta">' + esc(bed.zone || '') + (bed.manager ? ' &middot; ' + esc(bed.manager) : '') + '</div>'
+    + (bed.blessing ? '<div style="font-family:var(--font-head);font-style:italic;color:var(--leaf);margin-top:12px;font-size:.95rem">' + esc(bed.blessing) + '</div>' : '')
+    + '</div>'
+    + '<div id="body"><div class="empty">Loading bed history\u2026</div></div>';
+
+  const body = document.getElementById('body');
+
+  /* Role gate. Stored role wins — someone working through twenty beds should
+     not answer this twenty times. Asked only when nothing is stored, and the
+     bed code stays on screen above so they still know what they scanned. */
+  window.pickRole = function(r){
+    try{ localStorage.setItem('lfg_role', r); }catch(e){}
+    render(r);
+  };
+  window.switchRole = function(){
+    try{ localStorage.removeItem('lfg_role'); }catch(e){}
+    askRole();
+  };
+
+  function askRole(){
+    body.innerHTML =
+        '<div class="role-ask"><p>Are you working here, or visiting?</p>'
+      + '<button class="role-btn staff" onclick="pickRole(\'staff\')">'
+      +   '<span class="ic">\u{1F331}</span><span>Staff'
+      +   '<small>Log work, tasks and supplies</small></span></button>'
+      + '<button class="role-btn visitor" onclick="pickRole(\'visitor\')">'
+      +   '<span class="ic">\u{1F441}</span><span>Visitor'
+      +   '<small>See what grows here</small></span></button></div>';
+  }
+
+  let stored = null;
+  try{ stored = localStorage.getItem('lfg_role'); }catch(e){}
+  if(stored !== 'staff' && stored !== 'visitor'){ askRole(); return; }
+  render(stored);
+
+  async function render(role){
+  const isStaff = role === 'staff';
+  body.innerHTML = '<div class="empty">Loading bed history\u2026</div>';
+
+  const [plantsR, tasksR, photosR, logR] = await Promise.all([
+    GRUSH.sb.from('lfg_area_events').select('plant_name,event_type,event_date')
+      .eq('area_id', bed.id).order('event_date', {ascending:false}).limit(6),
+    GRUSH.sb.from('lfg_tasks').select('id,title,recurrence_type,due_date')
+      .eq('area_id', bed.id).is('archived_at', null).limit(6),
+    /* Approved only. Anyone can scan a sign, including a visitor on a tour. */
+    GRUSH.sb.from('lfg_photos').select('id,thumbnail_url,cloudinary_url,caption')
+      .eq('area_id', bed.id).eq('approval_status','approved')
+      .order('uploaded_at', {ascending:false}).limit(6),
+    GRUSH.sb.from('lfg_log').select('note,logged_by,logged_at')
+      .eq('area_id', bed.id).eq('approval_status','approved')
+      .order('logged_at', {ascending:false}).limit(4)
+  ]);
+
+  const plants = plantsR.data || [], tasks = tasksR.data || [],
+        photos = photosR.data || [], logs = logR.data || [];
+
+  let h = '';
+
+  if(photos.length){
+    h += '<div class="sect"><h2>Photos</h2><div class="grid">'
+      + photos.map(p =>
+          '<div class="ph"><img src="' + esc(p.thumbnail_url || p.cloudinary_url) + '" loading="lazy">'
+          + (p.caption ? '<div class="cap">' + esc(p.caption) + '</div>' : '') + '</div>'
+        ).join('')
+      + '</div></div>';
+  }
+
+  if(plants.length){
+    h += '<div class="sect"><h2>Growing here</h2>'
+      + plants.map(p => '<div class="card"><div class="t">' + esc(p.plant_name || p.event_type) + '</div>'
+          + '<div class="s">' + esc(p.event_type) + (p.event_date ? ' &middot; ' + p.event_date : '') + '</div></div>'
+        ).join('') + '</div>';
+  }
+
+  /* Tasks and the work log are operational detail — useful standing at the
+     bed with a trowel, noise to someone on a tour. */
+  if(isStaff && tasks.length){
+    h += '<div class="sect"><h2>Open tasks</h2>'
+      + tasks.map(t => '<div class="card"><div class="t">' + esc(t.title) + '</div>'
+          + '<div class="s">' + esc(t.due_date ? 'Due ' + t.due_date : (t.recurrence_type || '').replace('_',' ')) + '</div></div>'
+        ).join('') + '</div>';
+  }
+
+  if(isStaff && logs.length){
+    h += '<div class="sect"><h2>Recent work</h2>'
+      + logs.map(l => '<div class="card"><div class="t" style="font-weight:400;font-size:.92rem">' + esc(l.note) + '</div>'
+          + '<div class="s">' + esc(l.logged_by || '') + ' &middot; ' + String(l.logged_at||'').slice(0,10) + '</div></div>'
+        ).join('') + '</div>';
+  }
+
+  const nothing = !photos.length && !plants.length
+                && (!isStaff || (!tasks.length && !logs.length));
+  if(nothing){
+    h += '<div class="sect"><div class="empty">'
+      + (isStaff ? 'Nothing recorded for this bed yet. Log something and it will show up here.'
+                 : 'Nothing to show for this bed yet \u2014 come back after the next work day.')
+      + '</div></div>';
+  }
+
+  h += '<div class="sect"><h2>Do something</h2>';
+  if(isStaff){
+    h += '<a class="btn primary" href="app.html">\u270E&nbsp; Log work here</a>'
+      +  '<a class="btn ghost" href="data.html">\u{1F4CA}&nbsp; All farm data</a>';
+  } else {
+    h += '<a class="btn primary" href="visitor.html">\u{1F6B6}&nbsp; Explore the farm</a>'
+      +  '<a class="btn ghost" href="almanac.html">\u{1F326}&nbsp; Weather &amp; almanac</a>';
+  }
+  h += '</div>';
+
+  h += '<div class="note">Scanned from the sign on ' + esc(bed.name) + '. '
+    + 'Zone numbers follow the irrigation controller; beds are lettered left to '
+    + 'right facing the White House.'
+    + (bed.lat ? '<br>GPS ' + bed.lat.toFixed(6) + ', ' + bed.lng.toFixed(6) : '')
+    + '</div>';
+
+  h += '<div class="whoami">Viewing as ' + (isStaff ? 'Staff' : 'Visitor')
+    + ' &middot; <button onclick="switchRole()">switch</button></div>';
+
+  body.innerHTML = h;
+  }
+})();
+</script>
+</body>
+</html>

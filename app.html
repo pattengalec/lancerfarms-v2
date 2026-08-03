@@ -111,10 +111,7 @@
   body.is-admin .admin-only{display:flex;}
 
   /* ---------- screens ---------- */
-  /* The action bar is fixed: 12px + 58px button + 12px + the iOS home-indicator
-     inset. 96px flat was shorter than that on a notched phone, so the Note box
-     sat underneath it. */
-  main{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:calc(112px + env(safe-area-inset-bottom));}
+  main{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:96px;}
   .screen{display:none; animation:screenin .2s ease;}
   .screen.active{display:block;}
   @keyframes screenin{from{opacity:0; transform:translateY(4px);}to{opacity:1; transform:none;}}
@@ -373,10 +370,10 @@
             <span class="tname">Triage</span><span class="tsub">Something looks wrong</span>
           </button>
         <button class="tile n" onclick="location.href='data.html'">
-            <span class="ic">&#128202;</span>
-            <span class="tname">Farm Data</span><span class="tsub">Live logs &amp; records</span>
+            <span class="ic">📊</span>
+            <div><div class="tname">Farm Data</div><div class="tsub">Live logs & records</div></div>
           </button>
-          <button class="tile n" onclick="location.href='manual.html'">
+          <button class="tile n" onclick="go('manual')">
             <span class="ic">&#128214;</span>
             <span class="tname">Manual</span><span class="tsub">Guides &amp; reference</span>
           </button>
@@ -799,14 +796,58 @@ function go(scr){
 /* The drawer is grush-nav's now. These two are kept as thin shims because
    eleven call sites below still use them — and because grush-settings.js
    calls window.closeMenu() before opening its console. */
-/* iOS app-shell caveat: with <body> locked, the browser reveals a focused
-   field by scrolling the DOCUMENT, which no longer scrolls. Fields low in
-   a sheet can end up behind the keyboard. Nudge them into view. */
+/* ── keyboard handling ───────────────────────────────────────────────
+   Two problems, one cause: the fixed bottom bar and the keyboard both eat
+   the bottom of the screen, and the field being typed into is underneath.
+
+   scrollIntoView alone was not enough, and it is worth writing down why:
+   it centres the field in its SCROLL CONTAINER, not in what you can
+   actually see. With the keyboard up, the visible part of that container
+   is only its top half — so "centred" put the field behind the keyboard.
+   Fabio hit exactly this writing a note and could not see what he typed.
+
+   So the action bar gets out of the way while typing. You do not need a
+   "Log it" button visible mid-sentence, and it comes straight back when
+   the field loses focus. */
+
+function actionbarHide(){
+  var ab = document.getElementById('actionbar');
+  if (ab && ab.style.display !== 'none') { ab.dataset.wasShown = '1'; ab.style.display = 'none'; }
+}
+function actionbarRestore(){
+  var ab = document.getElementById('actionbar');
+  if (ab && ab.dataset.wasShown) { delete ab.dataset.wasShown; ab.style.display = 'block'; }
+}
+
 document.addEventListener('focusin', function(e){
-  if (!document.documentElement.classList.contains('grush-shell')) return;
   var el = e.target;
-  if (!el.matches || !el.matches('input, select, textarea')) return;
-  setTimeout(function(){ el.scrollIntoView({ block:'center', behavior:'smooth' }); }, 250);
+  if (!el.matches || !el.matches('input, textarea')) return;
+  actionbarHide();
+  /* Scroll against the VISUAL viewport where the browser exposes it, since
+     that is the only thing that knows how tall the keyboard is. */
+  setTimeout(function(){
+    try {
+      var vv = window.visualViewport;
+      var r  = el.getBoundingClientRect();
+      if (vv && r.bottom > vv.height - 12) {
+        el.scrollIntoView({ block:'center', behavior:'smooth' });
+      } else if (!vv) {
+        el.scrollIntoView({ block:'center', behavior:'smooth' });
+      }
+    } catch(err){ /* never let this break typing */ }
+  }, 300);
+});
+
+/* Delayed, because focusout fires when moving BETWEEN fields — restoring
+   immediately would make the bar flash on every tab. */
+var _abT;
+document.addEventListener('focusout', function(){
+  clearTimeout(_abT);
+  _abT = setTimeout(function(){
+    var a = document.activeElement;
+    if (a && a.matches && a.matches('input, textarea')) return;   // still typing
+    actionbarRestore();
+  }, 200);
 });
 
 function openMenu(){ if (window.GrushNav) window.GrushNav.open(); }
@@ -821,50 +862,20 @@ async function loadAreas(){
   const {data,error}= await sb.from('lfg_growing_areas').select('id,name,zone,area_type').is('archived_at',null).order('zone').order('sort_order', {nullsFirst:false}).order('name');
   if(error){ document.getElementById('where-groups').innerHTML='<div class="empty">Could not load areas</div>'; return; }
   state.areas=data;
-  renderAreaChips();
+  const groups={};
+  data.forEach(a=>{ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
+  let html='';
+  Object.keys(groups).forEach(z=>{
+    html+='<div class="zone-h">'+z+'</div><div class="btn-grid">';
+    groups[z].forEach(a=>{ html+='<button class="chip" style="min-height:52px" data-area="'+a.id+'" onclick="pickArea(this,\''+a.id+'\',\''+a.name.replace(/'/g,"")+'\')">'+a.name+'</button>'; });
+    html+='</div>';
+  });
+  document.getElementById('where-groups').innerHTML=html;
   // who — names from grush_people, fetched before the grid is painted
   await loadCrew();
   document.getElementById('who-grid').innerHTML=CREW.map(n=>'<button class="chip" style="min-height:52px" onclick="pickWho(this,\''+n+'\')">'+n+'</button>').join('');
   renderWhat();
 }
-/* Paints the WHERE chips from state.areas. Safe to call any time — it
-   re-applies the current selection from state.areaIds, so re-rendering
-   after adding a location does not lose what the user already picked,
-   and does not touch the WHO / WHAT grids the way loadAreas() does. */
-function renderAreaChips(){
-  const el=document.getElementById('where-groups');
-  if(!el) return;
-  const areas=state.areas||[];
-  const picked=(state.areaIds||[]).map(a=>a.id);
-  const groups={};
-  areas.forEach(a=>{ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
-  let html='<div id="where-hint" style="font-size:12px;opacity:.65;margin:0 0 8px">'+whereHintText()+'</div>';
-  html+='<div class="btn-grid" style="margin-bottom:4px"><button class="chip" style="min-height:52px;border-style:dashed;opacity:.75;grid-column:1/-1" data-addarea="1">&#43; New location</button></div>';
-  Object.keys(groups).forEach(z=>{
-    html+='<div class="zone-h">'+esc(z)+'</div><div class="btn-grid">';
-    groups[z].forEach(a=>{
-      const on=picked.indexOf(a.id)>-1?' on':'';
-      html+='<button class="chip'+on+'" style="min-height:52px" data-area="'+esc(a.id)+'">'+esc(a.name)+'</button>';
-    });
-    html+='</div>';
-  });
-  el.innerHTML=html;
-}
-
-/* One delegated listener instead of inline onclick — area names can contain
-   quotes and apostrophes, which used to be stripped out of the handler string. */
-document.addEventListener('click', function(ev){
-  const host=document.getElementById('where-groups');
-  if(!host) return;
-  const btn=ev.target.closest('button');
-  if(!btn||!host.contains(btn)) return;
-  if(btn.hasAttribute('data-addarea')){ addLocationInline(); return; }
-  const id=btn.getAttribute('data-area');
-  if(!id) return;
-  const a=(state.areas||[]).find(x=>x.id===id);
-  pickArea(btn, id, a?a.name:'');
-});
-
 function renderWhat(){
   document.getElementById('what-grid').innerHTML=ACTIONS[state.type].map(a=>'<button class="chip" style="min-height:52px" onclick="pickWhat(this,\''+a+'\')">'+a+'</button>').join('');
   state.what=null;
@@ -876,24 +887,6 @@ function pickType(el,t){
   else { state.type=null; }
   renderWhat();
 }
-/* The Where field has always been multi-select — chips toggle independently
-   and across zones — but nothing on screen said so, and the save path threw
-   away everything after the first pick. This line makes the behaviour
-   visible; submitLog() now writes a row per selection. */
-function whereHintText(){
-  const n=(state.areaIds||[]).length;
-  if(!n) return 'Tap as many as apply \u2014 they can be in different zones. Leave blank for the whole farm.';
-  return n+' selected \u2014 this will be logged on '+(n===1?'1 location':'each of the '+n)+'.';
-}
-function updateWhereHint(){
-  const h=document.getElementById('where-hint');
-  if(h) h.textContent=whereHintText();
-  const btn=document.getElementById('primary-action');
-  if(btn && !btn.disabled){
-    const n=(state.areaIds||[]).length;
-    btn.textContent = n>1 ? ('Log it on '+n+' locations') : 'Log it';
-  }
-}
 function pickArea(el,id,label){
   el.classList.toggle('on');
   if(!state.areaIds) state.areaIds=[];
@@ -901,7 +894,6 @@ function pickArea(el,id,label){
   else { state.areaIds=state.areaIds.filter(a=>a.id!==id); }
   state.areaId=state.areaIds.length?state.areaIds[0].id:null;
   state.areaLabel=state.areaIds.map(a=>a.label).join(', ');
-  updateWhereHint();
 }
 function pickWho(el,n){ el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); state.who=n; }
 function pickWhat(el,a){
@@ -918,102 +910,22 @@ function toggleWhenPicker(){
   inp.value=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
   box.style.display='block'; inp.focus();
 }
-/* ---------- one door for creating locations ----------
-   Every add path (log chip, Locations form, photo editor) goes through
-   resolveOrCreateArea so a name can only exist once. There is no unique
-   index on lfg_growing_areas.name, so without this the same bed can be
-   typed in three times and become three rows with three histories.
-
-   Matching is normalised, not literal: case, spaces and punctuation are
-   stripped, so "Bed 3H", "bed 3h" and "Bed-3H" all resolve to one record.
-   Deliberately NOT fuzzy — bed names here differ by a single character
-   ("Bed 3F" / "Bed 3G"), so edit-distance matching would flag every
-   legitimate new bed as a duplicate. */
-function normAreaName(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
-
-/* The RLS read policy on lfg_growing_areas is `archived_at IS NULL`, so a
-   plain select can NEVER see an archived row — Postgres filters it out before
-   the client sees anything. A direct query here would report "no match" for an
-   archived location and happily create a second one with the same name.
-   area_name_status() is SECURITY DEFINER so the existence check can see past
-   that policy; it only ever returns a single exact normalised match, so it
-   can't be used to enumerate the archived list.
-
-   Returns {ok, hit, error}. A failed lookup is NOT treated as "no match" —
-   see resolveOrCreateArea, which refuses to insert rather than risk a dup. */
-async function findAreaByName(name){
-  if(!normAreaName(name)) return {ok:true, hit:null};
-  const {data,error}= await sb.rpc('area_name_status', {p_name:String(name)});
-  if(error) return {ok:false, hit:null, error:error};
-  return {ok:true, hit:(data&&data.length)?data[0]:null};
-}
-
-/* Returns {area, action} where action is 'existing' | 'restored' | 'created',
-   or null if the user backed out or the check could not be completed. */
-async function resolveOrCreateArea(name, zone, area_type){
-  name=String(name||'').trim();
-  if(!name){ toast('Name required'); return null; }
-
-  const look=await findAreaByName(name);
-  if(!look.ok){
-    /* Deliberately refuse. Falling through to an insert on a failed lookup is
-       exactly how duplicates get made. */
-    toast('Could not check for duplicates \u2014 nothing created. ' + ((look.error&&look.error.message)||''));
-    return null;
-  }
-  const hit=look.hit;
-
-  if(hit && !hit.archived){
-    return {area:{id:hit.id, name:hit.name, zone:hit.zone, area_type:hit.area_type}, action:'existing'};
-  }
-
-  if(hit && hit.archived){
-    /* Restoring is an UPDATE, and the update policy requires is_operator().
-       Crew can't do it, so tell them plainly instead of failing at the
-       database and leaving them staring at a raw error. */
-    let isOp=false;
-    try{ isOp = !!(window.GRUSH && await GRUSH.isOperator()); }catch(e){ isOp=false; }
-    if(!isOp){
-      toast('"'+hit.name+'" exists but is archived \u2014 an operator needs to restore it');
-      return null;
-    }
-    if(!confirm('"'+hit.name+'" already exists but was archived.\n\nRestore it instead of creating a second one?')) return null;
-    const {error}= await sb.from('lfg_growing_areas').update({archived_at:null}).eq('id',hit.id);
-    if(error){ toast('Restore failed: '+(error.message||'unknown')); return null; }
-    return {area:{id:hit.id, name:hit.name, zone:hit.zone, area_type:hit.area_type}, action:'restored'};
-  }
-
-  const {data,error}= await sb.from('lfg_growing_areas')
-    .insert({name:name, zone:(String(zone||'').trim()||'Grounds'), area_type:(area_type||'other')})
-    .select().single();
-  if(error){ toast('Could not add location: '+(error.message||'unknown')); return null; }
-  return {area:data, action:'created'};
-}
-
-/* Keeps state.areas in step after any of the three paths resolves. */
-function upsertStateArea(a){
-  state.areas=state.areas||[];
-  const i=state.areas.findIndex(x=>x.id===a.id);
-  if(i>-1) state.areas[i]=a; else state.areas.push(a);
-}
-
 async function addLocationInline(){
-  const name=prompt('New location name:'); if(name===null||!name.trim()) return;
-  /* area_type is NOT NULL with a CHECK constraint; a one-field quick add has
-     no way to know which member it is, so 'other' is the neutral default.
-     Zone defaults to Grounds — retype it on the Locations screen if it
-     belongs to a numbered zone. */
-  const res=await resolveOrCreateArea(name, 'Grounds', 'other');
-  if(!res) return;
-  upsertStateArea(res.area);
-  renderAreaChips();
-  const btn=document.querySelector('#where-groups [data-area="'+res.area.id+'"]');
-  if(btn && !btn.classList.contains('on')) pickArea(btn, res.area.id, res.area.name);
-  const areasScr=document.getElementById('screen-areas');
-  if(areasScr && areasScr.classList.contains('active') && typeof loadAreasScreen==='function') loadAreasScreen();
-  toast(res.action==='created' ? 'Location added'
-      : res.action==='restored' ? 'Restored \u2014 selected'
-      : 'Already on the list \u2014 selected');
+  const name=prompt('New location name:'); if(!name||!name.trim()) return;
+  /* area_type is NOT NULL with no default and a CHECK constraint, so an
+     insert without it is refused every time. This has never once worked;
+     it just showed the toast below. 'other' is the neutral member of the
+     allowed set (raised_bed, tree, shrub, ground, container, other, zone,
+     landmark) — a quick add has no way to know which it is. */
+  const {data,error}=await sb.from('lfg_growing_areas')
+    .insert({name:name.trim(), zone:'Grounds', area_type:'other'})
+    .select().single();
+  if(error){ toast('Could not add location: ' + (error.message||'unknown')); return; }
+  state.areas=[...(state.areas||[]),data];
+  renderAreas();
+  const newBtn=document.querySelector('[data-area="'+data.id+'"]');
+  if(newBtn) pickArea(newBtn, data.id, data.name);
+  toast('Location added');
 }
 function openWhenPicker(){
   const inp=document.getElementById('when-input');
@@ -1033,19 +945,6 @@ function setWhen(v){
   document.getElementById('when-label').textContent = isToday? ('Today '+t) : (d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+t);
 }
 
-/* crypto.randomUUID needs a secure context and Safari 15.4+. The site is
-   HTTPS so it should always be there, but a log entry silently failing on an
-   older iPad is not a trade worth making. */
-function newGroupId(){
-  try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
-  const b=new Uint8Array(16);
-  (window.crypto&&crypto.getRandomValues) ? crypto.getRandomValues(b)
-    : b.forEach(function(_,i){ b[i]=Math.floor(Math.random()*256); });
-  b[6]=(b[6]&0x0f)|0x40; b[8]=(b[8]&0x3f)|0x80;
-  const h=Array.from(b, function(x){ return x.toString(16).padStart(2,'0'); }).join('');
-  return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
-}
-
 async function submitLog(){
   if(!state.what){ toast('Tap what was done'); return; }
   const btn=document.getElementById('primary-action'); btn.disabled=true; btn.textContent='Saving\u2026';
@@ -1053,35 +952,19 @@ async function submitLog(){
   noteParts.push('['+state.type.toUpperCase()+'] '+state.what);
   const extra=document.getElementById('log-note').value.trim();
   if(extra) noteParts.push(extra);
-  /* One row per selected location. Previously this wrote a single row using
-     state.areaId — the FIRST pick only — and left the other names stranded in
-     location_label as free text, so those beds got no history and nothing
-     could filter by them. An empty selection still writes one row with a null
-     area_id, which is the whole-farm entry. */
-  const picks=(state.areaIds && state.areaIds.length) ? state.areaIds : [null];
-  const stamp=state.loggedAt || new Date().toISOString();
-  const note=noteParts.join(' \u2014 ');
-  /* Every row of one action carries the same group_id. This is what ties a
-     multi-location entry together — not the timestamp, which was only ever a
-     lucky coincidence of how these rows get written. */
-  const gid=newGroupId();
-  const rows=picks.map(function(p){
-    return {
-      area_id: p ? p.id : null,
-      location_label: p ? p.label : null,
-      note: note,
-      logged_by: state.who || 'Staff',
-      approval_status: 'pending',
-      submitted_by: state.who || 'Staff',
-      logged_at: stamp,
-      group_id: gid
-    };
-  });
-  const {error}= await sb.from('lfg_log').insert(rows);
+  const row={
+    area_id: state.areaId,
+    location_label: state.areaLabel,
+    note: noteParts.join(' \u2014 '),
+    logged_by: state.who || 'Staff',
+    approval_status: 'pending',
+    submitted_by: state.who || 'Staff'
+  };
+  if(state.loggedAt) row.logged_at = state.loggedAt;
+  const {error}= await sb.from('lfg_log').insert(row);
   btn.disabled=false; btn.textContent='Log it';
   if(error){ toast('Save failed \u2014 try again'); return; }
-  toast(rows.length>1 ? ('Logged on '+rows.length+' locations \u2014 pending review')
-                      : 'Logged \u2014 pending review');
+  toast('Logged \u2014 pending review');
   // reset lightly
   document.getElementById('log-note').value='';
   state.what=null; state.loggedAt=null; state.areaIds=[]; state.areaId=null; state.areaLabel=null;
@@ -1089,7 +972,6 @@ async function submitLog(){
   document.getElementById('when-picker').style.display='none';
   document.getElementById('when-label').textContent='Now';
   document.querySelectorAll('#what-grid .chip').forEach(c=>c.classList.remove('on'));
-  updateWhereHint();
   refreshApproveBadge();
   go('hub');
 }
@@ -1328,22 +1210,6 @@ async function refreshApproveBadge(){
   if(total>0){ b.style.display='flex'; b.textContent=total; } else b.style.display='none';
 }
 function _escA(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-/* A multi-location entry is N rows in lfg_log — one per bed — because that
-   is what gives each bed real history. Grouping is now by group_id (migration
-   008), which submitLog stamps on every row of one action. The column is NOT
-   NULL with a gen_random_uuid() default, so a row written by any other path
-   is simply its own group and needs no special handling.
-   Rows keep their incoming order (logged_at desc), so groups stay sorted. */
-function groupPendingLogs(logs){
-  const m=new Map();
-  (logs||[]).forEach(function(r){
-    const k=r.group_id || ('row:'+r.id);
-    if(!m.has(k)) m.set(k,[]);
-    m.get(k).push(r);
-  });
-  return Array.from(m.values());
-}
-
 async function loadApprovals(){
   const el=document.getElementById('approve-list');
   await ensurePlants();
@@ -1361,20 +1227,10 @@ async function loadApprovals(){
   let html='';
   if(logs.length){
     html+='<div class="approve-group">Field logs</div>';
-    html+=groupPendingLogs(logs).map(function(g){
-      const ids=g.map(function(r){return r.id;}).join(',');
-      const labels=g.map(function(r){return r.location_label;}).filter(Boolean);
-      let name;
-      if(!labels.length) name='\u2014';
-      else if(labels.length<=4) name=labels.join(', ');
-      else name=labels.slice(0,3).join(', ')+' +'+(labels.length-3)+' more';
-      const meta=_escA(g[0].note)+' &middot; '+_escA(g[0].submitted_by||'?')+
-        (g.length>1 ? ' &middot; '+g.length+' locations' : '');
-      return '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(name)+'</div>'+
-        '<div class="inv-cat">'+meta+'</div></div>'+
-        '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" '+
-        'onclick="approveLogGroup(\''+(g[0].group_id||'')+'\',\''+ids+'\')">&#10003;'+(g.length>1?('&nbsp;'+g.length):'')+'</button></div>';
-    }).join('');
+    html+=logs.map(r=>(
+      '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(r.location_label||'\u2014')+'</div><div class="inv-cat">'+_escA(r.note)+' &middot; '+_escA(r.submitted_by||'?')+'</div></div>'+
+      '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'log\',\''+r.id+'\')">&#10003;</button></div>'
+    )).join('');
   }
   if(comments.length){
     html+='<div class="approve-group">Visitor notes</div>';
@@ -1477,34 +1333,9 @@ window.savePlant = async function(approve){
   loadApprovals();
 };
 
-/* Approving by group_id rather than by the id list the screen happened to
-   render: if another device added a location to this action after the queue
-   was painted, the id list is stale and would leave an orphan pending row.
-   Falls back to the id list for any legacy row without a group. */
-async function approveLogGroup(groupId, idList){
-  let error, n;
-  if(groupId){
-    const res= await sb.from('lfg_log').update({approval_status:'approved'})
-      .eq('group_id',groupId).eq('approval_status','pending').select('id');
-    error=res.error; n=(res.data||[]).length;
-  } else {
-    const ids=String(idList||'').split(',').filter(Boolean);
-    const res= await sb.from('lfg_log').update({approval_status:'approved'}).in('id',ids).select('id');
-    error=res.error; n=(res.data||[]).length;
-  }
-  if(error){ toast('Failed'); return; }
-  toast(n>1 ? ('Approved '+n+' locations') : 'Approved');
-  loadApprovals(); refreshApproveBadge();
-}
-
 async function approveItem(kind,id){
   let error;
-  let n=1;
-  if(kind==='log'){
-    const ids=String(id).split(',').filter(Boolean);
-    n=ids.length;
-    ({error}= await sb.from('lfg_log').update({approval_status:'approved'}).in('id',ids));
-  }
+  if(kind==='log'){ ({error}= await sb.from('lfg_log').update({approval_status:'approved'}).eq('id',id)); }
   else if(kind==='comment'){ ({error}= await sb.from('lfg_comments').update({status:'reviewed'}).eq('id',id)); }
   else if(kind==='photo'){
     const _ar=document.querySelector('.ap-area[data-id="'+id+'"]'), _ty=document.querySelector('.ap-type[data-id="'+id+'"]');
@@ -1513,8 +1344,7 @@ async function approveItem(kind,id){
     ({error}= await sb.from('lfg_photos').update(_upd).eq('id',id));
   }
   if(error){ toast('Failed'); return; }
-  toast(n>1 ? ('Approved '+n+' locations') : 'Approved');
-  loadApprovals(); refreshApproveBadge();
+  toast('Approved'); loadApprovals(); refreshApproveBadge();
 }
 // wire approvals screen load
 const _go=go; go=function(s){ _go(s); if(s==='approvals') loadApprovals(); if(s==='areas') loadAreasScreen(); if(s==='tasks') loadTasks(); if(s==='inventory') loadInventory(); if(s==='photos') loadPhotos(); };
@@ -1616,13 +1446,10 @@ async function addAreaFromForm(){
   const type=document.getElementById('na-type').value;
   const zone=document.getElementById('na-zone').value.trim()||'Grounds';
   if(!name){ toast('Name required'); return; }
-  const res=await resolveOrCreateArea(name, zone, type);
-  if(!res) return;
+  const {error}= await sb.from('lfg_growing_areas').insert({name:name, zone:zone, area_type:type});
+  if(error){ toast('Could not add'); return; }
   document.getElementById('na-name').value='';
-  toast(res.action==='created' ? 'Location added'
-      : res.action==='restored' ? 'Restored from archive'
-      : 'Already exists \u2014 no duplicate made');
-  await loadAreas(); loadAreasScreen();
+  toast('Location added'); loadAreas(); loadAreasScreen();
 }
 async function renameArea(id){
   const nn=prompt('Rename location', _areaById(id).name||''); if(nn===null) return;
@@ -1648,13 +1475,10 @@ async function restoreArea(id){
 async function quickAddArea(){
   const name=prompt('New location name'); if(name===null||!name.trim()) return null;
   const zone=prompt('Zone (e.g. Grounds, Zone 2)','Grounds'); if(zone===null) return null;
-  const res=await resolveOrCreateArea(name, zone, 'landmark');
-  if(!res) return null;
-  toast(res.action==='created' ? 'Location added'
-      : res.action==='restored' ? 'Restored from archive'
-      : 'Already exists \u2014 using it');
-  await loadAreas();
-  return res.area;
+  const {data,error}= await sb.from('lfg_growing_areas').insert({name:name.trim(), zone:(zone.trim()||'Grounds'), area_type:'landmark'}).select().single();
+  if(error){ toast('Could not add'); return null; }
+  toast('Location added'); await loadAreas();
+  return data;
 }
 async function peAreaChange(){
   const sel=document.getElementById('pe-area');
