@@ -216,6 +216,16 @@ footer.foot a{color:var(--cyan);text-decoration:none}
 @media (max-width:640px){ .grp .row3{grid-template-columns:repeat(2,1fr)} }
 
 /* ---------- estimator ---------- */
+.structural{margin-top:26px;border:1px solid var(--amber);border-radius:3px;overflow:hidden}
+.structural-head{
+  background:rgba(255,184,48,.12);padding:11px 16px;
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--amber);font-weight:600;
+  border-bottom:1px solid rgba(255,184,48,.25)
+}
+.structural-body{padding:4px 0 4px}
+.structural-body table.est td,.structural-body table.est th{padding-left:16px}
+.structural-body .tot{padding:10px 16px}
 #estimator{margin-top:64px;padding-top:34px;border-top:1px solid var(--line)}
 .locked{
   background:var(--panel);border:1px dashed var(--line);border-radius:4px;
@@ -1203,6 +1213,28 @@ function render(){
   h+='</table>';
   h+='<div class="tot"><span>Chemical stock subtotal</span><span>'+money(chemTotal)+'</span></div>';
 
+  /* ---- STRUCTURAL: soil settling ---- */
+  var settle=Math.max(0,parseFloat(el("fSettle").value)||1.5);
+  var strTotal=0;
+  if(f.sqft>0 && settle>0){
+    var cuft=f.sqft*settle/12, cuyd=cuft/27;
+    var buyYd=Math.ceil(cuyd-1e-9);
+    var priceYd=45;
+    strTotal=buyYd*priceYd;
+    h+='<div class="structural">';
+    h+='<div class="structural-head">Structural soil maintenance &mdash; annual</div>';
+    h+='<div class="structural-body">';
+    h+='<table class="est"><tr><th>Item</th><th class="r">Needed</th><th class="r">Buy</th><th class="r">Unit $</th><th class="r">Cost</th></tr>';
+    h+='<tr><td>Raised bed soil top-up<br><small style="font-size:.8em;color:#8fa3c4">Settling at '+settle+' in/yr across '+f.sqft+' sq ft of beds. Not compost or mulch &mdash; a like-for-like replacement of the soil volume lost to organic matter decomposition and compaction.</small></td>'+
+       '<td class="num r">'+r1(cuyd)+' cu yd</td>'+
+       '<td class="num r">'+buyYd+' cu yd</td>'+
+       '<td class="num r"><input class="price" type="number" step="1" min="0" data-reg="STRUCT" data-k="soilmix" value="'+priceYd+'"></td>'+
+       '<td class="num r">'+money(strTotal)+'</td></tr>';
+    h+='</table>';
+    h+='<div class="tot"><span>Structural subtotal</span><span>'+money(strTotal)+'</span></div>';
+    h+='</div></div>';
+  }
+
   var amTotal=0;
   if(Object.keys(c.amt).length){
     h+='<h3>Cultural &amp; amendment inputs</h3><table class="est"><tr><th>Item</th><th class="r">Needed</th><th class="r">Buy</th><th class="r">Unit $</th><th class="r">Cost</th></tr>';
@@ -1219,7 +1251,7 @@ function render(){
     h+='<div class="tot"><span>Amendment subtotal</span><span>'+money(amTotal)+'</span></div>';
   }
 
-  var sub=chemTotal+amTotal, cont=sub*0.15;
+  var sub=chemTotal+amTotal+strTotal, cont=sub*0.15;
   h+='<div class="tot"><span>Contingency at 15%</span><span>'+money(cont)+'</span></div>';
   h+='<div class="tot grand"><span>Minimum annual stocking budget</span><b>'+money(sub+cont)+'</b></div>';
   if(f.sqft>=5000){
@@ -1267,6 +1299,7 @@ function syncFields(){
   el("wrapZone").style.display    = isC?"none":"";
   el("wrapPath").style.display    = isC?"none":"";
   el("wrapRate").style.display    = isC?"none":"";
+  el("wrapSettle").style.display  = isC?"none":"";
   el("lblCount").textContent = m==="bed"?"How many beds"
       : m==="sqft"?"Square feet"
       : m==="acre"?"Acres"
@@ -1289,6 +1322,7 @@ function boot(){
   });
   el("fCrop").value="mixed";
   ["fMode"].forEach(function(id){el(id).addEventListener("change",syncFields);});
+  el("fSettle").addEventListener("change",render);
   ["fCount","fBedSize","fCycles","fCrop","fZone","fPath","fRate"].forEach(function(id){
     el(id).addEventListener("change",render); el(id).addEventListener("input",render);
   });
