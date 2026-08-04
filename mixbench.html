@@ -197,6 +197,24 @@ footer.foot{
 footer.foot a{color:var(--cyan);text-decoration:none}
 
 
+
+/* ---------- water calculator ---------- */
+.grp{border:1px solid var(--line);border-radius:3px;padding:14px 15px;margin-bottom:10px;background:var(--panel)}
+.grp-h{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--chart);margin:0 0 11px}
+.grp .row3{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.grp .row3 label{display:block;font-family:var(--f-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.grp .row3 input{width:100%;background:var(--panel-2);color:#e6eefb;border:1px solid var(--line);border-radius:3px;padding:9px 8px;font-family:var(--f-mono);font-size:.9rem;text-align:center}
+.grp .row3 input:focus{outline:2px solid var(--cyan);outline-offset:1px}
+.bignum{font-family:var(--f-disp);font-weight:800;font-size:clamp(2rem,8vw,3rem);color:var(--chart);line-height:1;letter-spacing:-.02em}
+.bignum small{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:400;margin-top:7px}
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:20px 0 4px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:15px 16px}
+.stat b{display:block;font-family:var(--f-disp);font-weight:700;font-size:1.35rem;color:#fff}
+.stat span{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.warn{border-left:3px solid var(--amber);background:rgba(255,184,48,.07);padding:12px 14px;margin-top:14px;font-size:.9rem;color:#e8d2a8}
+.warn.bad{border-left-color:var(--danger);background:rgba(255,85,68,.08);color:#ffd0c9}
+@media (max-width:640px){ .grp .row3{grid-template-columns:repeat(2,1fr)} }
+
 /* ---------- estimator ---------- */
 #estimator{margin-top:64px;padding-top:34px;border-top:1px solid var(--line)}
 .locked{
@@ -370,6 +388,11 @@ table.est input.price{
 
   <div id="estPanel" class="hidden">
     <span class="badge-staff">Staff tool</span>
+    <div class="opts" id="staffTabs" style="margin:14px 0 26px">
+      <button class="opt" type="button" id="tabBtnChem" aria-pressed="true">Chemical stock</button>
+      <button class="opt" type="button" id="tabBtnWater" aria-pressed="false">Water demand</button>
+    </div>
+    <div id="tabChem">
     <h2 style="font-family:var(--f-disp);font-weight:800;font-size:clamp(1.6rem,5vw,2.2rem);color:#fff;margin:0 0 8px;letter-spacing:-.015em">Stock &amp; budget estimator</h2>
     <p style="color:#b9c8e0;max-width:62ch;margin:0">Every recipe above is a concentration. Give it an area, a crop, and a season length, and it becomes a quantity you can buy. Output is a shopping list first &mdash; the dollar figure follows from it.</p>
 
@@ -420,6 +443,77 @@ table.est input.price{
     <p class="est-note">Prices below are editable. Replace them with your actual invoice figures before this number goes anywhere official.</p>
 
     <div class="res" id="estResult"></div>
+    </div>
+
+    <div id="tabWater" class="hidden">
+      <h2 style="font-family:var(--f-disp);font-weight:800;font-size:clamp(1.6rem,5vw,2.2rem);color:#fff;margin:0 0 8px;letter-spacing:-.015em">Water demand calculator</h2>
+      <p style="color:#b9c8e0;max-width:62ch;margin:0 0 4px">Enter a date range and your bed dimensions. Reference evapotranspiration comes from the CIMIS ETo zone table &mdash; the same data used for agricultural irrigation scheduling in California.</p>
+
+      <div class="fields">
+        <div class="field">
+          <label for="wZone">CIMIS ETo zone</label>
+          <select id="wZone"></select>
+        </div>
+        <div class="field">
+          <label for="wStart">Start date</label>
+          <input type="date" id="wStart">
+        </div>
+        <div class="field">
+          <label for="wEnd">End date</label>
+          <input type="date" id="wEnd">
+        </div>
+        <div class="field">
+          <label for="wKc">Crop stage</label>
+          <select id="wKc">
+            <option value="0.5">Just seeded or transplanted</option>
+            <option value="0.8">Filling in</option>
+            <option value="1.0" selected>Mature, closed canopy</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="wEff">Irrigation efficiency</label>
+          <select id="wEff">
+            <option value="0.9">Drip, well maintained &mdash; 90%</option>
+            <option value="0.85" selected>Drip, typical &mdash; 85%</option>
+            <option value="0.75">Micro-spray &mdash; 75%</option>
+            <option value="0.65">Overhead &mdash; 65%</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="wMulch">Mulch on beds</label>
+          <select id="wMulch">
+            <option value="1.0">No mulch</option>
+            <option value="0.78" selected>2&ndash;3 in. mulch &mdash; 22% less</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="wGph">Emitter flow</label>
+          <select id="wGph">
+            <option value="0.4" selected>0.4 GPH pressure-compensating</option>
+            <option value="0.6">0.6 GPH pressure-compensating</option>
+            <option value="0.9">0.9 GPH pressure-compensating</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="wFreq">Watering frequency</label>
+          <select id="wFreq">
+            <option value="0" selected>Auto &mdash; by season</option>
+            <option value="1">Every day</option>
+            <option value="2">Every 2 days</option>
+            <option value="3">Every 3 days</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="wSupply">Measured supply, GPM (optional)</label>
+          <input type="number" id="wSupply" value="3.3" min="0" step="0.1">
+        </div>
+      </div>
+
+      <div id="wGroups"></div>
+      <p class="est-note">Emitter counts default to roughly 0.75 per square foot, which keeps runtime consistent across different bed sizes. Set a group's bed count to 0 to ignore it.</p>
+
+      <div class="res" id="wResult"></div>
+    </div>
   </div>
 </section>
 
@@ -1128,9 +1222,11 @@ function render(){
   var sub=chemTotal+amTotal, cont=sub*0.15;
   h+='<div class="tot"><span>Contingency at 15%</span><span>'+money(cont)+'</span></div>';
   h+='<div class="tot grand"><span>Minimum annual stocking budget</span><b>'+money(sub+cont)+'</b></div>';
-  if(f.sqft>0){
+  if(f.sqft>=5000){
     h+='<div class="tot"><span>Per 1,000 sq ft</span><span>'+money((sub+cont)/(f.sqft/1000))+'</span></div>';
     h+='<div class="tot"><span>Per acre equivalent</span><span>'+money((sub+cont)/(f.sqft/43560))+'</span></div>';
+  }else if(f.sqft>0){
+    h+='<div class="tot"><span>Per-area figures</span><span>suppressed below 5,000 sq ft</span></div>';
   }
 
   h+='<div class="assump"><h4>Assumptions behind this number</h4><ul>';
@@ -1219,6 +1315,226 @@ function unlock(){
     }catch(e){}
   }
 })();
+})();
+</script>
+
+
+<script>
+/* ============ Water demand calculator (staff) ============
+   ETo source: CIMIS Reference Evapotranspiration Zones (DWR / UC Davis),
+   monthly average ETo in inches per month, zones 1-18. */
+(function(){
+"use strict";
+
+var ETO={
+1:[0.93,1.40,2.48,3.30,4.03,4.50,4.65,4.03,3.30,2.48,1.20,0.62],
+2:[1.24,1.68,3.10,3.90,4.65,5.10,4.96,4.65,3.90,2.79,1.80,1.24],
+3:[1.86,2.24,3.72,4.80,5.27,5.70,5.58,5.27,4.20,3.41,2.40,1.86],
+4:[1.86,2.24,3.41,4.50,5.27,5.70,5.89,5.58,4.50,3.41,2.40,1.86],
+5:[0.93,1.68,2.79,4.20,5.58,6.30,6.51,5.89,4.50,3.10,1.50,0.93],
+6:[1.86,2.24,3.41,4.80,5.58,6.30,6.51,6.20,4.80,3.72,2.40,1.86],
+7:[0.62,1.40,2.48,3.90,5.27,6.30,7.44,6.51,4.80,2.79,1.20,0.62],
+8:[1.24,1.68,3.41,4.80,6.20,6.90,7.44,6.51,5.10,3.41,1.80,0.93],
+9:[2.17,2.80,4.03,5.10,5.89,6.60,7.44,6.82,5.70,4.03,2.70,1.86],
+10:[0.93,1.68,3.10,4.50,5.89,7.20,8.06,7.13,5.10,3.10,1.50,0.93],
+11:[1.55,2.24,3.10,4.50,5.89,7.20,8.06,7.44,5.70,3.72,2.10,1.55],
+12:[1.24,1.96,3.41,5.10,6.82,7.80,8.06,7.13,5.40,3.72,1.80,0.93],
+13:[1.24,1.96,3.10,4.80,6.51,7.80,8.99,7.75,5.70,3.72,1.80,0.93],
+14:[1.55,2.24,3.72,5.10,6.82,7.80,8.68,7.75,5.70,4.03,2.10,1.55],
+15:[1.24,2.24,3.72,5.70,7.44,8.10,8.68,7.75,5.70,4.03,2.10,1.24],
+16:[1.55,2.52,4.03,5.70,7.75,8.70,9.30,8.37,6.30,4.34,2.40,1.55],
+17:[1.86,2.80,4.65,6.00,8.06,9.00,9.92,8.68,6.60,4.34,2.70,1.86],
+18:[2.48,3.36,5.27,6.90,8.68,9.60,9.61,8.68,6.90,4.96,3.00,2.17]
+};
+var ZNAME={
+1:"1 — Coastal fog belt",2:"2 — Coastal mixed fog",3:"3 — Coastal valleys & plains",
+4:"4 — South coast inland plains",5:"5 — Northern inland valleys",6:"6 — Upland coast & LA basin",
+7:"7 — Northeastern plains",8:"8 — Inland SF Bay",9:"9 — South coast marine-to-desert (Riverside)",
+10:"10 — North central plateau",11:"11 — Central Sierra Nevada",12:"12 — East Sacramento–San Joaquin",
+13:"13 — Northern Sierra Nevada",14:"14 — Mid-central valley & high desert mtns",
+15:"15 — N & S San Joaquin Valley",16:"16 — Westside San Joaquin",
+17:"17 — High desert valleys",18:"18 — Imperial, Death Valley, Palo Verde"
+};
+var MN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var GAL_IN_SQFT=0.623;
+
+var GROUPS=[
+ {id:"a",name:"Group A",n:10,w:4,l:8},
+ {id:"b",name:"Group B",n:6,w:5,l:10},
+ {id:"c",name:"Group C",n:7,w:5,l:10}
+];
+
+function el(id){return document.getElementById(id);}
+function dim(y,m){return new Date(y,m+1,0).getDate();}
+function r1(v){return Math.round(v*10)/10;}
+function fmtN(v){return Math.round(v).toLocaleString();}
+
+function buildGroups(){
+  var h="";
+  GROUPS.forEach(function(g){
+    h+='<div class="grp"><p class="grp-h">'+g.name+'</p><div class="row3">'+
+       '<div><label>Beds</label><input type="number" min="0" step="1" id="g'+g.id+'n" value="'+g.n+'"></div>'+
+       '<div><label>Width ft</label><input type="number" min="0" step="0.5" id="g'+g.id+'w" value="'+g.w+'"></div>'+
+       '<div><label>Length ft</label><input type="number" min="0" step="0.5" id="g'+g.id+'l" value="'+g.l+'"></div>'+
+       '<div><label>Emitters/bed</label><input type="number" min="0" step="1" id="g'+g.id+'e" value="'+Math.round(g.w*g.l*0.75)+'"></div>'+
+       '</div></div>';
+  });
+  el("wGroups").innerHTML=h;
+  GROUPS.forEach(function(g){
+    ["n","w","l","e"].forEach(function(k){
+      var n=el("g"+g.id+k);
+      n.addEventListener("input",function(){
+        if(k==="w"||k==="l"){
+          var W=parseFloat(el("g"+g.id+"w").value)||0, L=parseFloat(el("g"+g.id+"l").value)||0;
+          el("g"+g.id+"e").value=Math.round(W*L*0.75);
+        }
+        render();
+      });
+    });
+  });
+}
+
+function readGroups(){
+  return GROUPS.map(function(g){
+    var n=parseFloat(el("g"+g.id+"n").value)||0,
+        w=parseFloat(el("g"+g.id+"w").value)||0,
+        l=parseFloat(el("g"+g.id+"l").value)||0,
+        e=parseFloat(el("g"+g.id+"e").value)||0;
+    return {name:g.name,n:n,area:w*l,em:e};
+  }).filter(function(g){return g.n>0 && g.area>0;});
+}
+
+function render(){
+  var zone=parseInt(el("wZone").value,10);
+  var kc=parseFloat(el("wKc").value), eff=parseFloat(el("wEff").value),
+      mulch=parseFloat(el("wMulch").value), gph=parseFloat(el("wGph").value),
+      freqSel=parseInt(el("wFreq").value,10), supply=parseFloat(el("wSupply").value)||0;
+  var sd=new Date(el("wStart").value+"T00:00:00"), ed=new Date(el("wEnd").value+"T00:00:00");
+  var groups=readGroups();
+
+  if(isNaN(sd)||isNaN(ed)||ed<sd){ el("wResult").innerHTML='<div class="warn bad">Set an end date later than the start date.</div>'; return; }
+  if(!groups.length){ el("wResult").innerHTML='<div class="warn">Enter at least one bed group with a bed count and dimensions.</div>'; return; }
+
+  var totalArea=0, totalBeds=0;
+  groups.forEach(function(g){ totalArea+=g.area*g.n; totalBeds+=g.n; });
+
+  /* walk the range day by day */
+  var months={}, days=0, total=0, peakDay=0;
+  var d=new Date(sd);
+  while(d<=ed){
+    var m=d.getMonth(), y=d.getFullYear();
+    var etoDay=ETO[zone][m]/dim(y,m);
+    var inDay=etoDay*kc*mulch;
+    var galDay=0;
+    groups.forEach(function(g){ galDay += inDay*g.area*g.n*GAL_IN_SQFT/eff; });
+    var key=y+"-"+m;
+    if(!months[key]) months[key]={y:y,m:m,days:0,gal:0,eto:etoDay};
+    months[key].days++; months[key].gal+=galDay;
+    total+=galDay; days++;
+    if(galDay>peakDay) peakDay=galDay;
+    d.setDate(d.getDate()+1);
+  }
+
+  var keys=Object.keys(months);
+  var h="";
+
+  h+='<div class="bignum">'+fmtN(total)+' gal<small>total for '+days+' days across '+totalBeds+' beds, '+fmtN(totalArea)+' sq ft</small></div>';
+
+  h+='<div class="statrow">';
+  h+='<div class="stat"><b>'+fmtN(total/days)+' gal</b><span>average per day</span></div>';
+  h+='<div class="stat"><b>'+fmtN(peakDay)+' gal</b><span>peak day</span></div>';
+  h+='<div class="stat"><b>'+fmtN(peakDay*7)+' gal</b><span>peak week</span></div>';
+  h+='<div class="stat"><b>'+(total/totalArea).toFixed(1)+' gal</b><span>per sq ft, period</span></div>';
+  h+='</div>';
+
+  /* month-by-month with runtimes */
+  h+='<h3>Month by month</h3><table class="est"><tr><th>Month</th><th class="r">ETo/day</th><th class="r">Water every</th>';
+  groups.forEach(function(g){ h+='<th class="r">'+g.name.replace("Group ","")+' run</th>'; });
+  h+='<th class="r">Gallons</th></tr>';
+
+  var maxRun=0, minRun=1e9, worstGpm=0;
+  keys.forEach(function(k){
+    var M=months[k];
+    var etoDay=M.eto, inDay=etoDay*kc*mulch;
+    var interval = freqSel>0 ? freqSel : (etoDay>=0.12 ? 1 : 3);
+    h+='<tr><td>'+MN[M.m]+' '+M.y+'</td><td class="num r">'+etoDay.toFixed(3)+'"</td><td class="num r">'+(interval===1?"day":interval+" days")+'</td>';
+    groups.forEach(function(g){
+      var galBedDay=inDay*g.area*GAL_IN_SQFT/eff;
+      var bedGph=g.em*gph;
+      var mins= bedGph>0 ? galBedDay*interval/bedGph*60 : 0;
+      if(mins>maxRun)maxRun=mins; if(mins<minRun)minRun=mins;
+      var gpm=g.n*bedGph/60; if(gpm>worstGpm)worstGpm=gpm;
+      h+='<td class="num r">'+Math.round(mins)+'m</td>';
+    });
+    h+='<td class="num r">'+fmtN(M.gal)+'</td></tr>';
+  });
+  h+='</table>';
+
+  /* per-group split */
+  h+='<h3>By bed group</h3><table class="est"><tr><th>Group</th><th class="r">Beds</th><th class="r">Each</th><th class="r">Emitters</th><th class="r">Share of total</th></tr>';
+  groups.forEach(function(g){
+    var share=(g.area*g.n)/totalArea*100;
+    h+='<tr><td>'+g.name+'</td><td class="num r">'+g.n+'</td><td class="num r">'+g.area+' sq ft</td>'+
+       '<td class="num r">'+g.em+' @ '+gph+' GPH</td><td class="num r">'+Math.round(share)+'%</td></tr>';
+  });
+  h+='</table>';
+
+  /* checks */
+  if(supply>0){
+    var util=worstGpm/supply*100;
+    var cls = util>80 ? "warn bad" : "warn";
+    if(util>80){
+      h+='<div class="'+cls+'"><b>Flow too tight.</b> The largest group draws '+r1(worstGpm)+' GPM against '+supply+' GPM available &mdash; '+Math.round(util)+'% of supply. Above about 80% the far end of the line runs pressure-starved. Drop to a lower emitter flow or split the group across two stations.</div>';
+    }else{
+      h+='<div class="warn" style="border-left-color:#7ba428;background:rgba(123,164,40,.08);color:#cfe5a8"><b>Flow checks out.</b> Largest group draws '+r1(worstGpm)+' GPM of '+supply+' GPM available &mdash; '+Math.round(util)+'% of supply, running sequentially.</div>';
+    }
+  }
+  if(minRun<10){
+    h+='<div class="warn">Some runs fall under 10 minutes. Short drip cycles spread sideways and evaporate instead of soaking in &mdash; stretch the interval so each run lands above 15 minutes.</div>';
+  }
+  if(maxRun>75){
+    h+='<div class="warn">Some runs exceed 75 minutes. Check that the full sequence still fits your pre-dawn window, or shorten the interval.</div>';
+  }
+
+  h+='<div class="assump"><h4>How this is calculated</h4><ul>'+
+     '<li>Reference ETo from the CIMIS zone table (DWR / UC Davis), monthly averages walked day by day across your range.</li>'+
+     '<li>Crop water use = ETo &times; crop coefficient ('+kc+') &times; mulch factor ('+mulch+'), divided by irrigation efficiency ('+Math.round(eff*100)+'%).</li>'+
+     '<li>One inch of water over one square foot is 0.623 gallons.</li>'+
+     '<li>Runtime = water needed per bed per interval, divided by that bed&rsquo;s total emitter flow.</li>'+
+     '<li>Auto frequency waters daily when ETo is at or above 0.12 in/day, every third day below that &mdash; low-demand months need a longer run to wet the profile properly.</li>'+
+     '<li>Long-term averages, not a forecast. A hot dry spell will exceed these figures; rainfall will offset them.</li>'+
+     '</ul></div>';
+
+  el("wResult").innerHTML=h;
+}
+
+function boot(){
+  for(var z=1;z<=18;z++){
+    var o=document.createElement("option"); o.value=z; o.textContent=ZNAME[z];
+    if(z===9) o.selected=true;
+    el("wZone").appendChild(o);
+  }
+  var t=new Date(), e=new Date(); e.setDate(e.getDate()+90);
+  function iso(d){return d.toISOString().slice(0,10);}
+  el("wStart").value=iso(t); el("wEnd").value=iso(e);
+  buildGroups();
+  ["wZone","wStart","wEnd","wKc","wEff","wMulch","wGph","wFreq","wSupply"].forEach(function(id){
+    el(id).addEventListener("change",render); el(id).addEventListener("input",render);
+  });
+  render();
+}
+
+/* tabs */
+function tab(which){
+  var chem=which==="chem";
+  el("tabChem").classList.toggle("hidden",!chem);
+  el("tabWater").classList.toggle("hidden",chem);
+  el("tabBtnChem").setAttribute("aria-pressed",chem?"true":"false");
+  el("tabBtnWater").setAttribute("aria-pressed",chem?"false":"true");
+  if(!chem && !boot.done){ boot(); boot.done=true; }
+}
+el("tabBtnChem").addEventListener("click",function(){tab("chem");});
+el("tabBtnWater").addEventListener("click",function(){tab("water");});
 })();
 </script>
 
