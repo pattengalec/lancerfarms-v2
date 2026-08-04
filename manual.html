@@ -557,6 +557,8 @@ html, body {
     <a href="/app.html">Staff App</a>
 <a href="/data.html">Farm data</a>
 <a href="/almanac.html">Almanac</a>
+<a href="/mixbench.html">Mix Bench</a>
+<a href="/irrigation-bom.html">Irrigation BOM</a>
     </div>
   </div>
   <div class="home-intro">Select a topic to open its reference guide, calculators, and field notes.</div>
@@ -819,7 +821,16 @@ const TOPICS = {
       `,
       'Reference': () => `
         <div class="section-eyebrow">Drip System Quick Reference</div>
-        ${[['1 GPH emitter, 1 hr','= 1 gallon delivered'],['1" of water on 1 sq ft','= 0.623 gallons'],['1 sq ft bed, 1" water','= 1 emitter at 1 GPH for ~37 min'],['Pressure range','20–30 PSI for standard drip; use pressure regulator'],['Emitter spacing','12–18" for vegetables; 24" for trees'],['Filter','Always use inline filter; clay particles clog emitters']].map(r=>`<div class="plan-row"><span class="plan-key">${r[0]}</span><span class="plan-val" style="font-size:0.72rem;">${r[1]}</span></div>`).join('')}
+        ${[['1 GPH emitter, 1 hr','= 1 gallon delivered'],['1\" of water on 1 sq ft','= 0.623 gallons'],['1 sq ft bed, 1\" water','= 1 emitter at 1 GPH for ~37 min'],['Pressure range','20–30 PSI for standard drip; use pressure regulator'],['Emitter spacing','12–18\" for vegetables; 24\" for trees'],['Filter','Always use inline filter; clay particles clog emitters']].map(r=>`<div class="plan-row"><span class="plan-key">${r[0]}</span><span class="plan-val" style="font-size:0.72rem;">${r[1]}</span></div>`).join('')}
+        <div class="section-eyebrow">Tools</div>
+        <div class="info-card" style="border-left:3px solid var(--lime)">
+          <div class="info-card-title">💧 Irrigation BOM</div>
+          <div class="info-card-body">Parts list, quantities, and pricing for the drip retrofit — per zone, per bed, and garden-wide. Prices are editable. <a href="/irrigation-bom.html" style="color:var(--lime);font-weight:600;">Open Irrigation BOM →</a></div>
+        </div>
+        <div class="info-card" style="border-left:3px solid var(--lime)">
+          <div class="info-card-title">💧 Water Demand Calculator</div>
+          <div class="info-card-body">Enter a date range and bed dimensions to get monthly gallons, daily averages, and per-station runtimes from CIMIS Zone 9 data. <a href="/mixbench.html" style="color:var(--lime);font-weight:600;">Open Mix Bench → Water tab →</a></div>
+        </div>
       `
     }
   },
@@ -892,8 +903,13 @@ const TOPICS = {
         </div>
         <div class="section-eyebrow">What Neem Controls</div>
         ${[['✅ Aphids','Excellent control'],['✅ Spider Mites','Good control — ensure leaf undersides are coated'],['✅ Whitefly','Good control'],['✅ Mealybug','Good with repeated applications'],['✅ Powdery Mildew','Good preventive and early-stage treatment'],['⚠️ Caterpillars','Limited — physical removal more effective'],['❌ Scale (hard)','Neem ineffective on hard scale — use horticultural oil']].map(r=>`<div class="plan-row"><span class="plan-key">${r[0]}</span><span class="plan-val">${r[1]}</span></div>`).join('')}
-      `,
-      'Schedule': () => `
+        <div class="section-eyebrow">Tools</div>
+        <div class="info-card" style="border-left:3px solid var(--lime)">
+          <div class="info-card-title">🧪 Mix Bench</div>
+          <div class="info-card-body">Configurator for every homemade spray in the garden — soap spray, bicarbonate fungicide, sanitizers, and more. Explains the chemistry, gives measured recipes by batch size, and flags what not to combine. <a href="/mixbench.html" style="color:var(--lime);font-weight:600;">Open Mix Bench →</a></div>
+        </div>
+      \`,
+      'Schedule': () => \`
         <div class="section-eyebrow">Zone 9b Pest Pressure Calendar</div>
         ${[['Jan–Feb','Low pressure. Scout for overwintering scale on fruit trees. No spraying needed unless active pests found.'],['Mar–Apr','Aphid season begins. Scout weekly on new growth. First neem application if found.'],['May–Jun','Spider mite pressure rises with heat. Check undersides. Whitefly appears.'],['Jul–Aug','Peak pressure. Heat stresses plants making them more vulnerable. Scout every 3–4 days.'],['Sep–Oct','Pressure drops. Good time to clean up and remove any harboring debris.'],['Nov–Dec','Low pressure. Remove dead plant material. Treat scale on dormant fruit trees with dormant oil.']].map(r=>`<div class="info-card"><div class="info-card-title">${r[0]}</div><div class="info-card-body">${r[1]}</div></div>`).join('')}
       `
