@@ -1411,9 +1411,20 @@ function buildGroups(){
        '<div><label>Width ft</label><input type="number" min="0" step="0.5" id="g'+g.id+'w" value="'+g.w+'"></div>'+
        '<div><label>Length ft</label><input type="number" min="0" step="0.5" id="g'+g.id+'l" value="'+g.l+'"></div>'+
        '<div><label>Emitters/bed</label><input type="number" min="0" step="1" id="g'+g.id+'e" value="'+Math.round(g.w*g.l*0.75)+'"></div>'+
-       '</div></div>';
+       '</div>'+
+       '<div style="margin-top:9px"><label style="display:block;font-family:var(--f-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:4px">Sun exposure</label>'+
+       '<select id="g'+g.id+'s" style="width:100%;background:var(--panel);color:#e6eefb;border:1px solid var(--line);border-radius:3px;padding:9px 7px;font-family:var(--f-body);font-size:.95rem">'+
+       '<option value="1.0">Full sun \u2014 Kc \xd71.00</option>'+
+       '<option value="0.75">Partial shade \u2014 Kc \xd70.75 (25% less water)</option>'+
+       '<option value="0.55">Shade \u2014 Kc \xd70.55 (45% less water)</option>'+
+       '</select></div>'+
+       '</div>';
   });
   el("wGroups").innerHTML=h;
+  GROUPS.forEach(function(g){
+    var sunSel=el("g"+g.id+"s");
+    if(sunSel) sunSel.addEventListener("change",render);
+  });
   GROUPS.forEach(function(g){
     ["n","w","l","e"].forEach(function(k){
       var n=el("g"+g.id+k);
@@ -1421,6 +1432,7 @@ function buildGroups(){
         if(k==="w"||k==="l"){
           var W=parseFloat(el("g"+g.id+"w").value)||0, L=parseFloat(el("g"+g.id+"l").value)||0;
           el("g"+g.id+"e").value=Math.round(W*L*0.75);
+          /* auto-recalc on dimension change */
         }
         render();
       });
@@ -1434,8 +1446,10 @@ function readGroups(){
     var n=parseFloat(el("g"+g.id+"n").value)||0,
         w=parseFloat(el("g"+g.id+"w").value)||0,
         l=parseFloat(el("g"+g.id+"l").value)||0,
-        e=parseFloat(el("g"+g.id+"e").value)||0;
-    return {name:g.name,n:n,area:w*l,em:e};
+        e=parseFloat(el("g"+g.id+"e").value)||0,
+        sunEl=el("g"+g.id+"s"),
+        sun=sunEl?parseFloat(sunEl.value)||1.0:1.0;
+    return {name:g.name,n:n,area:w*l,em:e,sun:sun};
   }).filter(function(g){return g.n>0 && g.area>0;});
 }
 
@@ -1509,8 +1523,11 @@ function render(){
   h+='<h3>By bed group</h3><table class="est"><tr><th>Group</th><th class="r">Beds</th><th class="r">Each</th><th class="r">Emitters</th><th class="r">Sun</th><th class="r">Share</th></tr>';
   groups.forEach(function(g){
     var share=(g.area*g.n)/totalArea*100;
+    var sunLbl=g.sun>=1.0?"Full sun":g.sun>=0.7?"Partial shade":"Shade";
     h+='<tr><td>'+g.name+'</td><td class="num r">'+g.n+'</td><td class="num r">'+g.area+' sq ft</td>'+
-       '<td class="num r">'+g.em+' @ '+gph+' GPH</td><td class="num r">'+Math.round(share)+'%</td></tr>';
+       '<td class="num r">'+g.em+' @ '+gph+' GPH</td>'+
+       '<td class="num r">'+sunLbl+'</td>'+
+       '<td class="num r">'+Math.round(share)+'%</td></tr>';
   });
   h+='</table>';
 
