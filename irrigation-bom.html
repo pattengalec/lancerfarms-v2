@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Irrigation BOM — Lancer Farms &amp; Gardens</title>
+<meta name="description" content="A living bill of materials for the Lancer Farms drip irrigation retrofit. Enter bed groups, get a priced parts list per zone and bed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#050a18;--panel:#0d1526;--panel-2:#131d33;--line:#22304d;
+  --cyan:#00c8ff;--chart:#c8ff00;--amber:#ffb830;--danger:#ff5544;
+  --stock:#f2ead6;--stock-ink:#1b2114;--stock-line:#c9bb98;
+  --dim:#8fa3c4;
+  --f-disp:'Bricolage Grotesque',system-ui,sans-serif;
+  --f-body:'Source Serif 4',Georgia,serif;
+  --f-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ink);color:#dce6f5;font-family:var(--f-body);font-size:17px;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+
+/* masthead */
+header.mast{border-bottom:1px solid var(--line);padding:34px 0 26px;margin-bottom:34px}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan);margin:0 0 14px}
+.eyebrow a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(0,200,255,.35)}
+h1{font-family:var(--f-disp);font-weight:800;font-size:clamp(2.3rem,7vw,4rem);line-height:.98;letter-spacing:-.02em;margin:0 0 16px;color:#fff}
+h1 em{font-style:normal;color:var(--chart)}
+.standfirst{max-width:60ch;color:#b9c8e0;font-size:1.06rem;margin:0}
+
+/* configurator */
+.cfg{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:24px 22px;margin:0 0 32px}
+.cfg-h{font-family:var(--f-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:0 0 16px;font-weight:600}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:0}
+.field label{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.field select,.field input{width:100%;background:var(--panel-2);color:#e6eefb;border:1px solid var(--line);border-radius:3px;padding:10px 11px;font-family:var(--f-body);font-size:1rem}
+.field select:focus,.field input:focus{outline:2px solid var(--cyan);outline-offset:1px}
+
+/* bed groups */
+.grp-wrap{margin:20px 0 0}
+.grp{background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:16px 16px 14px;margin-bottom:10px}
+.grp-name{font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--chart);display:block;margin-bottom:12px}
+.row4{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.row4 label{display:block;font-family:var(--f-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.row4 input{width:100%;background:var(--panel);color:#e6eefb;border:1px solid var(--line);border-radius:3px;padding:9px 7px;font-family:var(--f-mono);font-size:.88rem;text-align:center}
+.row4 input:focus{outline:2px solid var(--cyan);outline-offset:1px}
+.add-grp{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;background:none;border:1px dashed var(--line);color:var(--dim);padding:9px 14px;border-radius:3px;cursor:pointer;margin-top:4px;width:100%}
+.add-grp:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* BOM output */
+.bom{background:var(--stock);color:var(--stock-ink);border-radius:3px;padding:32px 28px 36px;margin-top:10px;box-shadow:0 20px 50px -22px #000,inset 0 0 0 1px rgba(0,0,0,.12)}
+.bom-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid var(--stock-ink);padding-bottom:14px;margin-bottom:22px;flex-wrap:wrap}
+.bom-kicker{font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6d6a52;margin:0 0 5px}
+.bom-title{font-family:var(--f-disp);font-weight:800;font-size:clamp(1.5rem,4.4vw,2rem);line-height:1.05;letter-spacing:-.015em;margin:0}
+.bom h3{font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6d6a52;font-weight:600;margin:28px 0 9px;border-bottom:1px solid var(--stock-line);padding-bottom:5px}
+.bom h3:first-of-type{margin-top:0}
+table.bom-t{width:100%;border-collapse:collapse;font-size:.88rem}
+table.bom-t th{font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6d6a52;text-align:left;font-weight:600;padding:0 10px 7px 0;white-space:nowrap}
+table.bom-t th.r,table.bom-t td.r{text-align:right;padding-right:0}
+table.bom-t td{padding:9px 10px 9px 0;border-top:1px solid var(--stock-line);vertical-align:top;font-family:var(--f-mono);font-size:.83rem}
+table.bom-t td.desc{font-family:var(--f-body);font-size:.9rem}
+table.bom-t td small{display:block;font-size:.78rem;color:#7a7558;margin-top:2px;font-family:var(--f-body)}
+input.price{width:72px;background:rgba(0,0,0,.06);border:1px solid var(--stock-line);color:var(--stock-ink);border-radius:2px;padding:4px 6px;font-family:var(--f-mono);font-size:.82rem;text-align:right}
+.tot-row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:10px 0;border-top:1px solid var(--stock-line);font-family:var(--f-mono);font-size:.87rem;color:#5a5740}
+.tot-row.sub{font-size:.9rem;color:var(--stock-ink)}
+.tot-row.grand{border-top:2px solid var(--stock-ink);margin-top:6px;padding-top:14px;font-size:1rem;color:var(--stock-ink)}
+.tot-row.grand b{font-family:var(--f-disp);font-size:1.7rem;font-weight:800}
+.flag{border-left:3px solid #8a3b12;background:rgba(138,59,18,.07);padding:12px 14px;margin:16px 0 0;font-size:.88rem;color:#6b3a12}
+.flag.ok{border-left-color:#4a6b1e;background:rgba(74,107,30,.07);color:#3d5a18}
+.note{border-left:3px solid var(--amber);padding:12px 14px;margin-top:18px;font-size:.88rem;color:#7a6238;background:rgba(255,184,48,.06)}
+.printbtn{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:none;border:1px solid var(--stock-line);color:#6d6a52;padding:7px 12px;border-radius:2px;cursor:pointer;white-space:nowrap}
+.printbtn:hover{border-color:var(--stock-ink);color:var(--stock-ink)}
+.bomfoot{margin-top:28px;padding-top:12px;border-top:1px solid var(--stock-line);font-family:var(--f-mono);font-size:10px;letter-spacing:.07em;color:#6d6a52;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+
+/* design notes */
+.notes{margin-top:48px}
+.notes h2{font-family:var(--f-disp);font-weight:800;font-size:1.4rem;color:#fff;margin:0 0 6px}
+.notes .sub{color:var(--dim);margin:0 0 18px;font-size:.96rem}
+.note-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.note-card{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:18px 18px 16px}
+.note-card .nt{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:8px}
+.note-card p{margin:0;font-size:.94rem;color:#b9c8e0}
+.note-card p+p{margin-top:8px}
+.note-card.danger .nt{color:var(--danger)}
+.note-card.danger p{color:#ffd0c9}
+
+footer.foot{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;color:#63799b}
+footer.foot a{color:var(--cyan);text-decoration:none}
+
+@media(max-width:640px){
+  body{font-size:16px}.wrap{padding:0 16px 60px}
+  .bom{padding:22px 18px 28px}.row4{grid-template-columns:repeat(2,1fr)}
+  table.bom-t th:nth-child(3),table.bom-t td:nth-child(3){display:none}
+}
+@media print{
+  body{background:#fff;color:#000}
+  header.mast,.cfg,.notes,footer.foot,.printbtn,.add-grp{display:none!important}
+  .wrap{padding:0;max-width:none}
+  .bom{box-shadow:none;background:#fff;margin:0;padding:0}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow"><a href="manual.html">Farm Manual</a> &nbsp;/&nbsp; <a href="mixbench.html">Mix Bench</a> &nbsp;/&nbsp; Irrigation</p>
+  <h1>Irrigation<br><em>BOM</em></h1>
+  <p class="standfirst">A living bill of materials for the drip retrofit. Enter your bed groups and supply data — get a priced parts list per zone, per bed, and garden-wide. Prices are editable; replace defaults with your invoice figures before this number goes anywhere official.</p>
+</header>
+
+<div class="cfg">
+  <p class="cfg-h">Supply &amp; system settings</p>
+  <div class="fields">
+    <div class="field">
+      <label for="sGpm">Measured supply, GPM</label>
+      <input type="number" id="sGpm" value="3.3" min="0.5" step="0.1">
+    </div>
+    <div class="field">
+      <label for="sGph">Emitter flow</label>
+      <select id="sGph">
+        <option value="0.4" selected>0.4 GPH pressure-compensating</option>
+        <option value="0.6">0.6 GPH pressure-compensating</option>
+        <option value="0.9">0.9 GPH pressure-compensating</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="sSpacing">Emitter spacing</label>
+      <select id="sSpacing">
+        <option value="12" selected>12 in &mdash; vegetables</option>
+        <option value="18">18 in &mdash; large plants</option>
+        <option value="9">9 in &mdash; dense planting</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="sZones">Irrigation zones</label>
+      <input type="number" id="sZones" value="3" min="1" max="12" step="1">
+    </div>
+    <div class="field">
+      <label for="sDepth">Bed depth, inches</label>
+      <input type="number" id="sDepth" value="30" min="6" max="48" step="1">
+    </div>
+    <div class="field">
+      <label for="sHdr">Header tube per bed, ft</label>
+      <input type="number" id="sHdr" value="4" min="1" max="10" step="0.5">
+    </div>
+  </div>
+
+  <div class="grp-wrap" id="grpWrap"></div>
+  <button class="add-grp" id="addGrp" type="button">+ Add another bed group</button>
+</div>
+
+<div id="bomOut"></div>
+
+<div class="notes">
+  <h2>Design decisions</h2>
+  <p class="sub">What this spec calls for and why — so anyone reading the BOM can follow the reasoning.</p>
+  <div class="note-grid">
+    <div class="note-card">
+      <span class="nt">Pressure regulator — per zone</span>
+      <p>Campus mains run 60–80 PSI. Drip emitters want 25 PSI. Without a regulator, excess pressure blows ¼" tubing off barbs and shortens emitter life to weeks. One regulator per zone valve covers all beds on that station.</p>
+    </div>
+    <div class="note-card">
+      <span class="nt">Filter — per zone, before the regulator</span>
+      <p>Silt and debris close pressure-compensating emitters irreversibly. A 155-mesh filter installs upstream of the regulator so it catches particles before they reach any emitter. It also goes before the regulator so debris doesn't grind across the regulator seat.</p>
+    </div>
+    <div class="note-card">
+      <span class="nt">Pressure-compensating inline dripline</span>
+      <p>Fixed-orifice emitters lose flow as pressure drops along a run. PC emitters hold a consistent flow rate across a pressure range — typically 7 to 45 PSI — so every emitter on every bed delivers the same amount regardless of its position on the line.</p>
+    </div>
+    <div class="note-card">
+      <span class="nt">Header tube per bed</span>
+      <p>A short section of ½" poly tubing runs along one end of the bed and feeds the rows of dripline via barb tees. This lets you unplug and replace a single row without disturbing anything else, and it keeps all connections accessible above the soil surface.</p>
+    </div>
+    <div class="note-card">
+      <span class="nt">Emitter spacing: 12 inches</span>
+      <p>In a mixed teaching garden, spacing for the shallowest root system you grow. At 12", a 0.4 GPH emitter keeps surface soil uniformly moist for lettuce and transplants. Deeper-rooted crops tolerate the same pattern. Wider spacing saves tubing but creates dry zones for shallow work.</p>
+    </div>
+    <div class="note-card danger">
+      <span class="nt">Path crossing — trip hazard</span>
+      <p>If the supply riser sits at the path end of a bed, any crossbar transecting the path needs to go under it in a sleeve — at minimum 1" PVC conduit, buried or flush with grade. Above-grade pipe on a student path is a safety violation. Budget a sleeve per crossing that crosses a walking surface.</p>
+    </div>
+    <div class="note-card">
+      <span class="nt">Goof plugs — not optional</span>
+      <p>Every cut of dripline risks a misplaced start hole. Goof plugs seal ⅛" holes in ½" tubing and are effectively free at $0.10 each. Buy 50 per installation and keep them in the shed. The alternative is replacing a whole run because of one mistake.</p>
+    </div>
+    <div class="note-card">
+      <span class="nt">UV-resistant materials throughout</span>
+      <p>The existing tubing failed because standard poly tubing isn't UV-rated. Every component in this spec is rated for direct sun exposure — black poly tubing, UV-stabilized emitter bodies. Any replacement tubing must carry a UV rating, or the same failure repeats in 18–24 months.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="foot">
+  Lancer Farms &amp; Gardens · California Baptist University · <a href="manual.html">Farm Manual</a> · <a href="mixbench.html">Mix Bench</a>
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var PARTS={
+  filter: {n:"Inline Y-filter, ¾\" FHT, 155 mesh",u:"ea",p:15.00,note:"Install before the pressure regulator. Rinse monthly."},
+  reg:    {n:"Pressure regulator, ¾\" FHT, 25 PSI",u:"ea",p:18.00,note:"Reduces campus supply to drip-safe pressure. Non-negotiable."},
+  tape:   {n:"PTFE thread tape",u:"roll",p:1.50,note:"One roll covers a zone. Wrap all threaded fittings."},
+  adapt:  {n:"½\" MPT × ½\" barb adapter",u:"ea",p:2.00,note:"Threads onto existing bed riser; accepts header tube."},
+  hdr:    {n:"½\" poly header tubing, UV-rated",u:"ft",p:0.15,note:"Runs along end of bed, feeds dripline rows via barb tees."},
+  tee:    {n:"½\" barb tee",u:"ea",p:1.50,note:"One per dripline row. Punches into header tube."},
+  cap_h:  {n:"½\" barb end cap",u:"ea",p:0.75,note:"Seals the far end of the header tube."},
+  stake:  {n:"Tubing stake / mulch anchor",u:"ea",p:0.10,note:"Holds header and dripline in place under mulch."},
+  drip:   {n:"PC inline dripline",u:"ft",p:0.45,note:"Pressure-compensating emitters factory-installed in ½\" tubing. UV-rated black poly."},
+  endcap: {n:"Figure-8 end cap",u:"ea",p:0.25,note:"Crimps the far end of each dripline row. Reusable."},
+  goof:   {n:"Goof plug, ⅛\"",u:"ea",p:0.10,note:"Seals a mispunched hole in ½\" tubing. Keep 50 in the shed."},
+  flush:  {n:"Flush end valve (per zone)",u:"ea",p:4.50,note:"Allows sediment flush from end of zone lateral at season start."},
+  sleeve: {n:"1\" PVC conduit, path sleeve",u:"ft",p:1.20,note:"Under any path crossing — buried or flush with grade. Required for safety."},
+  extra:  {n:"Miscellaneous barbs, connectors, repair kit",u:"lot",p:20.00,note:"Per-zone miscellaneous allowance."}
+};
+
+var grpCount=0;
+var grps=[];
+
+function el(id){return document.getElementById(id);}
+function money(v){return "$"+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
+function r1(v){return Math.round(v*10)/10;}
+
+function addGroup(n,w,l,label){
+  grpCount++;
+  var id=grpCount;
+  var rows=Math.ceil(w);
+  var em=Math.round(w*l/((parseInt(el("sSpacing").value,10)||12)/12));
+  var div=document.createElement("div");
+  div.className="grp"; div.id="grp"+id;
+  var lbl=label||("Group "+String.fromCharCode(64+id));
+  div.innerHTML='<span class="grp-name">'+lbl+'</span><div class="row4">'+
+    '<div><label>Beds</label><input type="number" min="0" step="1" id="gn'+id+'" value="'+(n||4)+'"></div>'+
+    '<div><label>Width ft</label><input type="number" min="1" step="0.5" id="gw'+id+'" value="'+(w||4)+'"></div>'+
+    '<div><label>Length ft</label><input type="number" min="1" step="0.5" id="gl'+id+'" value="'+(l||8)+'"></div>'+
+    '<div><label>Rows/bed</label><input type="number" min="1" step="1" id="gr'+id+'" value="'+(rows||3)+'"></div>'+
+    '</div>';
+  el("grpWrap").appendChild(div);
+  grps.push(id);
+  ["gn","gw","gl","gr"].forEach(function(k){
+    el(k+id).addEventListener("input",function(){
+      if(k==="gw"||k==="gl"){
+        var W=parseFloat(el("gw"+id).value)||0, L=parseFloat(el("gl"+id).value)||0;
+        el("gr"+id).value=Math.ceil(W);
+      }
+      render();
+    });
+  });
+}
+
+function readGroups(){
+  return grps.map(function(id){
+    return {
+      id:id,
+      label:"Group "+String.fromCharCode(64+grps.indexOf(id)+1),
+      n:  parseFloat(el("gn"+id).value)||0,
+      w:  parseFloat(el("gw"+id).value)||0,
+      l:  parseFloat(el("gl"+id).value)||0,
+      rows:parseInt(el("gr"+id).value,10)||1
+    };
+  }).filter(function(g){return g.n>0 && g.w>0 && g.l>0;});
+}
+
+function calcBed(g,spacing,hdrFt){
+  var drip_ft=g.rows*g.l;
+  var em_per_row=Math.floor(g.l/(spacing/12));
+  var em_total=em_per_row*g.rows;
+  var gph_bed=em_total*(parseFloat(el("sGph").value)||0.4);
+  var gpm_zone=gph_bed/60;
+  return {drip_ft:drip_ft, em:em_total, gph:gph_bed, gpm:gpm_zone,
+          tees:g.rows, endcaps:g.rows*2, stakes:Math.ceil((drip_ft+hdrFt)/3),
+          goofs:Math.ceil(drip_ft/10), hdr_ft:hdrFt};
+}
+
+function render(){
+  var gph=parseFloat(el("sGph").value)||0.4;
+  var spacing=parseInt(el("sSpacing").value,10)||12;
+  var zones=parseInt(el("sZones").value,10)||3;
+  var hdrFt=parseFloat(el("sHdr").value)||4;
+  var supply=parseFloat(el("sGpm").value)||3.3;
+  var groups=readGroups();
+
+  if(!groups.length){el("bomOut").innerHTML="";return;}
+
+  var prices={};
+  Object.keys(PARTS).forEach(function(k){prices[k]=PARTS[k].p;});
+
+  var h="";
+  h+='<div class="bom">';
+  h+='<div class="bom-top">';
+  h+='<div><p class="bom-kicker">Lancer Farms &amp; Gardens &mdash; Irrigation retrofit</p>';
+  h+='<p class="bom-title">Bill of Materials</p></div>';
+  h+='<button class="printbtn" id="pb" type="button">Print BOM</button>';
+  h+='</div>';
+
+  /* ----- zone hardware ----- */
+  h+='<h3>Zone hardware &mdash; '+zones+' zone'+( zones>1?'s':'')+', one set each</h3>';
+  h+='<table class="bom-t"><tr><th>Item</th><th class="r">Qty</th><th class="r">Unit $</th><th class="r">Zone $</th><th class="r">All zones</th></tr>';
+  var zoneItems=[
+    ["filter","filter",1],["reg","reg",1],["tape","tape",1],
+    ["flush","flush",1],["extra","extra",1]
+  ];
+  var zoneUnit=0;
+  zoneItems.forEach(function(row){
+    var k=row[0], qty=row[2];
+    var uc=prices[k]; var zc=qty*uc; zoneUnit+=zc;
+    h+='<tr><td class="desc">'+PARTS[k].n+'<small>'+PARTS[k].note+'</small></td>'+
+       '<td class="r">'+qty+'</td>'+
+       '<td class="r"><input class="price" type="number" step="0.5" min="0" data-k="'+k+'" value="'+uc.toFixed(2)+'"></td>'+
+       '<td class="r">'+money(zc)+'</td>'+
+       '<td class="r">'+money(zc*zones)+'</td></tr>';
+  });
+  h+='</table>';
+  var zoneTot=zoneUnit*zones;
+  h+='<div class="tot-row sub"><span>Zone hardware subtotal</span><span>'+money(zoneTot)+'</span></div>';
+
+  /* ----- per-group bed hardware ----- */
+  var bedTot=0, totalDrip=0, maxGpm=0, bedRows=[];
+  groups.forEach(function(g){
+    var b=calcBed(g,spacing,hdrFt);
+    var bedUnit=prices.adapt + b.hdr_ft*prices.hdr + b.tees*prices.tee +
+                prices.cap_h + b.stakes*prices.stake +
+                b.drip_ft*prices.drip + b.endcaps*prices.endcap +
+                b.goofs*prices.goof;
+    var grpTot=bedUnit*g.n;
+    bedTot+=grpTot; totalDrip+=b.drip_ft*g.n;
+    var zm=g.n*b.gpm; if(zm>maxGpm)maxGpm=zm;
+    bedRows.push({g:g,b:b,bedUnit:bedUnit,grpTot:grpTot});
+  });
+
+  h+='<h3>Bed hardware &mdash; per group</h3>';
+  h+='<table class="bom-t"><tr><th>Item</th><th class="r">Per bed</th><th class="r">Unit $</th>';
+  groups.forEach(function(g){h+='<th class="r">'+g.label+'<br><small>'+g.n+' beds</small></th>';});
+  h+='</tr>';
+
+  var bedItems=[
+    ["adapt","adapt",function(b){return 1;}],
+    ["hdr","hdr",function(b){return b.hdr_ft;}],
+    ["tee","tee",function(b){return b.tees;}],
+    ["cap_h","cap_h",function(b){return 1;}],
+    ["drip","drip",function(b){return b.drip_ft;}],
+    ["endcap","endcap",function(b){return b.endcaps;}],
+    ["stake","stake",function(b){return b.stakes;}],
+    ["goof","goof",function(b){return b.goofs;}]
+  ];
+  bedItems.forEach(function(row){
+    var k=row[0]; var uc=prices[k];
+    h+='<tr><td class="desc">'+PARTS[k].n+'<small>'+PARTS[k].note+'</small></td>';
+    h+='<td class="r">&mdash;</td>';
+    h+='<td class="r"><input class="price" type="number" step="0.05" min="0" data-k="'+k+'" value="'+uc.toFixed(2)+'"></td>';
+    bedRows.forEach(function(br){
+      var qty=row[2](br.b);
+      h+='<td class="r">'+r1(qty*br.g.n*uc)+'&hellip;<br><small>'+r1(qty)+(PARTS[k].u==='ft'?' ft':' ea')+'/bed</small></td>';
+    });
+    h+='</tr>';
+  });
+  h+='<tr style="font-weight:600"><td class="desc">Per-bed subtotal</td><td class="r">&mdash;</td><td class="r">&mdash;</td>';
+  bedRows.forEach(function(br){
+    h+='<td class="r">'+money(br.grpTot)+'<br><small>'+money(br.bedUnit)+'/bed</small></td>';
+  });
+  h+='</tr></table>';
+  h+='<div class="tot-row sub"><span>Bed hardware subtotal</span><span>'+money(bedTot)+'</span></div>';
+
+  /* ----- path sleeves ----- */
+  h+='<h3>Path sleeves &mdash; safety</h3>';
+  h+='<table class="bom-t"><tr><th>Item</th><th class="r">Est. qty</th><th class="r">Unit $</th><th class="r">Subtotal</th></tr>';
+  var sleeveQty=groups.reduce(function(a,g){return a+g.n;},0)*2;
+  var sleeveCost=sleeveQty*prices.sleeve;
+  h+='<tr><td class="desc">'+PARTS.sleeve.n+'<small>'+PARTS.sleeve.note+'</small></td>'+
+     '<td class="r">'+sleeveQty+' ft<br><small>2 ft/crossing</small></td>'+
+     '<td class="r"><input class="price" type="number" step="0.1" min="0" data-k="sleeve" value="'+prices.sleeve.toFixed(2)+'"></td>'+
+     '<td class="r">'+money(sleeveCost)+'</td></tr>';
+  h+='</table>';
+  h+='<div class="note">Path sleeve qty assumes every bed riser sits at a path end. Measure and adjust — beds with risers inside the garden perimeter do not need one.</div>';
+
+  /* ----- totals ----- */
+  var sub=zoneTot+bedTot+sleeveCost;
+  var cont=sub*0.15;
+  var grand=sub+cont;
+  h+='<div class="tot-row sub" style="margin-top:8px"><span>Zone + bed + sleeves</span><span>'+money(sub)+'</span></div>';
+  h+='<div class="tot-row"><span>Contingency at 15%</span><span>'+money(cont)+'</span></div>';
+  h+='<div class="tot-row grand"><span>Estimated capital cost</span><b>'+money(grand)+'</b></div>';
+
+  /* dripline totals */
+  var totalBeds=groups.reduce(function(a,g){return a+g.n;},0);
+  h+='<div class="tot-row"><span>Total dripline</span><span>'+fmtN(Math.ceil(totalDrip*1.1))+' ft (incl. 10% waste)</span></div>';
+  h+='<div class="tot-row"><span>Total beds covered</span><span>'+totalBeds+' beds</span></div>';
+
+  /* flow check */
+  var util=maxGpm/supply*100;
+  if(util>80){
+    h+='<div class="flag">Flow constraint: the largest group draws '+r1(maxGpm)+' GPM of '+supply+' GPM available ('+Math.round(util)+'%). Above 80% the far end runs pressure-starved. Drop to a lower emitter GPH or split the group across two stations.</div>';
+  } else {
+    h+='<div class="flag ok">Flow confirmed: largest group draws '+r1(maxGpm)+' GPM of '+supply+' GPM ('+Math.round(util)+'%). Comfortable running all beds on a station simultaneously.</div>';
+  }
+
+  h+='<h3>What this does not include</h3>';
+  h+='<table class="bom-t"><tr>';
+  [["Pressure gauge","$8 — fit at zone valve during commissioning to verify 25 PSI is achieved."],
+   ["Pipe cutter","$9 — Fiskars or similar; cuts dripline cleanly without crimping."],
+   ["Hole punch","$12 — for ⅛\" barb starts into ½\" header tube if needed."],
+   ["Mulch, 2–3 in","Extends emitter and tubing life; covers the dripline from UV. See Mix Bench for budget."],
+   ["Labor","Installation of this system is 2–4 hours per zone for an experienced hand. Budget separately."],
+   ["Zone valve work","Facilities owns the zone valves and the controller. Program separation is a Facilities request, not a purchase."]
+  ].forEach(function(row){
+    h+='<tr><td class="desc" style="width:35%">'+row[0]+'</td><td class="desc">'+row[1]+'</td></tr>';
+  });
+  h+='</table>';
+
+  h+='<div class="bomfoot"><span>Lancer Farms &amp; Gardens &middot; Irrigation BOM &middot; prices are retail estimates; update from invoice before formal submission</span></div>';
+  h+='</div>';
+
+  el("bomOut").innerHTML=h;
+
+  /* price input handlers */
+  var inputs=el("bomOut").querySelectorAll("input.price");
+  for(var i=0;i<inputs.length;i++){
+    inputs[i].addEventListener("change",function(){
+      prices[this.getAttribute("data-k")]=Math.max(0,parseFloat(this.value)||0);
+      render();
+    });
+  }
+  var pb=document.getElementById("pb");
+  if(pb) pb.addEventListener("click",function(){window.print();});
+}
+
+function fmtN(v){return Math.round(v).toLocaleString();}
+
+/* init */
+el("addGrp").addEventListener("click",function(){addGroup(4,4,8);render();});
+["sGpm","sGph","sSpacing","sZones","sDepth","sHdr"].forEach(function(id){
+  el(id).addEventListener("change",render);
+  el(id).addEventListener("input",render);
+});
+
+/* default LFG beds */
+addGroup(10,4,8,"Zone 1 — 4\u00D78 beds");
+addGroup(6,5,10,"Zone 2 — 5\u00D710 beds");
+addGroup(7,5,10,"Zone 3 — 5\u00D710 beds");
+render();
+})();
+</script>
+</body>
+</html>
