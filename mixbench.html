@@ -1340,7 +1340,7 @@ function unlock(){
 }
 (function gate(){
   var GA = window.GrushAuth || window.grushAuth || null;
-  if(location.hash==="#staff"){ unlock(); return; }   // preview hook, remove once auth is wired
+  
   if(GA && typeof GA.isOperator==="function"){
     try{
       var r=GA.isOperator();
