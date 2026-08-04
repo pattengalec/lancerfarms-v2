@@ -1,441 +1,462 @@
-# Lancer Farms & Gardens
+# Lancer Farms & Gardens — lancerfarms.com
 
-Farm operations site for the community garden at California Baptist University,
-Riverside CA. GitHub Pages + Supabase. No build step, no framework, no bundler —
-plain HTML, CSS and JavaScript, edited directly and committed.
-
-Live at **[lancerfarms.com](https://lancerfarms.com)** (see `CNAME`).
+**Rebuild reference as of August 4, 2026.**
+This document is sufficient to reconstruct the site, database, and all tooling from scratch.
 
 ---
 
-## Pages
+## 1. Project overview
 
-| Page | Purpose | Who can use it |
-|------|---------|----------------|
-| `index.html` | Role gate: splash, then Staff or Visitor | Public |
-| `visitor.html` | Public farm experience — photos, plants, notes | Public |
-| `app.html` | Staff field tool — log work, tasks, inventory, photos | Public page; approve/edit needs operator |
-| `admin.html` | Admin panel — review queue, tasks, areas, inventory, config | Operator sign-in required |
-| `data.html` | Read-only dashboard — overview, beds, field log, photos | Public |
-| `manual.html` | Farm reference manual with calculators | Public; editing needs operator |
-| `almanac.html` | Weather, sun and moon | Public |
-| `howto.html` | Step-by-step how-to card player | Public; archiving needs operator |
-| `triage.html` | Plant triage diagnostic with a 3D model | Public |
-| `bed.html` | **Landing page for a scanned bed sign.** `?b=1E` | Public; content varies by role |
-| `about-grush.html` | Colophon for the Grush platform | Public |
+Lancer Farms & Gardens is a student-run organic teaching garden at California Baptist University, Riverside CA, located next to the historic Hawthorne House (Colony area). The site serves three audiences: staff/caretakers who log work, administrators who approve and configure, and the public who can read about the garden.
 
-**To reach the admin panel:** `app.html` → burger → Manage → Admin panel.
-That link is deliberately ungated — `admin.html` has its own sign-in wall, and
-hiding the door only locked out the person who needed it.
+**Caretaker:** Chad Pattengale, part-time student caretaker, B.S. Environmental Science (CBU, ~1 year remaining). Reports to Julie Ratzlaff (Lab Director). Dr. Jacob Lanphere (Environmental Science) is the founding faculty advisor. Dr. Bonjun Koo (Environmental Science) is program director.
+
+**Platform:** The site is the Grush farm management chassis (getgrush.com) deployed on the LFG site. The same Supabase project also hosts Fun Guy Fungi (FGF) as a co-tenant using `fgf_*` prefixed tables.
 
 ---
 
-## Shared modules
-
-Every cross-cutting concern lives in exactly one file. That is what makes a
-change cheap: one edit, not ten.
-
-| File | Owns |
-|------|------|
-| `lfg-config.js` | **All credentials.** Supabase URL and anon key, Cloudinary cloud and preset. The only file in the repo holding them. |
-| `grush-auth.js` | Identity. Magic-link sign-in, `is_operator()` checks, session-aware request headers. |
-| `grush-nav.js` | Navigation. Builds the bottom rail and left drawer from a `window.GRUSH_NAV` config object on each page. |
-| `grush-settings.js` | **Theming, site-wide.** Snapshots `:root`, derives light, applies OKLCH hue/tone/depth/chroma, writes inline custom properties on `<html>`. |
-| `grush-shell.css` | Opt-in app-shell layout — fixed chrome, scrolling middle. |
-| `lfg-theme.css` | Shared design tokens for `admin.html` and `data.html`. |
-| `i18n.js` | Language switching (EN / ES / FR / PT). |
-
-### Two rules worth knowing before you edit anything
-
-**`:root` must hold the DARK palette.** `grush-settings.js` treats it as the
-input and derives light from it. Put light values in `:root` and dark mode will
-serve them back untransformed. This has been got wrong twice.
-
-**Modals must sit above `z-index: 1010`.** The nav rail is 900 and the drawer is
-1010. Anything lower gets covered — silently, and usually only at the bottom of
-the screen where the controls are.
+## 2. Architecture
 
 ```
-   30   app.html action bar
-   40   page title bars
-  900   grush-nav rail
- 1010   grush-nav drawer
- 1100   lightboxes
- 1200   bottom sheets, toasts
- 1300   settings console
+lancerfarms.com
+│
+├── Static HTML/CSS/JS (no build step)
+│   └── GitHub Pages — repo: pattengalec/lancerfarms-v2, branch: main
+│
+├── Backend — Supabase
+│   ├── Project: "Lancer Farms" (Grush org)
+│   ├── Project ID: gblizuknnvguxyxfequh
+│   ├── Region: AWS us-east-2
+│   └── Config file: lfg-config.js (in repo, public anon key only)
+│
+├── Photos — Cloudinary
+│   ├── Cloud name: ddbsuxerb
+│   └── Upload preset: lfg-photos
+│
+└── DNS — Namecheap → lancerfarms.com → GitHub Pages CNAME
 ```
 
-### Layout: tools versus documents
-
-Pages you *operate* use the app shell (`grush-shell.css`): fixed header, only
-the middle scrolls. Pages you *read* do not, because locking the body stops
-Safari collapsing its URL bar — you would permanently donate ~60px on a page
-you scroll a long way down.
-
-- App shell: `admin.html`, `app.html`
-- Normal scrolling: `manual.html`, `data.html`, `almanac.html`, `visitor.html`
+**Key constraint:** No build tool, no npm, no CLI required for edits. All changes are file edits committed to `main`. GitHub Pages auto-deploys on push.
 
 ---
 
-## Auth
+## 3. External service accounts
 
-Two tiers, deliberately separate.
-
-**Crew** identifies, never authorizes. Staff pick a role in `app.html`; no
-password, no session. They can log work, complete tasks, add photos and create
-locations, because those are legitimate acts for someone with no credentials.
-
-**Operators** authorize. Sign-in is an emailed one-time link plus membership in
-the `grush_operators` table, checked server-side by `is_operator()`. Operators
-approve, moderate, rename, archive and delete.
-
-There are **no client-side passwords anywhere on this site.** Three were
-removed: an admin password, a hardcoded PIN in `app.html`, and a
-`Godisgood`+MMDD pattern that guarded the farm manual in public source. If you
-find a password check running in the browser, it is a bug.
-
-To grant operator access: add a row to `grush_operators`. To revoke: set
-`revoked_at`. No code change, no deploy.
-
-### Crew names
-
-The names offered under "Who" in the staff tool come from `grush_people`,
-managed in admin → **Crew**. This is **attribution, not access** — adding a name
-grants nothing, because the staff tool has no gate. Removing someone sets
-`active = false` rather than deleting, since past log entries carry the name as
-text and history should not change when somebody leaves.
-
-`grush_people` is shared with other Grush sites, so every query is scoped to
-`site = 'lfg'`.
-
-### Access requests
-
-`index.html` has a quiet "Work here? Request access" link writing to
-`lfg_access_requests`. Handled in admin → **Requests**.
-
-**That table is the one exception to public readability.** Everything else here
-is farm data and world-readable; this holds a person's name, email and reason,
-about people who do not work here yet. SELECT is operator-only, deliberately.
-
-Approving a **crew** request is one tap — it adds a name, which grants nothing.
-Approving an **operator** request is deliberately *not* one tap: the card tells
-you to add the `grush_operators` row by hand. An operator can publish to the
-public site and delete records; that should not be a button you press by
-accident at speed.
-
----
-
-## Database
-
-Supabase project `gblizuknnvguxyxfequh`. Farm data lives in `lfg_*`; the
-`grush_*` tables belong to the Grush platform and are shared with other sites.
-
-| Table | Purpose |
-|-------|---------|
-| `lfg_growing_areas` | Beds, trees, orchard, grounds — zone, manager, blessing. Also `code` (the QR key), `sort_order` (left-to-right position) and `lat`/`lng` |
-| `lfg_area_events` | Plant / harvest / prune / observe events per area |
-| `lfg_tasks` | Task definitions: recurrence, instructions, priority, sort order |
-| `lfg_task_completions` | Who completed what, and when |
-| `lfg_log` | General field log |
-| `lfg_photos` | Cloudinary URLs plus metadata |
-| `lfg_comments` | Visitor notes, moderated |
-| `lfg_reports` | Damage and issue reports |
-| `lfg_requests` | Supply and repair requests |
-| `lfg_inventory` | Tools and supplies with par levels |
-| `lfg_master_plants` | Plant reference records |
-| `lfg_howto_cards` | How-to card definitions |
-| `lfg_manual_entries` | Dynamic farm manual content |
-| `lfg_config` | Key/value site config — visit days, donations toggle and URL |
-| `lfg_settings` | Read-only settings |
-| `lfg_visit_overrides` | Schedule swaps |
-| `lfg_access_requests` | People asking to be added. **Operator-read only** — see Auth |
-| `grush_operators` | The operator allowlist. `is_operator()` reads this. |
-| `grush_people` | Crew names for attribution, per site |
-
-### Row-level security
-
-The rule is **crew create, operators approve**, enforced in Postgres rather than
-in the browser.
-
-- Visitor and crew inserts stay open, but must land pending or unmoderated
-- Approving, publishing, resolving, renaming, archiving and deleting require `is_operator()`
-- Unmoderated visitor comments are not readable by the public
-
-The anon key is printed in this repo by design. It is not a secret — it is the
-API gateway ticket. RLS is what actually stops anyone doing anything.
-
----
-
-## The calendar
-
-`lfg_calendar(from, to)` is a Postgres **function**, not a table. It stores
-nothing. Every row is a side effect of work recorded somewhere else — a log
-entry, a photo, a completed task, a bed event, a dated task — so it cannot
-drift from reality and it backfilled itself the moment it was created.
-
-A function rather than a view because recurring tasks have no rows to read:
-they have to be expanded into occurrences across a date range, and a view has
-no range to expand against. It is `STABLE` and `SECURITY INVOKER`, so RLS
-applies to whoever calls it.
-
-Returns `day, kind, label, detail, area_id, area_name, ref_id, tense`, where
-`kind` is one of `log · photo · completion · planting · harvest · event · task`
-and `tense` is `past · today · future`.
-
-```sql
-select * from lfg_calendar(current_date - 7, current_date + 30);
-```
-
-**A weekly task with no `recurrence_days` is left off** rather than guessed
-onto a day. An honest gap beats a silently invented Tuesday — but it does mean
-such a task never appears.
-
-**What feeds it today:** photos, task completions, field logs, and tasks that
-carry a `due_date` (settable from both task editors). **What does not:**
-plantings and harvests, because `lfg_area_events` has no write path anywhere in
-the site. See Known gaps.
-
----
-
-## Plant records — stub and complete
-
-Photographing something new should never be blocked by the plant not existing
-yet. The workflow:
-
-1. **Stub at the point of need.** The plant dropdowns end with "＋ New plant…".
-   Type a name and a stub saves as `pending`; the photo links immediately.
-2. **Stubs are invisible to visitors automatically.** Learn shows only approved
-   plants and the lightbox chip renders only for approved ones. Approve the
-   record and every photo already linked to it lights up retroactively.
-3. **"Plants to complete"** in the approval queue lists each stub with how many
-   photos are waiting on it, so the one blocking the most work comes first.
-4. **Fill it in** — tap a stub to open the plant editor in `app.html`.
-
-The editor asks for the four fields that make a plant linkable and visible
-(name, category, botanical name, summary), then the grower fields that feed the
-calculators (days to maturity, spacing, planting windows, watering). The other
-~19 columns stay blank on purpose.
-
-**No invented values, ever.** Uncertain data stays blank rather than guessed.
-That rule is why `plant-autofill.ts` was scoped to only the handful of fields
-Wikipedia can actually provide.
-
-Approving a plant is operator-only; creating a stub is a crew action.
-
----
-
-## Notifications
-
-An insert into `lfg_access_requests` fires a trigger that emails Chad, so a
-request cannot sit unnoticed for days.
-
-**No Edge Function.** `pg_net` makes the HTTP call straight from Postgres —
-worth knowing, because the project has zero Edge Functions deployed and
-`plant-autofill.ts` is already written and waiting.
-
-**Secrets live in Vault, never in `lfg_config`.** That table's SELECT policy is
-`key <> 'admin_password'` — a denylist of exactly one entry — so anything else
-put there is readable with the anon key printed in every page. An API key there
-would be public.
-
-| Vault secret | What it is |
-|---|---|
-| `resend_api_key` | Resend sending-access key |
-| `notify_email_to` | where alerts go |
-| `notify_email_from` | sender address |
-
-The trigger is `SECURITY DEFINER` (the caller is anon and must not read Vault),
-and the call is **fire and forget** — a slow or down Resend never blocks the
-insert. Losing a notification is survivable; losing the request is not.
-
-Currently sending from Resend's sandbox address, which only delivers to the
-address the Resend account was registered with. Verifying a domain at
-resend.com/domains lifts that and lets alerts go anywhere.
-
-To switch to SMS or push later, change the secrets and the trigger body —
-nothing else references them.
-
----
-
-## Bed signs and QR codes
-
-Every raised bed has a tile sign carrying its code in large text and a QR code:
-
-```
-https://lancerfarms.com/bed.html?b=1E
-```
-
-### Why this shape
-
-The QR gets glued to tile and is then permanent. Everything below follows from
-that.
-
-- **A dedicated page, not a link into `app.html`.** What a scan should show will
-  change; the tile will not. Pointing the code at today's page would weld
-  today's design to physical tile.
-- **The `code` column, not the uuid or the name.** `code` is a separate column
-  precisely so it can stay fixed while `name` changes. Parsing the code out of
-  the display name would mean renaming a bed breaks 23 signs. It is also
-  readable, matches the text printed on the same sign, and can be typed by hand
-  if a code will not scan in bright sun. Unique index on `upper(code)`, so two
-  beds can never share a QR target.
-- **One page, both audiences**, resolved by role rather than by two sets of
-  codes.
-
-### How `bed.html` behaves
-
-The bed code renders first and largest — that is how you confirm you scanned the
-right bed before anything else loads.
-
-Then a **role gate**, but only when no role is stored. Someone working through
-twenty beds should not answer it twenty times; the choice is remembered, with a
-*Viewing as … · switch* link at the foot.
-
-| | Visitor | Staff |
+| Service | Account | Purpose |
 |---|---|---|
-| Code, name, zone, blessing | yes | yes |
-| Photos, what is growing | yes | yes |
-| Open tasks, recent work log | — | yes |
-| Actions | Explore farm · Almanac | Log work here · Farm data |
+| GitHub | pattengalec | Repo host + Pages deploy |
+| Supabase | chad@getgrush.com | Database + auth + functions |
+| Cloudinary | ddbsuxerb | Photo upload + CDN |
+| Namecheap | — | DNS for lancerfarms.com |
+| Resend | Via vault secret `resend_api_key` | Access request email notifications |
 
-Tasks and work logs are operational detail: useful standing at the bed with a
-trowel, noise to someone on a tour.
-
-**Photos and logs are filtered to approved only**, because anyone can scan a
-sign. Unmoderated content must not be the first thing a visitor sees.
-
-### Printing the signs
-
-QR settings that matter outdoors: **error correction Q**, **2 inches minimum**,
-black on white, square modules, clear quiet zone, no URL shortener. The
-procedure is a how-to card in the system — *Make the bed signs with QR codes* —
-attached to a task, so whoever picks it up gets it step by step on their phone.
-
-Codes were generated with `segno` at error correction Q and machine-verified:
-every one decoded back to its own bed before printing.
+**Supabase Vault secrets required:**
+- `resend_api_key` — Resend API key for email notifications
+- `notify_email_to` — destination email for access request alerts
+- `notify_email_from` — sender address (must be a verified Resend domain)
 
 ---
 
-## External services
+## 4. Repository structure
 
-| Service | Purpose | Where configured |
-|---------|---------|------------------|
-| Supabase | Database + REST API | `lfg-config.js` |
-| Cloudinary | Photo storage — cloud `ddbsuxerb`, preset `lfg-photos` | `lfg-config.js` |
-| NWS API | Live weather — `api.weather.gov` | in-page |
-| Google Fonts | IM Fell English, Fraunces, Source Sans 3, Courier Prime | in-page |
-| GitHub Pages | Hosting — `pattengalec/lancerfarms-v2`, branch `main` | `CNAME` |
+```
+pattengalec/lancerfarms-v2 (branch: main)
+│
+├── index.html          Landing page — role router (Staff / Visitor)
+├── app.html            Staff PWA — tasks, photos, areas, log, triage
+├── admin.html          Admin dashboard — all CRUD + approval queues
+├── manual.html         Farm manual — 6 topic sections with tabs
+├── data.html           Live farm data dashboard (public)
+├── almanac.html        Growing almanac — planting calendar, plant DB
+├── triage.html         Plant triage tool (Three.js ACLS-style model)
+├── howto.html          Step-by-step how-to card player
+├── mixbench.html       Mix Bench — recipe configurator + estimators
+├── irrigation-bom.html Irrigation bill of materials calculator
+├── visitor.html        Public landing page
+├── about-grush.html    Redirect → getgrush.com
+│
+├── grush-auth.js       Auth layer (operator gate, magic link, session)
+├── lfg-config.js       Supabase URL + anon key + Cloudinary config
+├── lfg-theme.css       Legacy theme tokens (older pages)
+│
+├── lfg-logo-192.webp   App icon
+├── lfg-logo-180.png    Apple touch icon
+│
+└── CNAME               lancerfarms.com → GitHub Pages
+```
 
-**Handover:** to move this site to different infrastructure, change the four
-values in `lfg-config.js` and nothing else.
-
----
-
-## Farm geography (locked reference)
-
-- **House GPS:** `33.9281417, -117.4301472`
-- **Ridge bearing:** `146.14°`
-- **USDA Zone:** 9b · Riverside, CA
-
-| Zone | Beds | Dimensions | Depth |
-|------|------|------------|-------|
-| Zone 1 | 1A–1H, 1J, 1K (10 beds) | 1.55 × 0.86 m | 18" |
-| Zone 2 | 2A–2F (6 beds) | 3.08 × 1.53 m | 24" |
-| Zone 3 | 3A–3G (7 beds) | 3.18 × 1.29 m | 24" |
-
-**Zone numbers follow the irrigation controller**, not the layout — Zone 1 here
-is watering zone 1 on the Rain Dial.
-
-**Beds are lettered left to right facing inward** toward the White House at the
-centre of the garden. Position is authoritative, not the letter: the physical
-order lives in `lfg_growing_areas.sort_order`, and every query orders by
-`zone → sort_order → name`. That matters because inserting a bed mid-row
-re-letters everything downstream, which is exactly what happened when Zone 1
-went from 8 beds to 10.
-
-**`I` is skipped.** `1I` misreads as `11` on a weathered outdoor label — the
-same reason parking bays and aircraft seats skip I and O. Zone 1 runs A–H, J, K.
-
-Zone 1 is a single row of 10 along the NE wall, split by a shed gap between 1E
-and 1F. Zone 2 has 3 beds per side of the SW porch path. Zone 3 is a single row
-parallel to the NW wall.
-
-Nothing references a bed by name — photos, logs, events, comments, reports,
-requests and tasks all join on `area_id`. Renaming a bed is therefore free, and
-history follows the physical bed rather than the label.
-
-Each bed also carries a **`code`** (`1E`) — the short stable key printed on its
-sign and used by the QR. Separate from `name` on purpose; see Bed signs.
-
-**`lat` / `lng` are ready but empty.** Mounting day is the one occasion when
-somebody stands at all 23 beds with a phone, so that is when coordinates get
-captured. They also feed the GIS coursework.
+**Two design systems co-exist intentionally:**
+- **Old LFG style** (app, admin, manual, data, almanac, triage, howto, visitor): `IM Fell English` / `Source Sans 3` / `Courier Prime`. Earth tones: `#2A2620` bg, `#A8B89A` green, `#C9973F` amber.
+- **Grush style** (mixbench, irrigation-bom): `Bricolage Grotesque` / `Source Serif 4` / `JetBrains Mono`. Navy/cyan/chartreuse: `#050a18`, `#00c8ff`, `#c8ff00`, `#ffb830`.
 
 ---
 
-## Editing this site
+## 5. Page-by-page function reference
 
-Mobile-first workflow, no terminal required. Edit a file through GitHub's web
-editor, or replace it wholesale via **Add file → Upload files** — a same-path
-upload overwrites and commits in one step. GitHub Pages redeploys on push.
+### index.html — Landing / role router
+- Displays a role selector: **Staff** routes to `app.html`, **Visitor** routes to `visitor.html`
+- Loads `grush-auth.js` for session detection
+- No database calls on load
 
-**Cache keys matter.** Shared scripts are requested with a version string
-(`grush-settings.js?v=11`). Change a shared file and every page still asking for
-the old version keeps serving the cached copy. Bump the query string on the
-pages that need the change.
+### app.html — Staff PWA (113KB)
+- Full farm operations interface, mobile-first
+- **Tabs:** Today's tasks · Areas · Log · Photos · How-to · Hub
+- **Hub menu** → Learn section links: Farm manual, How-to cards, Plant triage, Mix Bench, Irrigation BOM
+- Photo upload pipeline via Cloudinary (cloud `ddbsuxerb`, preset `lfg-photos`)
+- Task completion logging → `lfg_task_completions`
+- Area log entries → `lfg_log`
+- Loads: `grush-auth.js`, `lfg-config.js`, Supabase JS CDN
+
+### admin.html — Admin dashboard (98KB)
+- Operator-gated (requires email in `grush_operators` table)
+- Tabs: Areas · Tasks · Photos · Plants · Inventory · Requests · Settings
+- Full CRUD on all major tables
+- Photo approval queue (pending → approved/rejected)
+- Access request management
+
+### manual.html — Farm manual (110KB)
+- 6 topic cards: Soil · Concrete · Irrigation · Pest & Disease · Planting · Tools & Records
+- Each topic has tabs with inline calculators and reference data
+- **Nav links:** Staff App · Farm data · Almanac · **Mix Bench** · **Irrigation BOM**
+- **Irrigation → Reference tab:** tool cards linking to Irrigation BOM and Mix Bench water calculator
+- **Pest → Treatments tab:** tool card linking to Mix Bench
+- Loads Supabase for manual entries (`lfg_manual_entries`)
+
+### data.html — Farm data dashboard (34KB)
+- Public-facing live data: areas, events, photos, log
+- Hub menu Learn section: Farm manual, How-to cards, Plant triage, **Mix Bench**, **Irrigation BOM**
+- Stats: area count, event count, photo count
+
+### almanac.html — Growing almanac (9KB)
+- Operator-gated sections
+- Plant database browser from `lfg_master_plants`
+- Zone 9b planting calendar
+
+### triage.html — Plant triage (68KB)
+- ACLS-style plant health assessment tool
+- Three.js 3D organic model
+- Operator-gated write functions
+
+### howto.html — How-to cards (18KB)
+- Step-by-step card player (swipe/tap navigation)
+- Loads cards from `lfg_howto_cards` via Supabase
+- Cards have: title, summary, materials checklist, safety note, steps (JSONB array of `{text}`)
+- **5 cards as of Aug 4 2026:** string trellis, + 3 others + removable shade structure
+
+### mixbench.html — Mix Bench (83KB)
+Three tools in one file:
+
+**Teaching configurator (public)**
+- 17 recipe cards across 5 task categories: Pest, Disease, Weed, Clean, Feed
+- 8 "Not a bottle" cards with measured cultural protocols
+- Seven-slot functional anatomy display
+- Par stock reference, never-combine safety section
+- Print-ready card per recipe
+
+**Chemical stock estimator (staff-gated)**
+- Inputs: grow mode (beds/sqft/acres/containers), crop profile, USDA zone, spray rate, settling rate
+- Outputs: application program, chemical shopping list, amendment inputs, structural soil settling line, contingency, grand total
+- Prices editable; recalculate live
+- 7 crop profiles, 5 USDA zone bands
+- Structural settling section (amber-bordered): annual soil top-up from 30" bed compaction
+
+**Water demand calculator (staff-gated)**
+- Inputs: date range, CIMIS ETo zone (all 18), crop stage Kc, efficiency, mulch factor, emitter GPH, frequency, supply GPM
+- Bed groups: up to N groups, each with beds/width/length/emitters/sun exposure
+- Sun exposure per group: Full sun (Kc ×1.0), Partial shade (×0.75), Shade (×0.55)
+- Outputs: total gallons, daily/peak averages, month-by-month runtimes per group, flow check against measured supply
+- ETo data: CIMIS Zone table (DWR/UC Davis), all 18 zones
+
+**Staff gate:** `GrushAuth.isOperator()` check — requires operator email in `grush_operators` table.
+
+### irrigation-bom.html — Irrigation BOM (25KB)
+- Standalone parts list calculator for drip retrofit
+- Inputs: supply GPM, emitter GPH, spacing, zone count, bed groups (N/W/L per group)
+- Sections: zone hardware (filter, regulator, flush valve), per-bed hardware (adapter, header, tees, dripline, end caps, stakes, goof plugs), path sleeves
+- All prices editable, recalculate live
+- Flow check against measured supply
+- 8 design-decision cards explaining every specification choice
+- "What this does not include" table: gauge, tools, mulch, labor, zone valve work
+- Links back to manual.html and mixbench.html
+
+### visitor.html — Public landing (3KB)
+- Static public-facing page about the garden
+- Links to data.html and manual.html
+- Staff login link → index.html
+
+### about-grush.html — Redirect (459 bytes)
+- `<meta http-equiv="refresh">` → getgrush.com
+- Handles all "managed by grush" footer links across the site
 
 ---
 
-## Known gaps
+## 6. Authentication architecture
 
-**No way to record a planting or a harvest.** `lfg_area_events` is the table for
-"planted Bed 2C with lettuce on 1 March" and nothing in the site can write to
-it — no UI, and its INSERT is operator-only, which is probably wrong for a crew
-action. Zero rows. This is the missing half of a *farm* calendar rather than an
-activity feed, and the largest open item.
+**File:** `grush-auth.js` (loads from CDN Supabase JS + lfg-config.js)
 
-**Bed GPS is not captured.** `lat` / `lng` exist and are empty. Mounting day is
-the one occasion someone stands at every bed with a phone; after that it is a
-special trip.
+**Two-tier system:**
+1. **Staff** — any user who opens app.html. No password required. Name is self-reported, logged with completions.
+2. **Operator** — email must appear in `grush_operators` table with `revoked_at IS NULL`. Gates admin.html, staff sections of mixbench.html, and write operations across the site.
 
-**`bed.html` shows plants from `lfg_area_events`, which has no rows** — so the
-"Growing here" section is empty on every bed until plantings can be recorded.
-See the item above.
+**Key functions exported:**
+- `isOperator()` — checks JWT email against `grush_operators`
+- `sendLink(email)` — sends magic link via Supabase Auth
+- `requireOperator()` — throws if not operator
+- `headers()` — returns auth headers for Supabase REST calls
 
-**The calendar has no page.** `lfg_calendar()` is live and self-backfilling; the
-month grid is not built. Its drawer entry sits commented out in `app.html`.
+**Operator gate in mixbench.html:** `GrushAuth.isOperator()` unlocks the estimator panel. The `#staff` URL bypass was present during development and was **removed** (Aug 4 2026 session).
 
-**`plant-autofill.ts` was written but never deployed.** Zero Edge Functions on
-the project. Without it every plant stub is filled in by hand. The file is not
-in this repo — check Drive.
+---
 
-**`lfg_inventory` allows a hard DELETE with the anon key.** Closing it needs a
-UI decision first: move deletion behind operator, or make it a soft delete like
-every other table. A policy alone would stop crew managing supplies.
+## 7. Database — Supabase project gblizuknnvguxyxfequh
 
-**A weekly task cannot be given a weekday.** Both editors offer
-Once/Daily/Weekly/Monthly but no day picker, so `recurrence_days` stays null and
-the task never lands on the calendar.
+### Co-tenant architecture
+All `lfg_*` tables belong to Lancer Farms & Gardens. All `fgf_*` tables belong to Fun Guy Fungi. Shared tables: `grush_operators`, `grush_people`.
 
-**The approval queue is implemented twice** — `app.html` and `admin.html` both
-read pending photos, comments and logs; only app's lists plant stubs. Two
-implementations of one queue will drift.
+### Tables — LFG
 
-**How-to cards are English only.** `howto.html` does not load `i18n.js`, and the
-switcher only translates elements carrying `data-i18n` — card steps come from
-the database and no language switch will ever reach them. Fixing it properly
-means translation columns plus player changes.
+**`lfg_config`** (9 rows) — Key/value farm config
+- `key` PK, `value`, `updated_at`
+- Keys: `farm_name`, `farm_lat`, `farm_lng`, `cloudinary_cloud`, `cloudinary_preset`, `visit_days`, `admin_password`, `donations_enabled`, `donations_url`
+- RLS: public read (except `admin_password`), operators update
 
-**`og:` tags are not set sitewide**, pending `lfg-og.png`.
+**`lfg_growing_areas`** (35 rows) — All growing zones and landmarks
+- `id` UUID PK, `name`, `area_type` (raised_bed/tree/shrub/ground/container/other/zone/landmark), `zone`, `manager`, `description`, `blessing`, `blessing_ref`, `created_at`, `archived_at`, `sort_order`, `code`, `lat`, `lng`
+- **Added Aug 4 2026:** `width_ft` NUMERIC(5,2), `length_ft` NUMERIC(5,2), `soil_depth_in` NUMERIC(5,1), `sun_exposure` TEXT
+- RLS: public read (non-archived), operators update, anon insert
+- **Current data:** 23 raised beds (Zone 1: 10 beds 4×8, Zone 2: 6 beds 5×10, Zone 3: 7 beds 5×10, all 30" deep, all full sun), plus grove/grounds/landmarks
 
-**`index.html` and `about-grush.html` have no drawer nav.** Deliberate — one is
-a three-second role gate, the other a leaf page.
+**`lfg_master_plants`** (34 rows) — Plant database
+- Full agronomic profile: botanical name, planting windows, spacing, days to maturity, stage timeline (JSONB), transplant flag, temp ranges, approval workflow
+- `approval_status`: pending/approved/rejected
 
-**Teach is designed but unbuilt.** The staff drawer is grouped Plan / Do /
-Learn; Teach is intended as an instructor sandbox for designing, delegating,
-managing and recording experiments in selected beds. That is a schema
-conversation before a UI one — instructors as a role distinct from operator and
-crew, experiments as first-class records, bed reservation, and observations that
-attach to the experiment rather than the general field log.
+**`lfg_photos`** (59 rows) — Photo records
+- Links to Cloudinary URLs, area FK, plant FK, approval workflow
+- `subject_type` for categorization
 
-**GIS map view**, pending a farm visit to trace bed polygons.
+**`lfg_tasks`** (10 rows) — Task definitions
+- Recurrence types: visit/daily/weekly/biweekly/monthly/interval/one_time/seasonal
+- `recurrence_days` JSONB (array of weekday names for weekly tasks)
+- Links to `lfg_howto_cards` via `howto_id` and `howto_ids[]`
+- Priority 1–5, color, is_core flag
+
+**`lfg_task_completions`** (9 rows) — Task log
+- `task_id` FK, `completed_by`, `visit_date`, `notes`, `task_title` (denormalized)
+
+**`lfg_log`** (4 rows) — Field activity log
+- Area FK, note, logged_by, approval workflow, `group_id` for batch entries
+
+**`lfg_area_events`** (0 rows) — Planting/harvest events
+- Event types: planted/harvested/pruned/treated/fruited/removed/observed/other
+- Approval workflow
+
+**`lfg_howto_cards`** (5 rows) — How-to card content
+- `title`, `summary`, `steps` JSONB (`[{text: "..."}]`), `materials` text, `safety_note`, `material_ids[]` UUID array
+- **Cards as of Aug 4 2026:** 4 pre-existing + "Build a removable shade structure for a raised bed" (added this session, 12 steps)
+
+**`lfg_inventory`** (13 rows) — Supply inventory
+- `item_name`, `category`, `quantity`, `unit`, `par_level`, `notes`, `image_url`, `image_credit`
+
+**`lfg_access_requests`** (1 row) — Staff access queue
+- `display_name`, `email`, `reason`, `requested_role` (crew/operator), `status` (new/approved/declined)
+- Insert triggers `notify_access_request()` → Resend email
+
+**`lfg_comments`**, **`lfg_reports`**, **`lfg_requests`** — Community/issue tracking (all empty)
+
+**`lfg_manual_entries`** (1 row) — CMS entries for manual sections
+
+**`lfg_settings`** (1 row) — JSONB settings (donation config)
+
+**`lfg_visit_overrides`** — Override visit day scheduling (empty)
+
+### Tables — FGF (mirror of LFG schema, prefixed `fgf_`)
+Same structure as LFG tables. `fgf_growing_areas` has 7 rows (mushroom station/chamber types). Other FGF tables are empty — FGF site not yet built out.
+
+### Shared tables
+
+**`grush_operators`** (1 row) — Operator allowlist
+- `email` PK, `display_name`, `note`, `added_at`, `revoked_at`
+- Comment: "Signing in is NOT enough; the email must appear here and not be revoked."
+
+**`grush_people`** (3 rows) — Crew roster (credential-free)
+- `site` (lfg/fgf), `display_name`, `active`, `sort_order`
+
+### Functions
+
+| Function | Type | Security | Search path | Notes |
+|---|---|---|---|---|
+| `set_updated_at()` | Trigger | Invoker | public | Sets `updated_at = now()` |
+| `is_operator()` | SQL stable | **DEFINER** | public, pg_temp | Checks JWT email in grush_operators. Must stay DEFINER for auth.jwt() access |
+| `lfg_calendar(date,date)` | SQL stable | Invoker | public | Returns unified calendar projection across log/photos/completions/events/tasks |
+| `area_name_status(text)` | SQL stable | Invoker | public | Fuzzy name lookup for growing areas |
+| `notify_access_request()` | PLpgSQL trigger | **DEFINER** | public,extensions,vault,pg_temp | Sends Resend email on new access request. Must stay DEFINER for vault access |
+
+### Migrations (in order)
+1. `lfg_full_schema_replay` — full schema baseline
+2. `add_photo_subject_type` — subject_type on photos
+3. `allow_update_photos_for_moderation` — RLS for photo approval
+4. `clone_lfg_schema_to_fgf` — FGF co-tenant tables
+5. `fgf_area_type_container_values` — FGF area type enum
+6. `grush_identity_core` — grush_operators, grush_people, is_operator()
+7. `seed_grush_people_roster` — initial crew names
+8. `areas_and_photo_links` — lat/lng, photo-plant FK
+9. `howto_cards` — lfg_howto_cards table
+10. `howto_chains` — howto_ids[] on tasks
+11. `inventory_images` — image_url/credit on inventory
+12. `add_check_admin_password_rpc` — admin password check RPC
+13. `restrict_admin_password_read` — RLS fence on admin_password key
+14. `add_is_operator_function` — is_operator() function
+15. `lfg_photos_operator_writes` — operator photo RLS
+16. `lfg_comments_moderation_rls` — comments RLS
+17. `lfg_operator_only_config_and_events` — config/events operator gates
+18. `revoke_check_admin_password_execute` — revoke public execute on password RPC
+19. `lfg_manual_entries_operator_writes` — manual entries RLS
+20. `lfg_operator_edits_areas_howto_plants` — areas/howto/plants operator writes
+21. `lfg_operator_approvals_log_reports_requests_tasks` — approval workflow RLS
+22. `fix_lfg_tasks_role_scope` — task RLS scope fix
+23. `lfg_zone1_renumber_add_two_beds` — Zone 1 bed numbering
+24. `lfg_calendar_projection_function` — lfg_calendar() function
+25. `lfg_master_plants_operator_update` — plants operator RLS
+26. `lfg_access_requests` — access request table + trigger
+27. `enable_pg_net_and_store_resend_secrets` — pg_net + vault secrets
+28. `notify_on_access_request` — notify_access_request() trigger
+29. `007_area_dedupe` — deduplicate growing areas
+30. `008_log_group_id` — group_id on lfg_log
+31. `lfg_growing_areas_code_and_coords` — code + lat/lng columns
+32. `add_bed_dimensions` — **width_ft, length_ft, soil_depth_in, sun_exposure** (Aug 4 2026)
+33. `fix_function_search_paths` — set_updated_at, lfg_calendar, area_name_status search paths fixed (Aug 4 2026)
+
+### RLS summary
+- **Public read:** growing areas (non-archived), config (except admin_password), photos (approved), master plants (approved), log, task completions, howto cards, people, inventory
+- **Operator write:** all tables — areas, tasks, photos, plants, log, events, comments, inventory, config, manual entries, howto cards
+- **Anon insert:** growing areas, log entries, comments, reports, requests, access requests, area events
+- **No public write:** config, operators table, settings
+
+---
+
+## 8. Physical garden data
+
+**Location:** 33.9281° N, 117.4302° W (Hawthorne House, Colony area, CBU)
+**USDA Zone:** 9b
+**CIMIS ETo Zone:** 9 — South Coast marine-to-desert transition, ~55.1 in/year
+
+**Beds:**
+
+| Zone | Count | Size | Area | Soil depth | Sun | Irrigation station |
+|---|---|---|---|---|---|---|
+| Zone 1 | 10 | 4 × 8 ft | 320 sq ft | 30 in | Full | Station A |
+| Zone 2 | 6 | 5 × 10 ft | 300 sq ft | 30 in | Full | Station B |
+| Zone 3 | 7 | 5 × 10 ft | 350 sq ft | 30 in | Full | Station C |
+| **Total** | **23** | | **970 sq ft** | | | |
+
+**Soil volume:** ~81 cu yd at 27" fill (3" freeboard), ~90 cu yd at full 30" fill
+**Settling:** ~1.5 in/year typical → ~3 cu yd annual replacement needed
+
+**Irrigation:**
+- Controller: Irritrol Rain Dial series, 3 zones for garden beds (sequential), citrus on separate program
+- Measured supply: 3.3 GPM at zone valve (90 sec to fill 5-gal bucket)
+- Design emitter: 0.4 GPH pressure-compensating inline dripline
+- Regulator: 25 PSI at each zone valve
+- Filter: 155-mesh inline before regulator
+- Beds 1A and 1B: prototype PVC manifold with Orbit screw-in manifolds (installed summer 2026)
+- Remaining 21 beds: upgrade pending (see irrigation-bom.html for full spec)
+
+**Irrigation schedule (CIMIS Zone 9, 0.4 GPH emitters, 85% efficiency):**
+
+| Month | Interval | Zone 1 runtime | Zone 2–3 runtime |
+|---|---|---|---|
+| Jan | 3 days | 31 min | 29 min |
+| Feb | 3 days | 44 min | 41 min |
+| Mar–Oct | Daily | 19–35 min | 18–33 min |
+| Jul (peak) | Daily | 35 min | 33 min |
+| Nov | 3 days | 40 min | 37 min |
+| Dec | 3 days | 26 min | 25 min |
+
+**Rain Dial Water Budget percentages:** Jul=100%, Jun/Aug=92%, May/Sep=79%, Apr=71%, Mar/Oct=54%, Nov=38%, Feb=42%, Dec=25%, Jan=29%
+
+---
+
+## 9. Key contacts (as of Aug 2026)
+
+| Name | Role | Notes |
+|---|---|---|
+| Chad Pattengale | Caretaker / developer | chad@getgrush.com |
+| Julie Ratzlaff | Lab Director, immediate supervisor | Out until mid-August |
+| Dr. Jacob Lanphere | Env. Science faculty, founding advisor | Returns Aug 17 |
+| Dr. Bonjun Koo | Env. Science program director | Meeting Aug 18 |
+
+---
+
+## 10. Rebuild procedure
+
+### Step 1 — GitHub repo
+Create public repo `pattengalec/lancerfarms-v2`. Enable GitHub Pages on `main` branch, root folder. Add `CNAME` file containing `lancerfarms.com`.
+
+### Step 2 — Supabase project
+Create project in Grush organization, us-east-2. Run all migrations in the order listed in section 7 above. The migration files are not in the GitHub repo — they exist only in Supabase's migration history. Reconstruct from the schema in section 7 if rebuilding from zero.
+
+### Step 3 — lfg-config.js
+This file is in the repo and contains the public anon key. If the Supabase project is recreated, update `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+
+### Step 4 — Cloudinary
+Create upload preset `lfg-photos` on cloud `ddbsuxerb` (unsigned, folder: `lfg`). If using a new cloud, update `lfg-config.js`.
+
+### Step 5 — Seed data
+- Insert operator email into `grush_operators`
+- Seed `lfg_config` with: `farm_name`, `farm_lat`, `farm_lng`, `cloudinary_cloud`, `cloudinary_preset`, `visit_days`, `admin_password`
+- Seed `grush_people` with crew names
+- Seed `lfg_growing_areas` with the 35 records (23 beds + grove/grounds/landmarks)
+- Seed `lfg_master_plants` (34 records), `lfg_inventory` (13 records), `lfg_howto_cards` (5 records)
+
+### Step 6 — Vault secrets (for access request emails)
+In Supabase Vault: add `resend_api_key`, `notify_email_to`, `notify_email_from`.
+
+### Step 7 — DNS
+Point `lancerfarms.com` A record or CNAME to GitHub Pages. Verify HTTPS is enabled in repo Settings → Pages.
+
+### Step 8 — Upload all files
+Upload all 12 HTML files + grush-auth.js + lfg-config.js + lfg-theme.css + image assets to `main`.
+
+---
+
+## 11. Open items (as of Aug 4 2026)
+
+| Item | Priority | Notes |
+|---|---|---|
+| Staff gate in mixbench.html wired to real auth | High | `GrushAuth.isOperator()` present; needs grush-auth.js → Supabase operator table integration tested end to end |
+| visitor.html content built out | Medium | Currently a minimal stub — three info cards and staff login link |
+| sun_exposure field populated | Low | All 23 beds currently `full`. Field exists for future beds under shade |
+| irrigation retrofit hardware purchased + installed | High | BOM at irrigation-bom.html. ~$838 + 15% contingency. Needs Facilities for controller reprogramming. |
+| Email to Julie Ratzlaff re: garden budget | High | Draft after Lanphere review Aug 17, Koo conversation Aug 18 |
+| Supabase: is_operator() callable by anon | Advisory | Intentional — function needs DEFINER context. Documented, not fixable without breaking auth. |
+| Supabase: notify_access_request() callable by anon | Advisory | Intentional — needs DEFINER for vault access. |
+| Empty Cottages project (muecvqxsqnhkhjrabtxh) | Low | Delete from Grush org when ready. Blank project, no data. |
+
+---
+
+## 12. Session history — major changes Aug 4 2026
+
+This session added the following to the live site:
+
+**New files:**
+- `mixbench.html` — Mix Bench teaching configurator + chemical estimator + water demand calculator + irrigation BOM (all in one)
+- `irrigation-bom.html` — Standalone drip irrigation bill of materials calculator
+- `visitor.html` — Public-facing farm landing page
+- `about-grush.html` — Redirect to getgrush.com
+
+**Modified files:**
+- `manual.html` — Added Mix Bench + Irrigation BOM to nav and as tool cards in Irrigation and Pest sections
+- `app.html` — Added Mix Bench + Irrigation BOM to Learn menu
+- `data.html` — Added Mix Bench + Irrigation BOM to Learn menu
+
+**Database (Supabase):**
+- Migration `add_bed_dimensions`: added `width_ft`, `length_ft`, `soil_depth_in`, `sun_exposure` to `lfg_growing_areas`; seeded all 23 beds with measured dimensions
+- Migration `fix_function_search_paths`: fixed `set_updated_at`, `lfg_calendar`, `area_name_status` search_path advisories; switched `area_name_status` from SECURITY DEFINER to INVOKER
+- Inserted how-to card: "Build a removable shade structure for a raised bed" (12 steps, `lfg_howto_cards`)
+
+**Security:**
+- Removed `#staff` URL bypass from `mixbench.html` staff gate
+
+---
+
+*README generated August 4, 2026. Verified against live site lancerfarms.com and Supabase project gblizuknnvguxyxfequh.*
