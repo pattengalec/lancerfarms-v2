@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Mix Bench — Lancer Farms &amp; Gardens</title>
+<meta name="description" content="A teaching configurator for the Lancer Farms garden. Pick the job, get the mix, learn why it works — and learn when there isn't a bottle for it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#050a18;
+  --panel:#0d1526;
+  --panel-2:#131d33;
+  --line:#22304d;
+  --cyan:#00c8ff;
+  --chart:#c8ff00;
+  --amber:#ffb830;
+  --danger:#ff5544;
+  --stock:#f2ead6;
+  --stock-ink:#1b2114;
+  --stock-line:#c9bb98;
+  --dim:#8fa3c4;
+  --f-disp:'Bricolage Grotesque',system-ui,sans-serif;
+  --f-body:'Source Serif 4',Georgia,serif;
+  --f-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--ink);color:#dce6f5;
+  font-family:var(--f-body);font-size:17px;line-height:1.6;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+
+/* ---------- masthead ---------- */
+header.mast{border-bottom:1px solid var(--line);padding:34px 0 26px;margin-bottom:34px}
+.eyebrow{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--cyan);margin:0 0 14px
+}
+.eyebrow a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(0,200,255,.35)}
+h1{
+  font-family:var(--f-disp);font-weight:800;font-size:clamp(2.3rem,7vw,4rem);
+  line-height:.98;letter-spacing:-.02em;margin:0 0 16px;color:#fff
+}
+h1 em{font-style:normal;color:var(--chart)}
+.standfirst{max-width:60ch;color:#b9c8e0;font-size:1.06rem;margin:0}
+
+/* ---------- the six slots ---------- */
+.thesis{
+  background:var(--panel);border:1px solid var(--line);border-radius:4px;
+  padding:22px 20px;margin:0 0 40px
+}
+.thesis h2{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dim);margin:0 0 12px;font-weight:600
+}
+.thesis p{margin:0 0 18px;max-width:64ch;color:#c3d1e8}
+.slotbar{display:flex;flex-wrap:wrap;gap:6px}
+.slot{
+  flex:1 1 130px;border:1px solid var(--line);border-radius:3px;
+  padding:10px 11px;background:#0a1220;transition:background .18s,border-color .18s
+}
+.slot .sn{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--dim);display:block;margin-bottom:3px
+}
+.slot .sv{font-family:var(--f-disp);font-weight:700;font-size:.9rem;color:#63799b}
+.slot.on{background:rgba(200,255,0,.09);border-color:var(--chart)}
+.slot.on .sn{color:var(--chart)}
+.slot.on .sv{color:#eaffb0}
+
+/* ---------- configurator ---------- */
+.step{margin:0 0 30px}
+.step-h{
+  display:flex;align-items:baseline;gap:10px;margin:0 0 14px;
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)
+}
+.step-h b{color:var(--cyan);font-weight:600}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{
+  font-family:var(--f-disp);font-weight:600;font-size:.95rem;
+  background:var(--panel);color:#cfdcf0;border:1px solid var(--line);
+  border-radius:3px;padding:11px 15px;cursor:pointer;
+  transition:border-color .15s,background .15s,color .15s;
+  -webkit-tap-highlight-color:transparent
+}
+.opt:hover{border-color:var(--cyan);color:#fff}
+.opt[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan);color:#04121c}
+.opt:focus-visible{outline:2px solid var(--chart);outline-offset:2px}
+.hidden{display:none}
+
+/* ---------- output card ---------- */
+.card{
+  background:var(--stock);color:var(--stock-ink);border-radius:3px;
+  padding:30px 28px 34px;margin-top:34px;
+  box-shadow:0 20px 50px -22px #000, inset 0 0 0 1px rgba(0,0,0,.14)
+}
+.card-top{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+  border-bottom:2px solid var(--stock-ink);padding-bottom:12px;margin-bottom:20px;flex-wrap:wrap
+}
+.card-kicker{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:#6d6a52;margin:0 0 5px
+}
+.card h3{
+  font-family:var(--f-disp);font-weight:800;font-size:clamp(1.5rem,4.4vw,2.05rem);
+  line-height:1.05;letter-spacing:-.015em;margin:0;max-width:22ch
+}
+.stamp{
+  font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;border:2px solid var(--stock-ink);border-radius:2px;
+  padding:6px 9px;white-space:nowrap;transform:rotate(-1.5deg)
+}
+.stamp.nomix{border-color:#8a3b12;color:#8a3b12}
+
+.card h4{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:#6d6a52;font-weight:600;margin:26px 0 9px;
+  border-bottom:1px solid var(--stock-line);padding-bottom:5px
+}
+.card h4:first-of-type{margin-top:0}
+.card p{margin:0 0 12px;max-width:66ch}
+.card ol,.card ul{margin:0;padding-left:1.25em}
+.card li{margin-bottom:7px;max-width:64ch}
+
+table.mix{width:100%;border-collapse:collapse;font-family:var(--f-mono);font-size:.85rem}
+table.mix td{padding:8px 0;border-bottom:1px solid var(--stock-line);vertical-align:top}
+table.mix td.q{font-weight:600;white-space:nowrap;padding-right:16px;width:1%}
+table.mix tr:last-child td{border-bottom:none}
+
+.mech{background:rgba(0,0,0,.05);border-left:3px solid #4a6b1e;padding:13px 15px;margin:0 0 4px}
+.mech p{margin:0}
+.wont{border-left:3px solid #8a3b12;padding:13px 15px;margin:14px 0 4px;background:rgba(138,59,18,.05)}
+.wont p{margin:0}
+.warns{list-style:none;padding:0;margin:0}
+.warns li{
+  padding-left:22px;position:relative;font-size:.95rem
+}
+.warns li::before{
+  content:"!";position:absolute;left:0;top:1px;font-family:var(--f-mono);font-weight:600;
+  font-size:.7rem;color:#fff;background:#8a3b12;width:15px;height:15px;line-height:15px;
+  text-align:center;border-radius:2px
+}
+.cardfoot{
+  margin-top:26px;padding-top:12px;border-top:1px solid var(--stock-line);
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;color:#6d6a52;
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap
+}
+.printbtn{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  background:none;border:1px solid var(--stock-line);color:#6d6a52;padding:6px 10px;
+  border-radius:2px;cursor:pointer
+}
+.printbtn:hover{border-color:var(--stock-ink);color:var(--stock-ink)}
+
+/* ---------- static sections ---------- */
+section.blk{margin-top:56px}
+section.blk > h2{
+  font-family:var(--f-disp);font-weight:800;font-size:1.5rem;letter-spacing:-.01em;
+  color:#fff;margin:0 0 6px
+}
+section.blk > .sub{color:var(--dim);margin:0 0 20px;font-size:.98rem}
+.par{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px}
+.par-item{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:14px 15px}
+.par-item .slotlab{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--chart);display:block;margin-bottom:5px
+}
+.par-item b{font-family:var(--f-disp);font-size:1rem;color:#fff;display:block;margin-bottom:4px}
+.par-item span.n{font-size:.9rem;color:#a8b9d4}
+
+.danger{
+  border:1px solid var(--danger);border-radius:4px;background:rgba(255,85,68,.07);
+  padding:22px 20px
+}
+.danger h2{
+  font-family:var(--f-disp);font-weight:800;font-size:1.25rem;color:#ff8877;margin:0 0 12px
+}
+.danger ul{margin:0;padding-left:1.2em}
+.danger li{margin-bottom:9px;color:#ffd5cf}
+.danger li b{color:#fff}
+
+.note{
+  border-left:3px solid var(--amber);padding:14px 0 14px 16px;margin-top:22px;
+  color:#d9c8a8;font-size:.96rem
+}
+.note b{color:var(--amber)}
+
+footer.foot{
+  margin-top:64px;padding-top:22px;border-top:1px solid var(--line);
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;color:#63799b
+}
+footer.foot a{color:var(--cyan);text-decoration:none}
+
+
+/* ---------- estimator ---------- */
+#estimator{margin-top:64px;padding-top:34px;border-top:1px solid var(--line)}
+.locked{
+  background:var(--panel);border:1px dashed var(--line);border-radius:4px;
+  padding:26px 22px;text-align:left
+}
+.locked h2{font-family:var(--f-disp);font-weight:800;font-size:1.3rem;color:#fff;margin:0 0 8px}
+.locked p{margin:0;color:var(--dim);max-width:56ch;font-size:.97rem}
+.badge-staff{
+  display:inline-block;font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--amber);border:1px solid var(--amber);
+  border-radius:2px;padding:4px 8px;margin-bottom:14px
+}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:22px 0 6px}
+.field label{
+  display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);margin-bottom:6px
+}
+.field select,.field input{
+  width:100%;background:var(--panel-2);color:#e6eefb;border:1px solid var(--line);
+  border-radius:3px;padding:11px 12px;font-family:var(--f-body);font-size:1rem
+}
+.field select:focus,.field input:focus{outline:2px solid var(--cyan);outline-offset:1px}
+.est-note{color:var(--dim);font-size:.9rem;margin:14px 0 0}
+
+.res{margin-top:30px}
+.res h3{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--chart);font-weight:600;margin:30px 0 10px;
+  border-bottom:1px solid var(--line);padding-bottom:6px
+}
+table.est{width:100%;border-collapse:collapse;font-size:.93rem}
+table.est th{
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);text-align:left;font-weight:600;padding:0 10px 7px 0;white-space:nowrap
+}
+table.est th.r,table.est td.r{text-align:right;padding-right:0}
+table.est td{padding:9px 10px 9px 0;border-top:1px solid var(--line);vertical-align:top}
+table.est td.num{font-family:var(--f-mono);font-size:.86rem;white-space:nowrap}
+table.est input.price{
+  width:78px;background:var(--panel-2);border:1px solid var(--line);color:#e6eefb;
+  border-radius:2px;padding:5px 7px;font-family:var(--f-mono);font-size:.84rem;text-align:right
+}
+.tot{
+  display:flex;justify-content:space-between;align-items:baseline;gap:14px;
+  padding:11px 0;border-top:1px solid var(--line);font-family:var(--f-mono);font-size:.88rem;color:#b9c8e0
+}
+.tot.grand{
+  border-top:2px solid var(--chart);margin-top:4px;padding-top:15px;
+  font-size:1.05rem;color:#fff
+}
+.tot.grand b{font-family:var(--f-disp);font-size:1.6rem;color:var(--chart);font-weight:800}
+.assump{
+  margin-top:26px;background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  padding:16px 18px
+}
+.assump h4{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--dim);margin:0 0 10px;font-weight:600
+}
+.assump ul{margin:0;padding-left:1.1em}
+.assump li{font-size:.88rem;color:#9fb2cd;margin-bottom:6px}
+@media (max-width:640px){
+  table.est th:nth-child(3),table.est td:nth-child(3){display:none}
+}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 60px}
+  .card{padding:24px 20px 28px}
+  .opt{flex:1 1 auto}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+@media print{
+  body{background:#fff;color:#000}
+  header.mast,.thesis,.step,section.blk,footer.foot,.printbtn{display:none!important}
+  .wrap{padding:0;max-width:none}
+  .card{box-shadow:none;background:#fff;margin:0;padding:0}
+  .card h4{border-bottom:1px solid #999}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow"><a href="manual.html">Farm Manual</a> &nbsp;/&nbsp; Section 7</p>
+  <h1>The Mix<br><em>Bench</em></h1>
+  <p class="standfirst">Nearly every bottle on the garden-center shelf is water plus one or two working ingredients. Learn the six jobs those ingredients do, and you can stop buying the bottle. Pick a task below.</p>
+</header>
+
+<div class="thesis">
+  <h2>The seven slots</h2>
+  <p>A product isn't a mystery — it's a slot machine. Every mix in this garden is built from some combination of these seven functions. Watch which ones light up as you configure; after a few passes you'll be able to read a commercial label and name what's actually in it.</p>
+  <div class="slotbar" id="slotbar">
+    <div class="slot" data-slot="carrier"><span class="sn">Carrier</span><span class="sv">Water</span></div>
+    <div class="slot" data-slot="surfactant"><span class="sn">Surfactant</span><span class="sv">True soap</span></div>
+    <div class="slot" data-slot="acid"><span class="sn">Acid</span><span class="sv">Vinegar</span></div>
+    <div class="slot" data-slot="oxidizer"><span class="sn">Oxidizer</span><span class="sv">Peroxide</span></div>
+    <div class="slot" data-slot="solvent"><span class="sn">Solvent</span><span class="sv">Alcohol</span></div>
+    <div class="slot" data-slot="oil"><span class="sn">Oil</span><span class="sv">Hort. oil</span></div>
+    <div class="slot" data-slot="mineral"><span class="sn">Mineral</span><span class="sv">Bicarb / compost</span></div>
+  </div>
+</div>
+
+<div class="step">
+  <p class="step-h"><b>01</b> What are you dealing with?</p>
+  <div class="opts" id="q1"></div>
+</div>
+
+<div class="step hidden" id="step2">
+  <p class="step-h"><b>02</b> <span id="q2label">Narrow it down</span></p>
+  <div class="opts" id="q2"></div>
+</div>
+
+<div class="step hidden" id="step3">
+  <p class="step-h"><b>03</b> How much are you mixing?</p>
+  <div class="opts" id="q3"></div>
+</div>
+
+<div id="out"></div>
+
+<section class="blk">
+  <h2>Par stock</h2>
+  <p class="sub">Seven items on the shelf. Everything above is built from these.</p>
+  <div class="par">
+    <div class="par-item"><span class="slotlab">Surfactant</span><b>Castile soap</b><span class="n">Liquid, unscented. Not dish detergent — see below.</span></div>
+    <div class="par-item"><span class="slotlab">Acid</span><b>White vinegar, 5%</b><span class="n">Grocery strength only. Never the 20–30% "horticultural" kind.</span></div>
+    <div class="par-item"><span class="slotlab">Oxidizer</span><b>Hydrogen peroxide, 3%</b><span class="n">Brown bottle. Breaks down to water and oxygen — no rinse residue.</span></div>
+    <div class="par-item"><span class="slotlab">Solvent</span><b>Isopropyl alcohol, 70%</b><span class="n">70% outperforms 91% for sanitizing. The water is the point.</span></div>
+    <div class="par-item"><span class="slotlab">Oil</span><b>Horticultural or neem oil</b><span class="n">Refined, labeled for plants. Not motor or cooking oil.</span></div>
+    <div class="par-item"><span class="slotlab">Mineral</span><b>Potassium bicarbonate</b><span class="n">Powder. Fungal suppression and pH work.</span></div>
+    <div class="par-item"><span class="slotlab">Mineral</span><b>Finished compost</b><span class="n">The one input with no bottled substitute.</span></div>
+  </div>
+  <div class="note"><b>Soap is not detergent.</b> Dawn and its relatives are engineered degreasers — they strip the leaf's waxy cuticle along with the pest and burn foliage. True soap is a potassium or sodium salt of a fatty acid. Read the label: if it says "detergent," it's the wrong slot.</div>
+</section>
+
+<section class="blk">
+  <div class="danger">
+    <h2>Never combine</h2>
+    <ul>
+      <li><b>Bleach + ammonia</b> → chloramine gas. This is why there is no bleach on the par stock at all. Peroxide does the oxidizer job without the pairing risk.</li>
+      <li><b>Bleach + vinegar</b> (or any acid) → chlorine gas. Same reason.</li>
+      <li><b>Peroxide + vinegar, stored together</b> → peracetic acid. Fine as a fleeting rinse in industry, corrosive and irritating when a student mixes a bottle of it in a shed. Use one, rinse, then the other.</li>
+      <li><b>Oil + sulfur, within 30 days</b> → phytotoxic burn. If anything sulfur-based has been applied, oil waits a month.</li>
+      <li><b>Anything + "a little more won't hurt"</b> → the most common cause of leaf burn in this garden. Concentration is the recipe. Measure it.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="blk">
+  <h2>Before anyone sprays</h2>
+  <p class="sub">Four habits that matter more than which bottle you picked.</p>
+  <ol>
+    <li><b>Test one leaf first.</b> Spray a single leaf, wait 24 hours, check for burn. Every plant reacts differently and this garden grows dozens of species.</li>
+    <li><b>Never in sun or heat.</b> Early morning or evening, under 85&nbsp;°F. Soap and oil in full sun cook the leaf.</li>
+    <li><b>Identify before you treat.</b> Most of what looks like a pest problem is a water problem. Spraying a drought-stressed plant makes it worse.</li>
+    <li><b>Label the bottle.</b> Contents, concentration, date mixed, who mixed it. An unlabeled sprayer gets emptied, not guessed at.</li>
+  </ol>
+  <div class="note"><b>A note on the word "organic."</b> These mixes are low-toxicity and homemade — that is not the same as OMRI-listed or certified organic. Describe them accurately to visitors. And because Lancer Farms is a university operation, anything applied as a pesticide falls under California DPR rules regardless of whether it came from a pantry. Check with the county ag commissioner before students mix and apply.</div>
+</section>
+
+
+<section id="estimator">
+  <div id="estLocked" class="locked">
+    <span class="badge-staff">Staff tool</span>
+    <h2>Stock &amp; budget estimator</h2>
+    <p>Turns the recipes above into a season's shopping list and a minimum budget for a given growing space. Sign in as an operator to use it.</p>
+  </div>
+
+  <div id="estPanel" class="hidden">
+    <span class="badge-staff">Staff tool</span>
+    <h2 style="font-family:var(--f-disp);font-weight:800;font-size:clamp(1.6rem,5vw,2.2rem);color:#fff;margin:0 0 8px;letter-spacing:-.015em">Stock &amp; budget estimator</h2>
+    <p style="color:#b9c8e0;max-width:62ch;margin:0">Every recipe above is a concentration. Give it an area, a crop, and a season length, and it becomes a quantity you can buy. Output is a shopping list first &mdash; the dollar figure follows from it.</p>
+
+    <div class="fields">
+      <div class="field">
+        <label for="fMode">Measure the space by</label>
+        <select id="fMode">
+          <option value="bed">Beds</option>
+          <option value="sqft">Square feet</option>
+          <option value="acre">Acres</option>
+          <option value="container">Container farm</option>
+        </select>
+      </div>
+      <div class="field" id="wrapCount">
+        <label for="fCount" id="lblCount">How many beds</label>
+        <input type="number" id="fCount" value="12" min="1" step="1">
+      </div>
+      <div class="field" id="wrapBedSize">
+        <label for="fBedSize">Bed size</label>
+        <select id="fBedSize">
+          <option value="32" selected>4 &times; 8 ft &mdash; 32 sq ft</option>
+          <option value="18">3 &times; 6 ft &mdash; 18 sq ft</option>
+          <option value="80">4 &times; 20 ft &mdash; 80 sq ft</option>
+          <option value="100">Other &mdash; 100 sq ft</option>
+        </select>
+      </div>
+      <div class="field" id="wrapCycles">
+        <label for="fCycles">Grow cycles per year</label>
+        <input type="number" id="fCycles" value="6" min="1" step="1">
+      </div>
+      <div class="field" id="wrapCrop">
+        <label for="fCrop">Dominant crop type</label>
+        <select id="fCrop"></select>
+      </div>
+      <div class="field" id="wrapZone">
+        <label for="fZone">USDA zone</label>
+        <select id="fZone"></select>
+      </div>
+      <div class="field" id="wrapPath">
+        <label for="fPath">Paths &amp; hard surface, % of area</label>
+        <input type="number" id="fPath" value="20" min="0" max="200" step="5">
+      </div>
+      <div class="field" id="wrapRate">
+        <label for="fRate">Spray rate, gal per 1,000 sq ft</label>
+        <input type="number" id="fRate" value="1.5" min="0.25" max="5" step="0.25">
+      </div>
+    </div>
+    <p class="est-note">Prices below are editable. Replace them with your actual invoice figures before this number goes anywhere official.</p>
+
+    <div class="res" id="estResult"></div>
+  </div>
+</section>
+
+<footer class="foot">
+  Lancer Farms &amp; Gardens · California Baptist University · <a href="manual.html">back to the Farm Manual</a>
+</footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---- unit formatting: everything stored as teaspoons ---- */
+var FRAC=[[1,""],[0.75,"\u00BE"],[0.6667,"\u2154"],[0.5,"\u00BD"],[0.3333,"\u2153"],[0.25,"\u00BC"],[0.125,"\u215B"]];
+function frac(n){
+  var whole=Math.floor(n+1e-9), rem=n-whole, best="", bd=1;
+  for(var i=0;i<FRAC.length;i++){var d=Math.abs(rem-FRAC[i][0]);if(d<bd){bd=d;best=FRAC[i][1];}}
+  if(bd>0.06){ return (Math.round(n*100)/100).toString(); }
+  if(best===""){ whole+=1; best=""; }
+  if(whole===0) return best||"0";
+  return whole+(best?" "+best:"");
+}
+function fmt(tsp){
+  if(tsp>=192) return frac(tsp/192)+" qt";
+  if(tsp>=12)  return frac(tsp/48)+" cup";
+  if(tsp>=3 && Math.abs(tsp/3-Math.round(tsp/3))<0.02) return Math.round(tsp/3)+" Tbsp";
+  return frac(tsp)+" tsp";
+}
+
+/* ---- data ---- */
+var TASKS=[
+  {id:"pest",  label:"Pests on plants", q:"Which kind of pest?"},
+  {id:"dis",   label:"Disease on plants", q:"What does it look like?"},
+  {id:"weed",  label:"Weeds", q:"Where are they?"},
+  {id:"clean", label:"Cleaning &amp; sanitizing", q:"What are you cleaning?"},
+  {id:"feed",  label:"Feeding plants or soil", q:"What are you trying to fix?"}
+];
+
+var R={
+/* ---------------- PESTS ---------------- */
+"pest.soft":{
+  label:"Soft-bodied \u2014 aphids, mites, thrips, whitefly",
+  name:"Soap spray",
+  kicker:"Contact insecticide",
+  slots:["carrier","surfactant"],
+  mix:[["Castile soap",3],["Water","fill"]],
+  method:[
+    "Add the soap to the water, not the other way around \u2014 pouring water onto soap foams the container over.",
+    "Swirl gently. Do not shake into a lather; you want it dissolved, not aerated.",
+    "Spray until the plant is wet but not dripping. Get the undersides of leaves \u2014 that is where the insects are.",
+    "Rinse the sprayer with clean water when finished. Mix fresh each time; this does not store."
+  ],
+  window:"Early morning or evening. Never in direct sun or above 85\u00A0\u00B0F.",
+  mech:"The fatty acids in true soap dissolve the waxy layer on a soft-bodied insect's cuticle. Without that layer the insect cannot hold water and dries out within minutes. This is physical damage, not poison \u2014 which is why it works only while wet, and why it has no residual effect at all.",
+  wont:"It will not touch anything armored: beetles, hard scale, or a caterpillar's tough skin. It will not protect the plant after it dries, so new arrivals the next day are unaffected. And it will not fix the underlying cause \u2014 aphid outbreaks usually follow over-fertilizing with nitrogen or drought stress.",
+  warns:[
+    "Test a single leaf and wait 24 hours. Ferns, nasturtium, sweet pea and many succulents burn from soap.",
+    "Soap kills beneficials on contact too. Spot-treat the infested plant; do not blanket the bed.",
+    "More soap is not more effective \u2014 it is just more leaf burn."
+  ]
+},
+"pest.armor":{
+  label:"Scale, mealybug, or overwintering eggs",
+  name:"Soap and oil spray",
+  kicker:"Smothering agent",
+  slots:["carrier","surfactant","oil"],
+  mix:[["Horticultural or neem oil",3],["Castile soap",1],["Water","fill"]],
+  method:[
+    "Combine soap and oil first and stir until cloudy and uniform.",
+    "Add water slowly while stirring. The soap is what keeps the oil suspended \u2014 without it the oil floats and you spray plain water.",
+    "Agitate the sprayer every minute or two while you work; it separates.",
+    "Cover every surface. Anything you miss survives."
+  ],
+  window:"Cool, still, overcast conditions. Not above 85\u00A0\u00B0F, not below 40\u00A0\u00B0F, not on a drought-stressed plant.",
+  mech:"Insects breathe through spiracles \u2014 small openings along the body. Oil forms a film that plugs them and the insect suffocates. It also penetrates and disrupts egg membranes, which is why this is the mix for overwintering stages. The soap here is not the insecticide; it is the emulsifier that makes oil and water share a bottle.",
+  wont:"It will not work on anything it does not physically reach, so poor coverage means no result. It will not move systemically through the plant, and it will not solve an ant problem \u2014 ants farm and protect scale, so they need handling separately.",
+  warns:[
+    "Not within 30 days of any sulfur application. The combination burns foliage badly.",
+    "Test one branch and wait 48 hours before doing a whole plant.",
+    "Oil on a water-stressed plant causes damage. Irrigate the day before."
+  ]
+},
+"pest.slug":{
+  label:"Slugs and snails",
+  kind:"nomix",
+  name:"This one is a habitat problem",
+  kicker:"No spray applies",
+  slots:[],
+  protocol:[
+    ["2\u00D7/week for 3 weeks","Flashlight collection after dark or right after irrigation — the single highest-yield action"],
+    ["1 per 100 sq ft","Flat board laid on the soil as a daytime shelter; flip and clear every morning"],
+    ["1 lb per 1,000 sq ft","Iron phosphate bait, OMRI-listed, scattered thinly and reapplied after rain"],
+    ["Shift to morning","Irrigation timing, so the surface is dry overnight"]
+  ],
+  body:[
+    ["Why there is no bottle for it","Slugs and snails have no waxy cuticle to strip and no spiracles to plug, so neither of the sprays on this bench touches them. Every homemade remedy that circulates \u2014 salt, beer traps, eggshells \u2014 either kills a handful while the population continues, or damages the soil."],
+    ["What actually works","Hand-collect after dark or after irrigation with a flashlight; this is the single most effective method and it takes ten minutes. Water in the morning rather than the evening so the surface is dry overnight. Pull mulch back a few inches from seedling stems. Set boards flat on the soil as daytime shelters and flip them each morning. Where pressure is high, iron phosphate bait is OMRI-listed and safe around the garden."],
+    ["The teaching point","When a problem has no chemical answer in your par stock, that is information. It means the lever is cultural \u2014 timing, moisture, habitat \u2014 not chemical. Reaching for a bottle anyway is how gardens end up with a shelf of products that never worked."]
+  ]
+},
+"pest.ant":{
+  label:"Ants",
+  kind:"nomix",
+  name:"Ants are a symptom",
+  kicker:"Treat the cause",
+  slots:[],
+  protocol:[
+    ["See Soap spray","Treat the aphids or scale the ants are farming — that is the actual target"],
+    ["2 in. band at 12 in. height","Sticky barrier on woody stems, refreshed monthly"],
+    ["Same day","Repair any drip leak within 10 ft; ants nest where it stays reliably damp"]
+  ],
+  body:[
+    ["What is actually happening","Ants in a garden bed are almost always farming. They protect aphids, scale, and mealybug from predators and harvest the honeydew those insects excrete. Killing the ants without addressing the herd accomplishes very little, and killing them broadly removes a useful scavenger and soil aerator."],
+    ["What actually works","Treat the sap-feeders first \u2014 soap spray for aphids, soap and oil for scale. With the herd gone the ants leave on their own. If they are climbing a woody plant, a sticky barrier band on the trunk breaks the route. Fix any drip-irrigation leak nearby; ants nest where it is reliably damp."],
+    ["The teaching point","Before you mix anything, ask what the organism is doing there. A pest that is present because of another pest needs the first problem solved, not a second spray."]
+  ]
+},
+
+/* ---------------- DISEASE ---------------- */
+"dis.pm":{
+  label:"White powdery coating on leaves",
+  name:"Bicarbonate spray",
+  kicker:"Fungal suppressant",
+  slots:["carrier","surfactant","mineral"],
+  mix:[["Potassium bicarbonate",1],["Castile soap",0.25],["Water","fill"]],
+  method:[
+    "Dissolve the bicarbonate fully in a small amount of warm water first. Undissolved grit clogs the nozzle and leaves white residue.",
+    "Add the soap, then the rest of the water.",
+    "Spray both leaf surfaces to the point of run-off.",
+    "Repeat every 7\u201310 days and after any rain or overhead watering."
+  ],
+  window:"Morning, so foliage dries fully before nightfall. Under 85\u00A0\u00B0F.",
+  mech:"Powdery mildew grows on the leaf surface rather than inside it, which makes it unusually vulnerable to surface chemistry. Bicarbonate raises the surface pH and pulls water out of the fungal hyphae, collapsing them. The soap is doing two jobs: helping the solution spread across a waxy leaf instead of beading, and helping it stick long enough to act.",
+  wont:"It will not cure a leaf that is already heavily colonized \u2014 remove and bin those, do not compost them. It will not persist through rain or overhead irrigation. And it will not help with any disease living inside the plant's tissue, which is most of them.",
+  warns:[
+    "Baking soda (sodium bicarbonate) is the common substitute and it works, but sodium accumulates in soil. Potassium bicarbonate is the correct choice for repeated use in a bed.",
+    "Test one leaf first \u2014 squash and cucumber foliage can be sensitive.",
+    "Improve airflow at the same time: thin crowded growth, widen spacing. Chemistry alone loses this fight."
+  ]
+},
+"dis.damp":{
+  label:"Seedlings collapsing at the soil line",
+  kind:"nomix",
+  name:"Damping off is already over",
+  kicker:"Prevention only",
+  slots:[],
+  protocol:[
+    ["6 tsp per gallon","Castile soap wash for flats and pots — scrub until no film or salt crust remains"],
+    ["10 minute soak","3% hydrogen peroxide, undiluted, then air dry fully upside down"],
+    ["Sterile mix only","Never garden soil, never mix reclaimed from a tray that failed"],
+    ["4+ hours daily","Gentle fan movement across the seedling bench"],
+    ["Bottom water","Fill the tray from below; no overhead watering on seedlings"]
+  ],
+  body:[
+    ["Why there is no rescue spray","By the time a seedling topples, the stem tissue at the soil line is destroyed. Nothing you apply rebuilds it. The soil-borne fungi responsible \u2014 Pythium, Rhizoctonia, Fusarium \u2014 are already established in the mix. This is a prevention problem that presents as a treatment problem."],
+    ["What actually works for the next tray","Start with sterile mix, never garden soil, and never reuse mix from a failed tray. Clean flats and pots properly \u2014 wash with soap and water first to remove the soil film, then soak in 3% hydrogen peroxide, then air dry. Bottom-water instead of overhead. Run a fan for gentle air movement. Sow thinly; crowded seedlings stay wet. Do not fertilize until true leaves appear."],
+    ["The teaching point","Sanitation is a slot the sprays cannot fill. Most seedling loss in this garden traces back to a dirty flat, not a missing product."]
+  ]
+},
+"dis.prev":{
+  label:"Nothing yet \u2014 I want to prevent it",
+  name:"Weekly preventive rinse",
+  kicker:"Protectant",
+  slots:["carrier","surfactant","mineral"],
+  mix:[["Potassium bicarbonate",0.5],["Castile soap",0.25],["Water","fill"]],
+  method:[
+    "Dissolve the bicarbonate fully, add soap, then the remaining water.",
+    "Apply a light, even mist to susceptible crops \u2014 squash, cucumber, melon, grape, rose.",
+    "Once a week through the humid stretch of the season.",
+    "Stop and switch to the full-strength mix if you see actual mildew."
+  ],
+  window:"Morning. Skip if rain is forecast within a few hours.",
+  mech:"A protectant works by making the leaf surface inhospitable before spores land, rather than by killing an established colony. Half strength is enough to shift surface pH; more than that increases burn risk without improving protection.",
+  wont:"It will not protect growth that appears after you spray, so new leaves are unprotected until the next pass. It is not a substitute for spacing, airflow, and resistant varieties \u2014 those do most of the work.",
+  warns:[
+    "Weekly is the ceiling, not a target. Over-application accumulates salts on the leaf.",
+    "Skip it entirely on plants showing no history of mildew pressure."
+  ]
+},
+
+/* ---------------- WEEDS ---------------- */
+"weed.path":{
+  label:"Paths, gravel, pavement cracks",
+  name:"Vinegar burn-down",
+  kicker:"Contact herbicide \u2014 hard surfaces only",
+  slots:["acid","surfactant"],
+  mix:[["White vinegar, 5%","fill"],["Castile soap",1]],
+  method:[
+    "This one is not diluted. Measure the vinegar into the sprayer at full strength.",
+    "Add the soap and swirl to combine.",
+    "Spray young weeds until thoroughly wet. Choose a hot, sunny, windless day \u2014 the opposite of every other mix on this bench.",
+    "Expect visible browning within hours. Expect regrowth."
+  ],
+  window:"Hot, sunny, still. Heat accelerates the burn.",
+  mech:"Acetic acid strips the protective cuticle from leaf tissue and destroys cell membranes; the exposed cells lose water and the top growth collapses. The soap is the sticker \u2014 without it, vinegar runs off a waxy weed leaf before it can act. The energy stored in the root is untouched, which is the whole limitation.",
+  wont:"It will not kill roots. It will not kill established grasses or any perennial \u2014 bindweed, bermuda, nutsedge, and dandelion all regrow within one to two weeks, sometimes stronger. It is not selective; it kills whatever it lands on.",
+  warns:[
+    "Hard surfaces only. Repeated use acidifies soil and harms soil life, so this does not belong in a planting bed.",
+    "Do not substitute 20\u201330% \"horticultural vinegar.\" It causes permanent corneal injury from a splash, is a registered pesticide requiring licensed handling, and is not appropriate for a student garden.",
+    "Vinegar drift damages nearby plants. Spray low, on a still day, with a coarse nozzle."
+  ]
+},
+"weed.bed":{
+  label:"In a bed I will plant again",
+  kind:"nomix",
+  name:"Nothing in a bottle belongs here",
+  kicker:"No spray applies",
+  slots:[],
+  protocol:[
+    ["3–4 weeks","Occultation — opaque tarp, edges weighted, soil above 60 °F"],
+    ["Every 7–10 days","Shallow hoe pass while weeds are still at the thread stage"],
+    ["3 in. depth","Mulch — roughly 9 cu yd per 1,000 sq ft to establish, 3 cu yd per year to maintain"],
+    ["Before seed set","Hand-pull whatever escapes, without exception"]
+  ],
+  body:[
+    ["Why the sprays fail here","Vinegar acidifies the soil you are about to plant into and kills only top growth. Salt solutions sterilize the bed for seasons. Boiling water cooks the soil biology along with the weed. Every quick chemical answer for a bed costs you the bed."],
+    ["What actually works","Occultation: cover the bed with a light-blocking tarp for three to four weeks. Weeds germinate in the dark warmth, find no light, and exhaust themselves. You uncover clean, workable soil with the biology intact \u2014 this is the highest-leverage weed tool in the garden and it costs a tarp. Otherwise: hoe shallowly while weeds are at the thread stage, which severs them before they matter; mulch three inches deep to deny light; and hand-pull whatever escapes, before it seeds."],
+    ["The teaching point","The best weed control is timing and light management, not chemistry. A student who learns to hoe at the right stage will out-perform anyone with a sprayer, permanently."]
+  ]
+},
+"weed.peren":{
+  label:"Perennials and grasses \u2014 bindweed, bermuda, nutsedge",
+  kind:"nomix",
+  name:"Root reserves, not leaf damage",
+  kicker:"No spray applies",
+  slots:[],
+  protocol:[
+    ["Every 10–14 days","Cut or pull every emergence, on schedule, for two seasons"],
+    ["8–12 weeks","Occultation where the bed can be taken out of production"],
+    ["Dig whole","Taproots — bindweed and dandelion regrow from fragments left behind"],
+    ["Pull young","Nutsedge, before tubers form; pulling a mature plant multiplies it"]
+  ],
+  body:[
+    ["Why nothing here touches them","These plants store years of energy in rhizomes, tubers, and deep taproots. Burning the tops off with vinegar removes the leaves and triggers the plant to spend reserves on vigorous regrowth. Repeated top-burning can genuinely make an infestation denser."],
+    ["What actually works","Exhaustion. Cut or pull every emergence, on a schedule, without exception \u2014 every regrowth costs the plant stored energy it must replace using leaves you keep removing. For bindweed and bermuda this takes a season or two of discipline. Dig taproots whole where you can. Nutsedge must be pulled young, before it forms new tubers; once tubers set, pulling multiplies it. Combine with occultation where the bed can be taken out of production."],
+    ["The teaching point","Match the intervention to where the plant keeps its energy. Annual weeds keep it in seed, so you manage the seed bank. Perennials keep it underground, so you manage the reserve. Leaves are almost never the target."]
+  ]
+},
+
+/* ---------------- CLEANING ---------------- */
+"clean.tool":{
+  label:"Pruners and blades between plants",
+  name:"Blade wipe",
+  kicker:"Sanitizer \u2014 undiluted",
+  slots:["solvent"],
+  mix:[["Isopropyl alcohol, 70%","asis"]],
+  method:[
+    "Do not dilute this. 70% is already the working strength.",
+    "Scrape or wipe visible sap and soil off the blade first \u2014 sanitizer does not penetrate debris.",
+    "Wipe or dip the blade, then let it air dry for about 30 seconds before the next cut.",
+    "Do this between every plant when working with anything you suspect is diseased, and between every cut when taking out visibly infected wood."
+  ],
+  window:"Any time. Keep a jar and a rag in the tool bucket.",
+  mech:"Alcohol kills by denaturing proteins \u2014 unfolding them until the cell cannot function. It needs water to do this, which is the reason 70% outperforms 91% or 99%: pure alcohol dehydrates the cell surface and evaporates before it penetrates. The water in a 70% solution keeps the cell wall permeable long enough for the alcohol to get inside. This is the most useful counter-intuitive fact in the shed.",
+  wont:"It will not work through sap, soil, or rust \u2014 clean first. It evaporates in seconds, so it offers no ongoing protection. And it does nothing for the disease already in a plant; it only stops you from being the one who spreads it.",
+  warns:[
+    "Flammable. Nowhere near an open flame, and store the jar closed.",
+    "Alcohol dries out wooden handles and can degrade some plastics. Blades only.",
+    "Oil the pivot afterward \u2014 alcohol strips lubricant."
+  ]
+},
+"clean.pot":{
+  label:"Pots, flats, and seed trays",
+  name:"Two-step tray reclaim",
+  kicker:"Wash, then sanitize",
+  slots:["carrier","surfactant","oxidizer"],
+  mix:[["Step 1 \u2014 Castile soap",6],["Step 1 \u2014 Water","fill"],["Step 2 \u2014 3% hydrogen peroxide","neat"]],
+  method:[
+    "Wash first. Scrub every pot in the soap solution until no soil film or salt crust remains. This step is not optional and it is where most of the pathogen load actually leaves.",
+    "Rinse with clean water.",
+    "Soak in undiluted 3% hydrogen peroxide for about 10 minutes, or spray until visibly wet and leave it.",
+    "Air dry completely, upside down, ideally in sun. Store dry."
+  ],
+  window:"Any time. Do a batch before every seeding cycle.",
+  mech:"Two different mechanisms in sequence. Soap lifts the organic film that physically shields microbes from any sanitizer \u2014 skip it and the peroxide is wasted on a shield. Peroxide then oxidizes what remains, tearing apart cell membranes with free radicals, and decomposes into nothing but water and oxygen. That decomposition is why no rinse step is needed and why nothing carries over into the next crop.",
+  wont:"It will not sanitize a dirty pot, which is the entire reason for step one. It will not restore a cracked or brittle tray. And it does nothing about contaminated potting mix \u2014 that gets discarded, not treated.",
+  warns:[
+    "Peroxide degrades in light. Keep it in the brown bottle and mix nothing into it for storage.",
+    "It will bleach clothing on contact. Apron on.",
+    "Never store peroxide in the same container that held vinegar."
+  ]
+},
+"clean.bench":{
+  label:"Benches, tables, and hard surfaces",
+  name:"Surface reset",
+  kicker:"Wash, then sanitize",
+  slots:["carrier","surfactant","oxidizer"],
+  mix:[["Step 1 \u2014 Castile soap",4],["Step 1 \u2014 Water","fill"],["Step 2 \u2014 3% hydrogen peroxide","neat"]],
+  method:[
+    "Clear the surface completely. Sweep off soil and plant debris.",
+    "Wash with the soap solution and a stiff brush. Get into seams and corners where mix accumulates.",
+    "Spray undisturbed with 3% peroxide and leave it wet for several minutes.",
+    "Let it air dry. No rinse needed."
+  ],
+  window:"End of each propagation cycle, and any time a diseased tray has sat on it.",
+  mech:"Same two-stage logic as pots: the surfactant removes the organic film, the oxidizer handles what is left. On a porous surface like untreated wood, understand that you are reducing the load rather than sterilizing \u2014 wood cannot be fully sanitized, which is an argument for a non-porous propagation bench.",
+  wont:"It will not sterilize raw wood or make a contaminated surface safe indefinitely. It will not compensate for storing dirty trays on a clean bench.",
+  warns:[
+    "Peroxide lightens wood and fabric. Expect cosmetic change on the bench top.",
+    "Ventilate while working and keep it off skin and eyes."
+  ]
+},
+"clean.harvest":{
+  label:"Harvest bins and food-contact surfaces",
+  name:"Produce-contact clean",
+  kicker:"Wash, sanitize, dry",
+  slots:["carrier","surfactant","oxidizer"],
+  mix:[["Step 1 \u2014 Castile soap",4],["Step 1 \u2014 Water","fill"],["Step 2 \u2014 3% hydrogen peroxide","neat"]],
+  method:[
+    "Wash thoroughly with soap and potable water. Rinse until no soap remains.",
+    "Spray with 3% peroxide and leave the surface visibly wet for at least one minute.",
+    "Air dry fully before stacking \u2014 stacked damp bins grow exactly what you just removed.",
+    "Store bins off the ground and covered."
+  ],
+  window:"After every harvest, before every harvest. Both.",
+  mech:"Peroxide is the right oxidizer for food contact precisely because it leaves nothing behind: it decomposes to water and oxygen, so there is no residue to transfer to produce and no rinse step to forget. The soap wash beforehand is what makes it effective, since organic soil neutralizes any sanitizer.",
+  wont:"It will not make cracked or heavily scratched plastic safe \u2014 scratches harbor bacteria beyond the reach of any sanitizer. Retire damaged bins.",
+  warns:[
+    "Produce safety is a food-safety question, not just a cleaning one. If this garden sells or donates produce, follow the written food-safety plan rather than this card.",
+    "Never use a bin that has held chemicals, fuel, or non-food material for harvest. No amount of cleaning reverses that."
+  ]
+},
+
+/* ---------------- FEEDING ---------------- */
+"feed.gen":{
+  label:"General fertility \u2014 building the soil",
+  kind:"nomix",
+  name:"There is no pantry fertilizer",
+  kicker:"The honest answer",
+  slots:["mineral"],
+  protocol:[
+    ["¼ in., twice per season","Finished compost top dress — about 0.8 cu yd per 1,000 sq ft per pass"],
+    ["2 lb per 1,000 sq ft","Legume cover crop seed for the off-season"],
+    ["2–3 in. maintained","Mulch over any bare soil"],
+    ["Only if tested","Single-input mineral amendment for a confirmed deficiency — never a blend on spec"]
+  ],
+  body:[
+    ["Why this slot has no recipe","Plants need nitrogen, phosphorus, potassium, calcium, magnesium, sulfur, and a set of micronutrients, in balance, released slowly. Nothing you can combine from a household shelf provides that. Ammonia supplies raw nitrogen and nothing else, and salt-loads the soil doing it. Epsom salt supplies magnesium, which only helps if you are actually short of magnesium. Most kitchen-scrap fertilizer folklore \u2014 eggshells, coffee grounds, banana peels in the hole \u2014 releases so slowly it is functionally inert in the season you need it."],
+    ["What actually works","Finished compost, applied as a top dress once or twice a season. Aged manure, composted well before use. Cover crops in the off-season, especially legumes for nitrogen. Mulch, which feeds the soil food web as it breaks down. Where a specific deficiency is confirmed, a single-input amendment bought as a mineral \u2014 feather meal, bone meal, kelp, langbeinite \u2014 rather than a blended product."],
+    ["The teaching point","This is the slot where the whole exercise pays off. Once you understand that a fertilizer bottle is a mineral salt in water, you stop asking which bottle and start asking which mineral, in what form, released how fast. That is soil science, and it is the reason this bench cannot hand you a recipe here."]
+  ]
+},
+"feed.n":{
+  label:"Plants look pale or growth has stalled",
+  kind:"nomix",
+  name:"Diagnose before you feed",
+  kicker:"Probably not a nutrient problem",
+  slots:[],
+  protocol:[
+    ["Dig first","Check moisture, compaction, and root condition at depth before feeding anything"],
+    ["Label rate, watered in","Fish emulsion — fast, mild, and hard to overdose"],
+    ["2–4 lb per 100 sq ft","Feather meal where a slower nitrogen release suits the crop"],
+    ["Read the pattern","Oldest leaves yellowing first points to nitrogen; newest leaves points somewhere else"]
+  ],
+  body:[
+    ["Check these first","Pale, stalled plants are more often waterlogged, root-bound, compacted, too cold, or too dry than they are hungry. Dig a hole and look. Feel the moisture at root depth. Check for circling roots on transplants. Feeding a plant that cannot take up what is already there wastes fertilizer and can burn roots."],
+    ["If it really is nitrogen","Uniform pale-yellowing that starts on the oldest, lowest leaves and works upward is the classic nitrogen picture. The garden response is a top dress of compost plus a fast single-input nitrogen source \u2014 fish emulsion or feather meal, applied at the labeled rate and watered in. Fast, mild, and hard to overdose. Household ammonia is not a substitute: it is not formulated for soil, it is easy to burn roots with, and it supplies nothing else the plant needs."],
+    ["The teaching point","Deficiency patterns are readable. Which leaves yellow first \u2014 old or new \u2014 and whether the veins stay green will tell you more than any product label. Learn the pattern and you stop guessing."]
+  ]
+},
+"feed.test":{
+  label:"I do not know what the soil needs",
+  kind:"nomix",
+  name:"Test, then amend",
+  kicker:"Start with data",
+  slots:[],
+  protocol:[
+    ["10–15 cores","Composite sample at 6–8 in. depth, mixed together in a clean bucket"],
+    ["About 2 cups","Sent to a certified lab — UC Cooperative Extension can refer one"],
+    ["Once a year","Same beds, same month, so the numbers stay comparable"],
+    ["pH, OM, P, K, base cations","The minimum panel worth requesting"]
+  ],
+  body:[
+    ["Why guessing costs more","Amending without a test is how gardens end up with excess phosphorus, locked-out micronutrients, and a pH that blocks uptake of nutrients that are physically present in the soil. Over-application is not neutral \u2014 it creates new deficiencies and runs off into the watershed."],
+    ["What to do","Pull a composite sample: ten to fifteen cores from around the bed at root depth, mixed together in a clean bucket, roughly two cups sent in. Ask for pH, organic matter, P, K, and the base cations at minimum. UC Cooperative Extension can point you to a certified lab. Sample the same beds at the same time each year so the numbers are comparable."],
+    ["The teaching point","A soil test is the cheapest input in the garden and the one most often skipped. Every recipe on this bench is downstream of knowing what you actually have."]
+  ]
+}
+};
+
+var MENUS={
+  pest:["pest.soft","pest.armor","pest.slug","pest.ant"],
+  dis:["dis.pm","dis.damp","dis.prev"],
+  weed:["weed.path","weed.bed","weed.peren"],
+  clean:["clean.tool","clean.pot","clean.bench","clean.harvest"],
+  feed:["feed.gen","feed.n","feed.test"]
+};
+
+var SIZES=[{id:"qt",label:"1 quart",f:1},{id:"gal",label:"1 gallon",f:4},{id:"2gal",label:"2 gallons",f:8}];
+
+/* ---- state ---- */
+var st={task:null,recipe:null,size:"qt"};
+
+var el={
+  q1:document.getElementById("q1"),
+  q2:document.getElementById("q2"),
+  q3:document.getElementById("q3"),
+  s2:document.getElementById("step2"),
+  s3:document.getElementById("step3"),
+  q2l:document.getElementById("q2label"),
+  out:document.getElementById("out"),
+  bar:document.getElementById("slotbar")
+};
+
+function mkbtn(label,onclick,pressed){
+  var b=document.createElement("button");
+  b.className="opt";b.type="button";b.innerHTML=label;
+  b.setAttribute("aria-pressed",pressed?"true":"false");
+  b.addEventListener("click",onclick);
+  return b;
+}
+
+function lightSlots(list){
+  var nodes=el.bar.querySelectorAll(".slot");
+  for(var i=0;i<nodes.length;i++){
+    var s=nodes[i].getAttribute("data-slot");
+    nodes[i].classList.toggle("on", list.indexOf(s)>-1);
+  }
+}
+
+function renderQ1(){
+  el.q1.innerHTML="";
+  TASKS.forEach(function(t){
+    el.q1.appendChild(mkbtn(t.label,function(){pickTask(t.id);},st.task===t.id));
+  });
+}
+
+function pickTask(id){
+  st.task=id;st.recipe=null;
+  renderQ1();
+  var t=TASKS.filter(function(x){return x.id===id;})[0];
+  el.q2l.textContent=t.q;
+  el.q2.innerHTML="";
+  MENUS[id].forEach(function(key){
+    el.q2.appendChild(mkbtn(R[key].label,function(){pickRecipe(key);},false));
+  });
+  el.s2.classList.remove("hidden");
+  el.s3.classList.add("hidden");
+  el.out.innerHTML="";
+  lightSlots([]);
+}
+
+function pickRecipe(key){
+  st.recipe=key;
+  var btns=el.q2.querySelectorAll(".opt");
+  for(var i=0;i<btns.length;i++){
+    btns[i].setAttribute("aria-pressed", MENUS[st.task][i]===key ? "true":"false");
+  }
+  var r=R[key];
+  if(r.kind==="nomix"){
+    el.s3.classList.add("hidden");
+  }else{
+    renderSizes();
+    el.s3.classList.remove("hidden");
+  }
+  render();
+}
+
+function renderSizes(){
+  el.q3.innerHTML="";
+  SIZES.forEach(function(s){
+    el.q3.appendChild(mkbtn(s.label,function(){st.size=s.id;renderSizes();render();},st.size===s.id));
+  });
+}
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+
+function render(){
+  var r=R[st.recipe];
+  if(!r){el.out.innerHTML="";return;}
+  lightSlots(r.slots||[]);
+
+  var h="";
+  h+='<div class="card">';
+  h+='<div class="card-top"><div><p class="card-kicker">'+r.kicker+'</p><h3>'+r.name+'</h3></div>';
+  h+= r.kind==="nomix"
+      ? '<span class="stamp nomix">Not a bottle</span>'
+      : '<span class="stamp">'+SIZES.filter(function(s){return s.id===st.size;})[0].label+' batch</span>';
+  h+='</div>';
+
+  if(r.kind==="nomix"){
+    if(r.protocol){
+      h+='<h4>Recommended protocol</h4><table class="mix">';
+      r.protocol.forEach(function(row){
+        h+='<tr><td class="q">'+row[0]+'</td><td>'+row[1]+'</td></tr>';
+      });
+      h+='</table>';
+    }
+    r.body.forEach(function(sec){
+      h+='<h4>'+sec[0]+'</h4><p>'+sec[1]+'</p>';
+    });
+  }else{
+    var f=SIZES.filter(function(s){return s.id===st.size;})[0].f;
+    var sizeLabel=SIZES.filter(function(s){return s.id===st.size;})[0].label;
+    h+='<h4>Mix</h4><table class="mix">';
+    r.mix.forEach(function(row){
+      var q;
+      if(row[1]==="fill") q="to make "+sizeLabel;
+      else if(row[1]==="neat") q="undiluted";
+      else if(row[1]==="asis") q="undiluted";
+      else q=fmt(row[1]*f);
+      h+='<tr><td class="q">'+q+'</td><td>'+row[0]+'</td></tr>';
+    });
+    h+='</table>';
+
+    h+='<h4>Method</h4><ol>';
+    r.method.forEach(function(m){h+='<li>'+m+'</li>';});
+    h+='</ol>';
+
+    h+='<h4>When to apply</h4><p>'+r.window+'</p>';
+
+    h+='<h4>Why it works</h4><div class="mech"><p>'+r.mech+'</p></div>';
+    h+='<h4>What it will not do</h4><div class="wont"><p>'+r.wont+'</p></div>';
+
+    h+='<h4>Cautions</h4><ul class="warns">';
+    r.warns.forEach(function(w){h+='<li>'+w+'</li>';});
+    h+='</ul>';
+  }
+
+  h+='<div class="cardfoot"><span>Lancer Farms &amp; Gardens \u00B7 Mix Bench \u00B7 label every bottle you fill</span>';
+  h+='<button class="printbtn" type="button" id="pb">Print this card</button></div>';
+  h+='</div>';
+
+  el.out.innerHTML=h;
+  var pb=document.getElementById("pb");
+  if(pb) pb.addEventListener("click",function(){window.print();});
+}
+
+renderQ1();
+})();
+</script>
+
+<script>
+/* ============ Stock & budget estimator (staff) ============ */
+(function(){
+"use strict";
+
+var TSP_FLOZ=6, FLOZ_GAL=128, TSP_LB=100;
+
+var ITEMS={
+ soap  :{n:"Castile soap",            u:"fl oz", pack:32, pl:"32 fl oz bottle", price:16},
+ vin   :{n:"White vinegar, 5%",       u:"gal",   pack:1,  pl:"1 gal jug",       price:4},
+ perox :{n:"Hydrogen peroxide, 3%",   u:"fl oz", pack:32, pl:"32 fl oz bottle", price:2},
+ ipa   :{n:"Isopropyl alcohol, 70%",  u:"fl oz", pack:32, pl:"32 fl oz bottle", price:3},
+ oil   :{n:"Horticultural oil",       u:"fl oz", pack:32, pl:"32 fl oz conc.",  price:14},
+ bicarb:{n:"Potassium bicarbonate",   u:"lb",    pack:1,  pl:"1 lb",            price:12}
+};
+var AMEND={
+ compost:{n:"Finished compost",        u:"cu yd", pack:1, pl:"cu yd",  price:45},
+ mulch  :{n:"Mulch, maintenance top-up",u:"cu yd",pack:1, pl:"cu yd",  price:38},
+ bait   :{n:"Iron phosphate bait",     u:"lb",    pack:1, pl:"lb",     price:9},
+ seed   :{n:"Cover crop seed",         u:"lb",    pack:1, pl:"lb",     price:6},
+ test   :{n:"Soil test",               u:"sample",pack:1, pl:"sample", price:55}
+};
+
+/* applications per 10 weeks of season, by crop */
+var CROPS=[
+ {id:"cucurbit", label:"Squash, cucumber, melon", soap:2,   prev:6,  oil:0,   slug:1},
+ {id:"brassica", label:"Brassicas & leafy greens", soap:4,   prev:0.5,oil:0,   slug:2},
+ {id:"night",    label:"Tomato, pepper, eggplant", soap:3,   prev:2,  oil:0,   slug:1},
+ {id:"root",     label:"Roots, alliums, legumes",  soap:1,   prev:0,  oil:0,   slug:0.5},
+ {id:"herb",     label:"Herbs & cut flowers",      soap:2,   prev:2,  oil:0.5, slug:1},
+ {id:"peren",    label:"Perennial fruit & woody",  soap:2,   prev:1.5,oil:1,   slug:0.5},
+ {id:"mixed",    label:"Mixed teaching garden",    soap:2.5, prev:2.5,oil:0.4, slug:1}
+];
+var ZONES=[
+ {id:"3",  label:"Zone 3\u20134",  wk:16},
+ {id:"5",  label:"Zone 5\u20136",  wk:22},
+ {id:"7",  label:"Zone 7\u20138",  wk:30},
+ {id:"9",  label:"Zone 9\u201310", wk:40},
+ {id:"11", label:"Zone 11+",        wk:48}
+];
+
+/* tsp of each item per GALLON of finished mix */
+var MIXES={
+ soapspray:{label:"Soap spray",              key:"soap",  conc:{soap:12}},
+ oilspray :{label:"Soap and oil spray",      key:"armor", conc:{oil:12, soap:4}},
+ bicarb   :{label:"Weekly preventive rinse", key:"prev",  conc:{bicarb:2, soap:1}},
+ vinegar  :{label:"Vinegar burn-down",       key:"path",  conc:{soap:4}}
+};
+
+var el=function(id){return document.getElementById(id);};
+var st={};
+
+function money(v){return "$"+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
+function r1(v){return Math.round(v*10)/10;}
+
+function readForm(){
+  var mode=el("fMode").value;
+  var count=Math.max(1,parseFloat(el("fCount").value)||1);
+  var bed=parseFloat(el("fBedSize").value)||32;
+  var sqft=0, containers=0;
+  if(mode==="bed")        sqft=count*bed;
+  else if(mode==="sqft")  sqft=count;
+  else if(mode==="acre")  sqft=count*43560;
+  else                    containers=count;
+  return {
+    mode:mode, sqft:sqft, containers:containers,
+    cycles:Math.max(1,parseFloat(el("fCycles").value)||1),
+    crop:CROPS.filter(function(c){return c.id===el("fCrop").value;})[0],
+    zone:ZONES.filter(function(z){return z.id===el("fZone").value;})[0],
+    pathPct:Math.max(0,parseFloat(el("fPath").value)||0)/100,
+    rate:Math.max(0.25,parseFloat(el("fRate").value)||1.5)
+  };
+}
+
+function compute(f){
+  var need={}, prog=[], amt={};
+  function add(k,v){need[k]=(need[k]||0)+v;}
+
+  if(f.mode==="container"){
+    /* Sanitation-only program. No foliar, no herbicide, no amendments. */
+    var cy=f.containers*f.cycles;
+    add("ipa",   64*cy);
+    add("perox", 96*cy);
+    add("soap",  16*cy);
+    prog.push(["Blade wipe / surface reset / tray reclaim", cy+" cycle turnovers", "\u2014"]);
+  }else{
+    var seasons=f.zone.wk/10;
+    var kSqft=f.sqft/1000;
+    var pathSqft=f.sqft*f.pathPct/1000;
+
+    [["soapspray","soap"],["oilspray","oil"],["bicarb","prev"]].forEach(function(pair){
+      var m=MIXES[pair[0]], apps=f.crop[pair[1]]*seasons;
+      if(apps<=0) return;
+      var gal=kSqft*f.rate*apps;
+      for(var k in m.conc) add(k, m.conc[k]*gal/TSP_FLOZ);
+      prog.push([m.label, r1(apps)+" applications", r1(gal)+" gal"]);
+    });
+
+    if(pathSqft>0){
+      var pApps=3*seasons, pGal=pathSqft*2*pApps;
+      add("vin", pGal);
+      add("soap", MIXES.vinegar.conc.soap*pGal/TSP_FLOZ);
+      prog.push(["Vinegar burn-down (paths only)", r1(pApps)+" applications", r1(pGal)+" gal"]);
+    }
+
+    /* sanitation allowance: per 1,000 sq ft per 10 weeks */
+    add("ipa",   3*kSqft*seasons);
+    add("perox", 12*kSqft*seasons);
+    add("soap",  3*kSqft*seasons);
+    prog.push(["Tool, tray, bench and bin sanitation", "ongoing", "\u2014"]);
+
+    /* cultural + amendment inputs */
+    amt.compost = 0.8*kSqft*2;
+    amt.mulch   = 3.1*kSqft;
+    amt.bait    = f.crop.slug*kSqft*seasons*0.5;
+    amt.seed    = 2*kSqft;
+    amt.test    = Math.max(1, Math.ceil(f.sqft/5000));
+  }
+
+  /* bicarb tallied in tsp -> lb */
+  if(need.bicarb) need.bicarb = need.bicarb*TSP_FLOZ/TSP_LB;
+  return {need:need, prog:prog, amt:amt};
+}
+
+function priceRow(reg,k,qty){
+  var it=reg[k];
+  var buy=Math.ceil(qty/it.pack - 1e-9);
+  var cost=buy*it.price;
+  return {it:it,qty:qty,buy:buy,cost:cost};
+}
+
+function render(){
+  var f=readForm(); st.f=f;
+  var c=compute(f);
+  var h="";
+
+  h+='<h3>Application program</h3><table class="est"><tr><th>Mix</th><th class="r">Per season</th><th class="r">Finished volume</th></tr>';
+  c.prog.forEach(function(r){
+    h+='<tr><td>'+r[0]+'</td><td class="num r">'+r[1]+'</td><td class="num r">'+r[2]+'</td></tr>';
+  });
+  h+='</table>';
+
+  var chemTotal=0;
+  h+='<h3>Chemical stock to buy</h3><table class="est"><tr><th>Item</th><th class="r">Needed</th><th class="r">Buy</th><th class="r">Unit $</th><th class="r">Cost</th></tr>';
+  Object.keys(ITEMS).forEach(function(k){
+    var q=c.need[k]||0; if(q<=0.01) return;
+    var row=priceRow(ITEMS,k,q); chemTotal+=row.cost;
+    h+='<tr><td>'+row.it.n+'</td>'+
+       '<td class="num r">'+r1(q)+' '+row.it.u+'</td>'+
+       '<td class="num r">'+row.buy+' &times; '+row.it.pl+'</td>'+
+       '<td class="num r"><input class="price" type="number" step="0.5" min="0" data-reg="ITEMS" data-k="'+k+'" value="'+row.it.price+'"></td>'+
+       '<td class="num r">'+money(row.cost)+'</td></tr>';
+  });
+  h+='</table>';
+  h+='<div class="tot"><span>Chemical stock subtotal</span><span>'+money(chemTotal)+'</span></div>';
+
+  var amTotal=0;
+  if(Object.keys(c.amt).length){
+    h+='<h3>Cultural &amp; amendment inputs</h3><table class="est"><tr><th>Item</th><th class="r">Needed</th><th class="r">Buy</th><th class="r">Unit $</th><th class="r">Cost</th></tr>';
+    Object.keys(AMEND).forEach(function(k){
+      var q=c.amt[k]||0; if(q<=0.01) return;
+      var row=priceRow(AMEND,k,q); amTotal+=row.cost;
+      h+='<tr><td>'+row.it.n+'</td>'+
+         '<td class="num r">'+r1(q)+' '+row.it.u+'</td>'+
+         '<td class="num r">'+row.buy+' '+row.it.pl+'</td>'+
+         '<td class="num r"><input class="price" type="number" step="1" min="0" data-reg="AMEND" data-k="'+k+'" value="'+row.it.price+'"></td>'+
+         '<td class="num r">'+money(row.cost)+'</td></tr>';
+    });
+    h+='</table>';
+    h+='<div class="tot"><span>Amendment subtotal</span><span>'+money(amTotal)+'</span></div>';
+  }
+
+  var sub=chemTotal+amTotal, cont=sub*0.15;
+  h+='<div class="tot"><span>Contingency at 15%</span><span>'+money(cont)+'</span></div>';
+  h+='<div class="tot grand"><span>Minimum annual stocking budget</span><b>'+money(sub+cont)+'</b></div>';
+  if(f.sqft>0){
+    h+='<div class="tot"><span>Per 1,000 sq ft</span><span>'+money((sub+cont)/(f.sqft/1000))+'</span></div>';
+    h+='<div class="tot"><span>Per acre equivalent</span><span>'+money((sub+cont)/(f.sqft/43560))+'</span></div>';
+  }
+
+  h+='<div class="assump"><h4>Assumptions behind this number</h4><ul>';
+  if(f.mode==="container"){
+    h+='<li>Container mode runs a sanitation-only program: no foliar spray, no herbicide, no soil amendment. Substrate, spawn, and utilities are not included here.</li>';
+    h+='<li>Per container per cycle: 64 fl oz alcohol, 96 fl oz peroxide, 16 fl oz soap. Calibrate against your own first cycle.</li>';
+  }else{
+    h+='<li>Growing season taken as '+f.zone.wk+' weeks for '+f.zone.label.replace("\u2013","–")+'.</li>';
+    h+='<li>Spray rate '+f.rate+' gal per 1,000 sq ft per application, applied to runoff.</li>';
+    h+='<li>Application frequency derived from the crop profile, not from observed pressure. A mild year costs less; an outbreak year costs more.</li>';
+    h+='<li>Path area estimated at '+Math.round(f.pathPct*100)+'% of growing area, treated 3 times per 10 weeks.</li>';
+    h+='<li>Compost at \u00BC in. twice per season; mulch as a 1 in. annual top-up, not initial establishment.</li>';
+  }
+  h+='<li>Prices are editable defaults at retail. Bulk purchasing typically cuts the chemical subtotal substantially.</li>';
+  if(f.sqft>0 && f.sqft<5000){
+    h+='<li><b>Small-plot caution:</b> at this size the total is driven by minimum package sizes, not consumption \\u2014 you buy a whole gallon of vinegar to use a quart of it. The per-area figures above are inflated and should not be extrapolated. They settle down above roughly 5,000 sq ft.</li>';
+  }
+  h+='<li>This is a <b>minimum stocking</b> figure: consumables only. It excludes sprayers, PPE, labor, irrigation, seed, and containers.</li>';
+  h+='</ul></div>';
+
+  el("estResult").innerHTML=h;
+
+  var inputs=el("estResult").querySelectorAll("input.price");
+  for(var i=0;i<inputs.length;i++){
+    inputs[i].addEventListener("change",function(){
+      var reg=this.getAttribute("data-reg")==="ITEMS"?ITEMS:AMEND;
+      reg[this.getAttribute("data-k")].price=Math.max(0,parseFloat(this.value)||0);
+      render();
+    });
+  }
+}
+
+function syncFields(){
+  var m=el("fMode").value, isC=(m==="container");
+  el("wrapBedSize").style.display = (m==="bed")?"":"none";
+  el("wrapCycles").style.display  = isC?"":"none";
+  el("wrapCrop").style.display    = isC?"none":"";
+  el("wrapZone").style.display    = isC?"none":"";
+  el("wrapPath").style.display    = isC?"none":"";
+  el("wrapRate").style.display    = isC?"none":"";
+  el("lblCount").textContent = m==="bed"?"How many beds"
+      : m==="sqft"?"Square feet"
+      : m==="acre"?"Acres"
+      : "How many containers";
+  if(m==="sqft" && el("fCount").value<50) el("fCount").value=2000;
+  if(m==="acre" && el("fCount").value>50) el("fCount").value=1;
+  if(m==="bed"  && el("fCount").value>500) el("fCount").value=12;
+  if(isC && el("fCount").value>20) el("fCount").value=1;
+  render();
+}
+
+function boot(){
+  CROPS.forEach(function(c){
+    var o=document.createElement("option");o.value=c.id;o.textContent=c.label;el("fCrop").appendChild(o);
+  });
+  ZONES.forEach(function(z){
+    var o=document.createElement("option");o.value=z.id;o.textContent=z.label.replace("\u2013","–");
+    if(z.id==="9") o.selected=true;
+    el("fZone").appendChild(o);
+  });
+  el("fCrop").value="mixed";
+  ["fMode"].forEach(function(id){el(id).addEventListener("change",syncFields);});
+  ["fCount","fBedSize","fCycles","fCrop","fZone","fPath","fRate"].forEach(function(id){
+    el(id).addEventListener("change",render); el(id).addEventListener("input",render);
+  });
+  syncFields();
+}
+
+/* ---- staff gate ----
+   Cosmetic only. Nothing private is exposed here \u2014 the estimator is static
+   tables and arithmetic \u2014 so a client-side check is appropriate. Any real
+   data this ever reads must be protected by Supabase RLS, not by this. */
+function unlock(){
+  el("estLocked").classList.add("hidden");
+  el("estPanel").classList.remove("hidden");
+  boot();
+}
+(function gate(){
+  var GA = window.GrushAuth || window.grushAuth || null;
+  if(location.hash==="#staff"){ unlock(); return; }   // preview hook, remove once auth is wired
+  if(GA && typeof GA.isOperator==="function"){
+    try{
+      var r=GA.isOperator();
+      if(r && typeof r.then==="function"){ r.then(function(ok){ if(ok) unlock(); }).catch(function(){}); }
+      else if(r){ unlock(); }
+    }catch(e){}
+  }
+})();
+})();
+</script>
+
+</body>
+</html>
