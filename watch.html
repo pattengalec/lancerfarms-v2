@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Watch · Lancer Farms &amp; Gardens</title>
+<meta name="description" content="A short film about Lancer Farms &amp; Gardens — the free visitor side, and the Grush-powered staff side.">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+
+<!-- Link previews. Without these a shared URL renders as a bare domain,
+     which is the difference between a tap and a scroll-past. -->
+<meta property="og:type" content="video.other">
+<meta property="og:title" content="Lancer Farms &amp; Gardens — a short film">
+<meta property="og:description" content="One farm, two doors. The visitor side is free. The staff side runs on Grush.">
+<meta property="og:image" content="https://lancerfarms.com/poster-16x9.jpg">
+<meta property="og:url" content="https://lancerfarms.com/watch.html">
+<meta name="twitter:card" content="summary_large_image">
+
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@300;400;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   watch.html — the film, plus the end card the film cannot carry.
+
+   AN MP4 HAS NO LINK LAYER. The end of the film shows two URLs, but
+   nothing inside a video file is tappable on any platform. This page
+   is the fix: when playback ends, a real panel of real anchors fades
+   in over the last frame.
+
+   PROGRESSIVE, NOT DEPENDENT. Every link in the end panel also sits
+   in the page below the video, in the normal document flow. If the
+   JavaScript never runs, nothing is lost — the reveal is a nicety
+   layered on top of a page that already works.
+
+   ORIENTATION. Two cuts exist and neither is a crop of the other, so
+   the source is chosen once at load from the viewport shape. It is
+   not swapped on rotate: yanking the src mid-playback restarts the
+   video, which is worse than a slightly letterboxed frame.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#2A2620; --card:#34302A; --line:#45423A;
+  --ink:#F0EDE2; --soft:#B0A99C; --leaf:#A8B89A; --green:#7E9A6E; --amber:#C9973F;
+  --g-bg:#050A18; --g-line:#1C2C44; --g-cyan:#00C8FF; --g-ink:#E6F1FA;
+  --sig:#C34044;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);
+  font-family:'Source Sans 3','Helvetica Neue',sans-serif;font-size:17px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px}
+h1,h2{font-family:'Fraunces',Georgia,serif;font-weight:600;line-height:1.1}
+h1{font-size:clamp(30px,6vw,46px)}
+h2{font-size:clamp(22px,4vw,30px)}
+p{color:var(--soft)}
+a{color:var(--amber);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+.kick{font-family:'Courier Prime',monospace;font-size:12px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--leaf);margin-bottom:12px}
+.top{padding:44px 0 26px}
+
+/* ── stage ─────────────────────────────────────────────────────── */
+.stage{position:relative;background:#000;border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;margin-bottom:10px}
+video{width:100%;height:auto;display:block;background:#000}
+
+/* The end panel sits over the held last frame. The film already ends
+   on a static card, so fading onto it reads as the film continuing
+   rather than as a dialog interrupting. */
+.end{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;padding:22px;
+  background:linear-gradient(180deg,rgba(42,38,32,.90),rgba(28,25,21,.97));
+  opacity:0;visibility:hidden;transition:opacity .6s ease,visibility .6s;
+  overflow-y:auto;text-align:center}
+.end.show{opacity:1;visibility:visible}
+.end h2{font-size:clamp(20px,3.4vw,30px)}
+.end p{font-size:14px;margin-bottom:4px}
+.endrow{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%}
+.big{display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:54px;padding:0 22px;border-radius:999px;font-weight:600;
+  font-size:15px;letter-spacing:.04em;border:2px solid transparent}
+.big.a{background:var(--green);color:#12170F}
+.big.b{background:var(--g-cyan);color:#04121C}
+.big.c{background:transparent;border-color:var(--line);color:var(--ink)}
+.big:hover{text-decoration:none;filter:brightness(1.12)}
+
+/* ── link cards below the video (always present) ───────────────── */
+.grid{display:grid;gap:14px;margin:26px 0}
+@media(min-width:660px){.grid{grid-template-columns:1fr 1fr}}
+.lk{display:block;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:20px 22px;transition:border-color .18s,transform .18s}
+.lk:hover{border-color:var(--green);transform:translateY(-2px);text-decoration:none}
+.lk.g{background:#0C1424;border-color:var(--g-line)}
+.lk.g:hover{border-color:var(--g-cyan)}
+.lk b{display:block;font-family:'Fraunces',serif;font-size:20px;font-weight:600;
+  color:var(--ink);margin-bottom:5px}
+.lk span{display:block;font-size:15px;color:var(--soft)}
+.lk code{display:inline-block;margin-top:8px;font-family:'Courier Prime',monospace;
+  font-size:12.5px;color:var(--green)}
+.lk.g code{color:var(--g-cyan)}
+
+/* ── share ─────────────────────────────────────────────────────── */
+.share{border-top:1px solid var(--line);padding:34px 0 10px;margin-top:8px}
+.sgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:18px}
+.sh{display:flex;align-items:center;gap:10px;min-height:54px;padding:0 16px;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  color:var(--ink);font-size:15px;font-weight:600;cursor:pointer;
+  font-family:inherit;text-align:left;width:100%}
+.sh:hover{border-color:var(--green);text-decoration:none}
+.sh .ic{width:26px;text-align:center;font-size:17px;flex:none;color:var(--leaf)}
+.sh.primary{background:var(--green);color:#12170F;border-color:var(--green)}
+.sh.primary .ic{color:#12170F}
+.urlbar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.urlbar input{flex:1;min-width:200px;min-height:52px;background:var(--paper);
+  border:1.5px solid var(--line);border-radius:10px;padding:0 14px;
+  color:var(--soft);font-family:'Courier Prime',monospace;font-size:15px}
+.msg{min-height:1.4em;font-size:14px;color:var(--leaf);margin-top:10px}
+.dl{font-size:14px;color:var(--soft);margin-top:20px}
+footer{padding:28px 0 46px;text-align:center;font-family:'Courier Prime',monospace;
+  font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--line)}
+.disc{font-size:13px;line-height:1.55;color:#8A8478;border-top:1px solid var(--line);
+  padding-top:16px;margin-top:26px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap top">
+  <p class="kick">A short film</p>
+  <h1>Lancer Farms &amp; Gardens</h1>
+  <p style="margin-top:10px">One farm, two doors. The visitor side is free. The staff side runs on Grush.</p>
+</div>
+
+<div class="wrap">
+  <div class="stage">
+    <video id="film" controls playsinline preload="metadata" poster="poster-16x9.jpg">
+      Your browser cannot play this video.
+      <a href="lancerfarms-showcase-16x9.mp4">Download it instead.</a>
+    </video>
+
+    <!-- Revealed on 'ended'. Duplicated below in normal flow, so this
+         is enhancement rather than the only route to the links. -->
+    <div class="end" id="endPanel" role="region" aria-label="Where to next" aria-hidden="true">
+      <h2 id="endHead" tabindex="-1">Where to next?</h2>
+      <p>Everything in the film, written out.</p>
+      <div class="endrow">
+        <a class="big a" href="features.html">Feature guide</a>
+        <a class="big b" href="about-grush.html">About Grush</a>
+      </div>
+      <div class="endrow" style="margin-top:2px">
+        <button class="big c" id="replay" type="button">&#8635; Replay</button>
+        <button class="big c" id="endShare" type="button">Share this</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── the same destinations, always in the page ── -->
+  <div class="grid">
+    <a class="lk" href="features.html">
+      <b>Feature guide</b>
+      <span>Every page on this site explained — the free visitor side and the Grush staff side, in order.</span>
+      <code>lancerfarms.com/features.html</code>
+    </a>
+    <a class="lk g" href="about-grush.html">
+      <b>About Grush</b>
+      <span>What the software is, why it is on a garden website, and where else it runs.</span>
+      <code>lancerfarms.com/about-grush.html</code>
+    </a>
+    <a class="lk" href="visitor.html">
+      <b>Visit the farm</b>
+      <span>Start where everyone starts. No login, no account.</span>
+      <code>lancerfarms.com/visitor.html</code>
+    </a>
+    <a class="lk g" href="https://getgrush.com">
+      <b>Every deployment</b>
+      <span>getgrush.com — the hub for every site running Grush.</span>
+      <code>getgrush.com</code>
+    </a>
+  </div>
+
+  <!-- ── share ── -->
+  <section class="share">
+    <p class="kick">Pass it on</p>
+    <h2>Share the film</h2>
+    <div class="urlbar">
+      <input id="url" readonly aria-label="Link to this page">
+      <button class="sh primary" id="copy" style="max-width:170px" type="button">
+        <span class="ic">&#128203;</span><span id="copyTxt">Copy link</span>
+      </button>
+    </div>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+
+    <div class="sgrid" id="sgrid">
+      <button class="sh primary" id="native" type="button" hidden>
+        <span class="ic">&#10148;</span>Share&hellip;</button>
+      <a class="sh" id="s-sms"><span class="ic">&#128172;</span>Text message</a>
+      <a class="sh" id="s-mail"><span class="ic">&#9993;</span>Email</a>
+      <a class="sh" id="s-wa" target="_blank" rel="noopener"><span class="ic">&#128241;</span>WhatsApp</a>
+      <a class="sh" id="s-fb" target="_blank" rel="noopener"><span class="ic">&#9670;</span>Facebook</a>
+      <a class="sh" id="s-x" target="_blank" rel="noopener"><span class="ic">&#10005;</span>X</a>
+      <a class="sh" id="s-li" target="_blank" rel="noopener"><span class="ic">&#9632;</span>LinkedIn</a>
+      <a class="sh" id="s-rd" target="_blank" rel="noopener"><span class="ic">&#9679;</span>Reddit</a>
+      <a class="sh" id="s-tg" target="_blank" rel="noopener"><span class="ic">&#9992;</span>Telegram</a>
+    </div>
+
+    <p class="dl">Prefer the file? Download
+      <a href="lancerfarms-showcase-16x9.mp4" download>widescreen</a> or
+      <a href="lancerfarms-showcase-9x16.mp4" download>vertical</a>.
+      Both are 58 seconds.</p>
+
+    <p class="disc">This website and the tools within it are independently created and maintained
+      &mdash; they are not an official product of, affiliated with, or endorsed by California
+      Baptist University.</p>
+  </section>
+</div>
+
+<footer>Lancer Farms &amp; Gardens &middot; Managed by Grush</footer>
+
+<script>
+(function () {
+  'use strict';
+  var film = document.getElementById('film');
+
+  /* ── pick the cut once, from the viewport shape ──────────────────
+     Chosen at load and left alone. Swapping src on rotate resets
+     playback, which is a worse outcome than a letterboxed frame. */
+  var portrait = window.matchMedia('(max-width: 620px) and (orientation: portrait)').matches;
+  film.src = portrait ? 'lancerfarms-showcase-9x16.mp4' : 'lancerfarms-showcase-16x9.mp4';
+  film.poster = portrait ? 'poster-9x16.jpg' : 'poster-16x9.jpg';
+
+  /* ── end panel ─────────────────────────────────────────────────── */
+  var panel = document.getElementById('endPanel');
+  function showEnd() {
+    panel.classList.add('show');
+    panel.setAttribute('aria-hidden', 'false');
+    document.getElementById('endHead').focus({ preventScroll: true });
+  }
+  function hideEnd() {
+    panel.classList.remove('show');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+  film.addEventListener('ended', showEnd);
+  film.addEventListener('play', hideEnd);
+  film.addEventListener('seeking', function () {
+    if (film.currentTime < film.duration - 0.4) { hideEnd(); }
+  });
+
+  document.getElementById('replay').addEventListener('click', function () {
+    hideEnd(); film.currentTime = 0; film.play();
+  });
+
+  /* ── share ─────────────────────────────────────────────────────── */
+  var URL_ = location.origin + location.pathname;
+  var TITLE = 'Lancer Farms & Gardens — a short film';
+  var TEXT = 'One farm, two doors. The visitor side is free. The staff side runs on Grush.';
+  var eU = encodeURIComponent(URL_), eT = encodeURIComponent(TITLE), eX = encodeURIComponent(TEXT);
+
+  document.getElementById('url').value = URL_;
+  var set = function (id, href) { document.getElementById(id).href = href; };
+  set('s-sms', 'sms:?&body=' + eX + '%20' + eU);
+  set('s-mail', 'mailto:?subject=' + eT + '&body=' + eX + '%0A%0A' + eU);
+  set('s-wa', 'https://wa.me/?text=' + eX + '%20' + eU);
+  set('s-fb', 'https://www.facebook.com/sharer/sharer.php?u=' + eU);
+  set('s-x', 'https://twitter.com/intent/tweet?url=' + eU + '&text=' + eX);
+  set('s-li', 'https://www.linkedin.com/sharing/share-offsite/?url=' + eU);
+  set('s-rd', 'https://www.reddit.com/submit?url=' + eU + '&title=' + eT);
+  set('s-tg', 'https://t.me/share/url?url=' + eU + '&text=' + eX);
+
+  var msg = document.getElementById('msg');
+
+  function copy() {
+    var done = function () {
+      msg.textContent = 'Link copied.';
+      document.getElementById('copyTxt').textContent = 'Copied';
+      setTimeout(function () {
+        document.getElementById('copyTxt').textContent = 'Copy link';
+      }, 2400);
+    };
+    /* Clipboard API needs HTTPS and a user gesture; the select()
+       fallback covers older iOS and any insecure context. */
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(URL_).then(done, fallback);
+    } else { fallback(); }
+    function fallback() {
+      var i = document.getElementById('url');
+      i.removeAttribute('readonly'); i.select(); i.setSelectionRange(0, 99999);
+      try { document.execCommand('copy'); done(); }
+      catch (e) { msg.textContent = 'Press and hold the link above to copy it.'; }
+      i.setAttribute('readonly', '');
+    }
+  }
+  document.getElementById('copy').addEventListener('click', copy);
+
+  /* Native share sheet where it exists — one tap to any app the
+     person actually has, which beats a fixed grid of platforms. */
+  function nativeShare() {
+    if (!navigator.share) { copy(); return; }
+    navigator.share({ title: TITLE, text: TEXT, url: URL_ })
+      .catch(function () { /* dismissed — not an error worth reporting */ });
+  }
+  if (navigator.share) {
+    var n = document.getElementById('native');
+    n.hidden = false;
+    n.addEventListener('click', nativeShare);
+  }
+  document.getElementById('endShare').addEventListener('click', nativeShare);
+})();
+</script>
+</body>
+</html>
