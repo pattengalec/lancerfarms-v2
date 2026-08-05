@@ -2,63 +2,69 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
 <title>LFG Farm Manual</title>
 <meta name="theme-color" content="#35503A">
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Source+Sans+3:wght@300;400;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <!-- A 'lfg-mode' bootstrap used to sit here; it was already a no-op, reading
      the value and doing nothing with it. grush-settings.js owns theming and
      runs its own applyTheme() from <head> before first paint. -->
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Manual palette — light (default) ── */
-:root, [data-mode="light"] {
-  --bg:           #2A2620;
-  --bg-dark:      #24211B;
-  --bg-deeper:    #1E1B16;
-  --cream:        #F0EDE2;
-  --cream-dim:    #B0A99C;
-  --forest:       #A8B89A;
-  --forest-mid:   #7E9A6E;
-  --lime:         #7E9A6E;
-  --lime-pale:    #A8B89A;
-  --orange:       #C9973F;
-  --orange-dim:   #B5651D;
-  --border:       #45423A;
-  --card-bg:      #34302A;
-  --card-shadow:  rgba(0,0,0,0.18);
-  --font-head:    'IM Fell English', Georgia, serif;
-  --font-body:    'Source Sans 3', 'Helvetica Neue', sans-serif;
-  --font-mono:    'Courier Prime', monospace;
+/* ── Palette ───────────────────────────────────────────────────────────
+   These are the repo's tokens, the same nine the visitor pages use. The
+   manual's original names (--cream, --forest, --lime …) are kept as aliases
+   because 150-odd rules below reference them, but they now point at one
+   source rather than holding their own copies of the hex values.
+
+   The previous block labelled itself "light (default)" while holding a dark
+   palette, and swapped the meanings of --forest and --lime between modes, so
+   an element changed role rather than shade when the theme flipped. Both are
+   corrected here. grush-settings.js still owns the data-mode switch. */
+:root {
+  --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+  --line:#45423A; --line-strong:#5A554A;
+  --green:#7E9A6E; --leaf:#A8B89A; --amber:#C9973F;
+
+  --bg:          var(--paper);
+  --bg-dark:     #24211B;
+  --bg-deeper:   #1E1B16;
+  --cream:       var(--ink);
+  --cream-dim:   var(--ink-soft);
+  --forest:      var(--leaf);
+  --forest-mid:  var(--green);
+  --lime:        var(--green);
+  --lime-pale:   var(--leaf);
+  --orange:      var(--amber);
+  --orange-dim:  #B5651D;
+  --terra:       #B5651D;  /* was used but never defined */
+  --border:      var(--line);
+  --card-bg:     var(--card);
+  --card-shadow: rgba(0,0,0,0.18);
+  --font-head:   'Fraunces', Georgia, serif;
+  --font-body:   'Source Sans 3', system-ui, sans-serif;
+  --font-mono:   'Courier Prime', monospace;
 }
 
-/* ── Manual palette — dark mode ── */
+/* Dark mode shifts the surfaces down and leaves every role intact. */
 [data-mode="dark"] {
-  --bg:           #24231E;
-  --bg-dark:      #1B1B17;
-  --bg-deeper:    #141310;
-  --cream:        #F0EDE2;
-  --cream-dim:    #A8A296;
-  --forest:       #7E9A6E;
-  --forest-mid:   #5a8818;
-  --lime:         #A8B89A;
-  --lime-pale:    #C9D8A0;
-  --orange:       #C9973F;
-  --orange-dim:   #B5651D;
-  --border:       #45423A;
-  --card-bg:      #2E2C26;
-  --card-shadow:  rgba(0,0,0,0.4);
-  --font-head:    'IM Fell English', Georgia, serif;
-  --font-body:    'Source Sans 3', 'Helvetica Neue', sans-serif;
-  --font-mono:    'Courier Prime', monospace;
+  --paper:       #24231E;
+  --card:        #2E2C26;
+  --ink-soft:    #A8A296;
+  --bg-dark:     #1B1B17;
+  --bg-deeper:   #141310;
+  --card-shadow: rgba(0,0,0,0.4);
 }
 
 html, body {
   background: var(--bg);
-  color: var(--forest);
+  /* Body text was --forest (a pale sage). Every other page in the repo sets
+     body colour to the cream ink and keeps green for accents only. */
+  color: var(--ink);
   font-family: var(--font-body);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -109,14 +115,6 @@ html, body {
   margin-top: 0.35rem;
   font-family: var(--font-mono);
   opacity: 0.8;
-}
-.header-controls {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
 }
 .hdr-btn {
   background: transparent;
@@ -232,7 +230,7 @@ html, body {
   color: var(--lime-pale); font-size: 1.1rem; padding: 0.25rem;
   -webkit-tap-highlight-color: transparent;
   display: flex; align-items: center; gap: 0.3rem;
-  font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500;
+  font-family:var(--font-body); font-size: 0.8rem; font-weight: 500;
 }
 .topic-header-title {
   font-family: var(--font-head);
@@ -481,7 +479,7 @@ html, body {
   border: 2px solid var(--lime);
   border-radius: 50px;
   padding: 0.6rem 1.1rem;
-  font-family: 'Inter', sans-serif; font-size: 0.78rem; font-weight: 600;
+  font-family:var(--font-body); font-size: 0.78rem; font-weight: 600;
   cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.3);
   display: none; align-items: center; gap: 0.4rem;
   z-index: 200;
@@ -545,21 +543,10 @@ html, body {
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div class="screen active" id="screen-home">
   <div class="home-header">
-    <div class="header-controls">
-      
-  <a href="/app.html" class="hdr-btn" style="text-decoration:none;">← App</a>
-    </div>
     <div class="logo-text">Lancer Farms</div>
     <div class="logo-sub">&amp; Gardens</div>
     <div class="logo-rule"></div>
     <div class="manual-label">Farm Manual</div>
-    <div class="nav-links">
-    <a href="/app.html">Staff App</a>
-<a href="/data.html">Farm data</a>
-<a href="/almanac.html">Almanac</a>
-<a href="/mixbench.html">Mix Bench</a>
-<a href="/irrigation-bom.html">Irrigation BOM</a>
-    </div>
   </div>
   <div class="home-intro">Select a topic to open its reference guide, calculators, and field notes.</div>
   <div class="topic-grid">
@@ -1050,9 +1037,9 @@ const TOPICS = {
               </select>
             </div>
             <div class="field"><label>Note</label>
-              <textarea id="r-note" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--forest);font-family:Inter,sans-serif;font-size:0.9rem;padding:0.6rem;outline:none;resize:vertical;" placeholder="What did you observe?"></textarea>
+              <textarea id="r-note" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--forest);font-family:var(--font-body);font-size:0.9rem;padding:0.6rem;outline:none;resize:vertical;" placeholder="What did you observe?"></textarea>
             </div>
-            <button onclick="saveObs()" style="width:100%;background:#3E5C42;color:var(--cream);border:none;border-radius:6px;padding:0.75rem;font-family:Inter,sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:0.25rem;">Save to Local Log</button>
+            <button onclick="saveObs()" style="width:100%;background:#3E5C42;color:var(--cream);border:none;border-radius:6px;padding:0.75rem;font-family:var(--font-body);font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:0.25rem;">Save to Local Log</button>
             <div id="r-saved" style="margin-top:0.5rem;font-size:0.75rem;color:var(--forest);"></div>
           </div>
         </div>
@@ -1426,18 +1413,10 @@ document.addEventListener('grush:auth', (e) => {
   if (e.detail === 'SIGNED_IN' || e.detail === 'SIGNED_OUT') checkExistingSession();
 });
 
+/* Repaints the edit controls when auth resolves after first render — a magic
+   link landing late, or a sign-out in another tab. They are rendered with the
+   right display value already; this keeps them honest afterwards. */
 function updateAdminUI() {
-  const btn = document.getElementById('admin-btn');
-  if (!btn) return;
-  if (isAdmin) {
-    btn.textContent = '🔓 Admin';
-    btn.style.background = 'var(--lime)';
-    btn.style.color = 'var(--forest)';
-  } else {
-    btn.textContent = '🔒 Admin';
-    btn.style.background = 'transparent';
-    btn.style.color = 'var(--lime-pale)';
-  }
   document.querySelectorAll('.add-entry-btn').forEach(b => {
     b.style.display = isAdmin ? 'flex' : 'none';
   });
@@ -1834,7 +1813,7 @@ async function injectDynamicZones(topic) {
           width:100%;margin-top:1rem;padding:0.75rem 1rem;
           background:#3E5C42;color:var(--lime-pale);
           border:1px dashed var(--lime);border-radius:8px;
-          font-family:Inter,sans-serif;font-size:0.82rem;font-weight:600;
+          font-family:var(--font-body);font-size:0.82rem;font-weight:600;
           cursor:pointer;justify-content:center;
           -webkit-tap-highlight-color:transparent;">
         + Add Entry to ${tab}
@@ -1851,10 +1830,10 @@ async function injectDynamicZones(topic) {
 // HELPERS
 // ══════════════════════════════════════════════════════════════
 function btnStyle(bg) {
-  return `width:100%;padding:0.75rem;background:${bg};color:var(--cream);border:none;border-radius:6px;font-family:Inter,sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;margin-bottom:0.5rem;`;
+  return `width:100%;padding:0.75rem;background:${bg};color:var(--cream);border:none;border-radius:6px;font-family:var(--font-body);font-size:0.88rem;font-weight:600;cursor:pointer;margin-bottom:0.5rem;`;
 }
 function inputStyle() {
-  return `width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--forest);font-family:Inter,sans-serif;font-size:0.9rem;padding:0.55rem 0.7rem;outline:none;`;
+  return `width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--forest);font-family:var(--font-body);font-size:0.9rem;padding:0.55rem 0.7rem;outline:none;`;
 }
 function showErr(el, msg) {
   if (!el) return;
@@ -1889,21 +1868,14 @@ function showToast(msg) {
 (function init() {
   updateModeIcon();
 
-  // Inject admin button into home header controls
-  const controls = document.querySelector('.header-controls');
-  if (controls) {
-    const btn = document.createElement('button');
-    btn.id = 'admin-btn';
-    btn.onclick = showLoginModal;
-    btn.style.cssText = `background:transparent;border:1px solid rgba(184,224,96,0.4);color:var(--lime-pale);border-radius:20px;padding:0.3rem 0.6rem;font-size:0.65rem;font-weight:600;font-family:var(--font-mono);cursor:pointer;-webkit-tap-highlight-color:transparent;`;
-    btn.textContent = isAdmin ? '🔓 Admin' : '🔒 Admin';
-    controls.insertBefore(btn, controls.firstChild);
-  }
+  /* No Admin button on this page. Operators sign in at admin.html or the
+     staff tool; that session is shared, so the edit controls still appear
+     here for an operator and stay hidden for everyone else. */
   updateAdminUI();
 
   // Asks the database whether this session is an operator, then repaints.
-  // Deliberately last: it calls updateAdminUI(), which needs #admin-btn
-  // to already be in the DOM.
+  // Deliberately last: it resolves operator status, then repaints the edit
+  // controls that the topic panels have already rendered.
   checkExistingSession();
 })();
 </script>
@@ -1927,7 +1899,9 @@ window.GRUSH_NAV = {
       { label:'Farm data',      icon:'\u{1F4CA}', href:'data.html'    },
       { label:'Almanac',        icon:'\u{1F326}', href:'almanac.html' },
       { label:'How-to cards',   icon:'\u{1F4D6}', href:'howto.html'   },
-      { label:'Plant triage',   icon:'\u{1FA7A}', href:'triage.html'  }
+      { label:'Plant triage',   icon:'\u{1FA7A}', href:'triage.html'  },
+      { label:'Mix bench',      icon:'\u{1F9EA}', href:'mixbench.html' },
+      { label:'Irrigation BOM', icon:'\u{1F4A7}', href:'irrigation-bom.html' }
     ]}
   ],
   staff: { label:'Staff', items:[
