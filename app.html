@@ -128,6 +128,9 @@
   .tile .tsub{font-size:12.5px; opacity:.8; margin-top:2px;}
   .tile.primary{background:var(--green); color:#fff; grid-column:1 / -1; flex-direction:row; align-items:center; min-height:96px; gap:16px;}
   .tile.primary .ic{font-size:40px;}
+  /* The primary tile lays out in a row, so its text wrapper must become its own
+     column — otherwise the name and subtitle are inline and read as one word. */
+  .tile.primary > span:last-child{display:flex; flex-direction:column;}
   .tile.n{background:var(--card); color:var(--ink); border:1px solid var(--line);}
 
   /* ---------- log ---------- */
@@ -373,7 +376,7 @@
             <span class="ic">📊</span>
             <div><div class="tname">Farm Data</div><div class="tsub">Live logs & records</div></div>
           </button>
-          <button class="tile n" onclick="go('manual')">
+          <button class="tile n" onclick="location.href='manual.html'">
             <span class="ic">&#128214;</span>
             <span class="tname">Manual</span><span class="tsub">Guides &amp; reference</span>
           </button>
@@ -786,7 +789,11 @@ function enterStaff(){
 const TITLES={hub:'Lancer Farms',log:'Log activity',tasks:'Tasks',inventory:'Inventory',photos:'Photos',approvals:'Approvals'};
 function go(scr){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const el=document.getElementById('screen-'+scr); if(el) el.classList.add('active');
+  const el=document.getElementById('screen-'+scr);
+  /* No such screen: stay where we are rather than clearing every panel and
+     leaving the tool blank with no way back. */
+  if(!el){ document.getElementById('screen-hub').classList.add('active'); return; }
+  el.classList.add('active');
   document.getElementById('bar-title').textContent=TITLES[scr]||'Lancer Farms';
   document.querySelector('main').scrollTop=0;
   const ab=document.getElementById('actionbar');
