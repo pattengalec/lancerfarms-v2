@@ -1,61 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lancer Farms &amp; Gardens — Welcome</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>Lancer Farms &amp; Gardens — Explore</title>
 <meta name="description" content="Lancer Farms &amp; Gardens at California Baptist University. A student-run organic teaching garden in Riverside, CA.">
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Source+Sans+3:wght@300;400;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{min-height:100vh;background:#2A2620;color:#F0EDE2;font-family:'Source Sans 3','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:480px;margin:0 auto;padding:48px 24px 64px;display:flex;flex-direction:column;align-items:center;text-align:center}
-.logo{font-family:'IM Fell English',Georgia,serif;font-size:2.2rem;font-style:italic;color:#F0EDE2;line-height:1.1;margin-bottom:4px}
-.sub{font-family:'Courier Prime',monospace;font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:#A8B89A;margin-bottom:32px}
-.rule{width:40px;height:2px;background:#7E9A6E;margin:0 auto 32px}
-.card{background:#34302A;border:1.5px solid #45423A;border-radius:10px;padding:28px 24px;margin-bottom:16px;width:100%;text-align:left}
-.card h2{font-family:'IM Fell English',Georgia,serif;font-size:1.25rem;color:#F0EDE2;margin-bottom:8px}
-.card p{font-size:.9rem;color:#A8B89A;line-height:1.6}
-.card a{color:#C9973F;text-decoration:none;font-weight:600}
-.card a:hover{text-decoration:underline}
-.badge{display:inline-block;font-family:'Courier Prime',monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;background:rgba(168,184,154,.15);color:#A8B89A;border:1px solid #45423A;border-radius:20px;padding:4px 10px;margin-bottom:20px}
-.divider{width:100%;height:1px;background:#45423A;margin:8px 0 16px}
-.staff-link{font-family:'Courier Prime',monospace;font-size:.7rem;letter-spacing:.08em;color:#7E9A6E;text-decoration:none;margin-top:8px;display:inline-block}
-.staff-link:hover{color:#A8B89A}
-footer{margin-top:40px;font-family:'Courier Prime',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:#45423A}
-footer a{color:#45423A;text-decoration:none}
+  /* Tokens copied from index.html so the fork and the hub read as one site.
+     If the fork's palette changes, change it here too — these are duplicated
+     deliberately: visitor.html must render even if a stylesheet 404s. */
+  :root{
+    --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+    --line:#45423A; --line-strong:#5A554A;
+    --green:#7E9A6E; --green-d:#2A2620; --leaf:#A8B89A;
+    --amber:#C9973F;
+    --shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; min-height:100%;}
+  body{
+    font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink);
+    background:var(--paper); -webkit-font-smoothing:antialiased;
+  }
+  h1,h2{font-family:'Fraunces',Georgia,serif; font-weight:600; margin:0;}
+
+  .wrap{max-width:420px; margin:0 auto; padding:44px 24px 40px;
+    display:flex; flex-direction:column; align-items:center; text-align:center;}
+
+  .mark{width:96px; height:96px; display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-weight:600; font-size:34px; color:var(--green);}
+  h1{font-size:30px; margin:10px 0 2px;}
+  .sub{color:var(--ink-soft); margin:0 0 14px; font-size:13px; letter-spacing:2px; text-transform:uppercase;}
+  .badge{display:inline-block; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    background:rgba(168,184,154,.15); color:var(--leaf);
+    border:1px solid var(--line); border-radius:999px; padding:5px 12px; margin-bottom:34px;}
+
+  /* Tiles share the fork's button geometry: 82px tall, 20px radius, icon +
+     label + one line of plain description. A tile is unmistakably a control,
+     never a heading. */
+  .tile{width:100%; max-width:360px; min-height:82px; border-radius:20px;
+    display:flex; align-items:center; gap:18px; padding:0 22px; margin-bottom:16px;
+    box-shadow:var(--shadow); font-size:21px; font-weight:600; text-align:left;
+    font-family:inherit; border:1.5px solid var(--line-strong);
+    background:var(--card); color:var(--ink); text-decoration:none;
+    transition:transform .1s, border-color .2s;}
+  .tile:active{transform:scale(.98);}
+  .tile:focus-visible{outline:3px solid var(--leaf); outline-offset:3px;}
+  .tile .ic{font-size:32px; flex:0 0 auto; line-height:1;}
+  .tile small{display:block; font-weight:400; font-size:13px; opacity:.8; margin-top:3px;
+    font-family:'Source Sans 3',sans-serif;}
+  .tile-lead{background:var(--green); color:#fff; border-color:var(--green);}
+
+  /* Not-yet-built tiles stay visible but plainly inert — an honest blank
+     beats a button that 404s. */
+  .tile[aria-disabled="true"]{opacity:.5; cursor:default; box-shadow:none;}
+  .tile[aria-disabled="true"]:active{transform:none;}
+  .soon{display:inline-block; font-size:10px; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--ink-soft); border:1px solid var(--line-strong);
+    border-radius:999px; padding:2px 8px; margin-left:8px; vertical-align:middle;}
+
+  .divider{width:100%; max-width:360px; height:1px; background:var(--line); margin:18px 0 14px;}
+  .backlink{font-size:13px; letter-spacing:.06em; color:var(--leaf); text-decoration:none;}
+  .backlink:hover{color:var(--ink);}
+  footer{margin-top:32px; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--line-strong);}
+  footer a{color:var(--line-strong); text-decoration:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    .tile{transition:none;}
+    .tile:active{transform:none;}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="logo">Lancer Farms</div>
-  <div class="sub">&amp; Gardens · California Baptist University</div>
-  <div class="rule"></div>
 
+<div class="wrap">
+  <div class="mark">&#127793;</div>
+  <h1>Lancer Farms</h1>
+  <div class="sub">&amp; Gardens · Cal Baptist</div>
   <span class="badge">Riverside, CA · Zone 9b</span>
 
-  <div class="card">
-    <h2>Welcome to the Farm</h2>
-    <p>Lancer Farms &amp; Gardens is a student-run organic teaching garden at California Baptist University, located next to the historic Hawthorne House. The garden includes raised beds, a citrus grove, and a composting station — all maintained by environmental science students and faculty.</p>
-  </div>
+  <a class="tile tile-lead" href="see.html" id="t-see">
+    <span class="ic">&#128247;</span>
+    <span>See<small>Photos from the beds and grounds</small></span>
+  </a>
 
-  <div class="card">
-    <h2>What's Growing</h2>
-    <p>The garden rotates seasonal vegetables, herbs, and native plants year-round. Current crops and field data are tracked live on the <a href="data.html">farm data page</a>.</p>
-  </div>
+  <a class="tile" href="learn.html" id="t-learn">
+    <span class="ic">&#127807;</span>
+    <span>Learn<small>What grows here, and what it needs</small></span>
+  </a>
 
-  <div class="card">
-    <h2>Farm Manual</h2>
-    <p>Watering schedules, soil amendments, pest management, and planting calendars are documented in the <a href="manual.html">Farm Manual</a> — built and maintained by the caretaker team.</p>
-  </div>
+  <a class="tile" href="do.html" id="t-do">
+    <span class="ic">&#129530;</span>
+    <span>Do<small>Work out spacing, water and timing</small></span>
+  </a>
+
+  <a class="tile" href="share.html" id="t-share">
+    <span class="ic">&#128172;</span>
+    <span>Share<small>Leave a note for the farm</small></span>
+  </a>
 
   <div class="divider"></div>
-  <a href="index.html" class="staff-link">Staff login →</a>
+  <a href="index.html" class="backlink">Staff login &rarr;</a>
 
-  <footer style="margin-top:40px">
-    <a href="https://getgrush.com">managed by grush</a>
-  </footer>
+  <footer><a href="https://getgrush.com">managed by grush</a></footer>
 </div>
+
+<script>
+/* Tiles whose destination page does not exist yet are marked inert rather
+   than removed. The visitor sees the whole shape of the place; nothing
+   promises a page that isn't there. Remove a code from this list the moment
+   its page ships. */
+(function () {
+  var NOT_BUILT = ['t-see', 't-learn', 't-do'];
+  NOT_BUILT.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.removeAttribute('href');
+    el.setAttribute('aria-disabled', 'true');
+    el.setAttribute('role', 'link');
+    var label = el.querySelector('span:last-child');
+    if (label && label.firstChild) {
+      var chip = document.createElement('span');
+      chip.className = 'soon';
+      chip.textContent = 'soon';
+      label.insertBefore(chip, label.querySelector('small'));
+    }
+  });
+})();
+</script>
+
+<script src="lfg-config.js"></script>
+<script>
+  /* Front door: no rail, no drawer clutter. The nav is loaded for the
+     page-view counter that lives inside it. */
+  window.GRUSH_NAV = { rail: false, title: 'Lancer Farms' };
+</script>
+<script src="grush-nav.js"></script>
+
 </body>
 </html>
