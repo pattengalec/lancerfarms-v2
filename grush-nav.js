@@ -348,5 +348,40 @@
     mount();
   }
 
+  /* ── Page-view counter ──────────────────────────────────────────────
+     Fires once per load against grush_track_view(). That function is the
+     only write path into grush_page_views — there is no INSERT or UPDATE
+     policy — so a tampered call cannot create arbitrary rows.
+
+     Staff tooling is excluded: those are crew pages, not visits, and
+     counting them would drown the visitor signal we actually want.
+
+     Every failure here is swallowed on purpose. A counter must never be
+     able to break a page. */
+  (function trackView() {
+    var C = window.LFG_CONFIG || window.FGF_CONFIG;
+    if (!C || !C.SUPABASE_URL || !C.SUPABASE_ANON_KEY || !C.SITE) return;
+    if (/\/(admin|triage|app)\.html$/i.test(location.pathname)) return;
+
+    try {
+      fetch(C.SUPABASE_URL + '/rest/v1/rpc/grush_track_view', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': C.SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + C.SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({
+          p_site: C.SITE,
+          p_path: location.pathname + location.search
+        })
+      }).then(function (r) {
+        return r.ok ? r.json() : null;
+      }).then(function (n) {
+        if (n !== null && n !== undefined) window.GRUSH_PAGE_VIEWS = n;
+      }).catch(function () { /* offline or blocked; not critical */ });
+    } catch (e) { /* no fetch; not critical */ }
+  })();
+
   window.GrushNav = { open: open, close: close, toggle: toggle };
 })();
