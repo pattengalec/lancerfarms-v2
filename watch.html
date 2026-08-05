@@ -13,7 +13,7 @@
 <meta property="og:type" content="video.other">
 <meta property="og:title" content="Lancer Farms &amp; Gardens — a short film">
 <meta property="og:description" content="One farm, two doors. The visitor side is free. The staff side runs on Grush.">
-<meta property="og:image" content="https://lancerfarms.com/poster-16x9.jpg">
+<meta property="og:image" content="https://lancerfarms.com/poster-16x9.jpeg">
 <meta property="og:url" content="https://lancerfarms.com/watch.html">
 <meta name="twitter:card" content="summary_large_image">
 
@@ -133,7 +133,7 @@ footer{padding:28px 0 46px;text-align:center;font-family:'Courier Prime',monospa
 
 <div class="wrap">
   <div class="stage">
-    <video id="film" controls playsinline preload="metadata" poster="poster-16x9.jpg">
+    <video id="film" controls playsinline preload="metadata" poster="poster-16x9.jpeg">
       Your browser cannot play this video.
       <a href="lancerfarms-showcase-16x9.mp4">Download it instead.</a>
     </video>
@@ -226,7 +226,7 @@ footer{padding:28px 0 46px;text-align:center;font-family:'Courier Prime',monospa
      playback, which is a worse outcome than a letterboxed frame. */
   var portrait = window.matchMedia('(max-width: 620px) and (orientation: portrait)').matches;
   film.src = portrait ? 'lancerfarms-showcase-9x16.mp4' : 'lancerfarms-showcase-16x9.mp4';
-  film.poster = portrait ? 'poster-9x16.jpg' : 'poster-16x9.jpg';
+  film.poster = portrait ? 'poster-9x16.jpeg' : 'poster-16x9.jpeg';
 
   /* ── end panel ─────────────────────────────────────────────────── */
   var panel = document.getElementById('endPanel');
