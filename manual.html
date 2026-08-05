@@ -42,6 +42,7 @@
   --orange:      var(--amber);
   --orange-dim:  #B5651D;
   --terra:       #B5651D;  /* was used but never defined */
+  --green-deep:  #3E5C42;  /* was hard-coded in 13 places */
   --border:      var(--line);
   --card-bg:     var(--card);
   --card-shadow: rgba(0,0,0,0.18);
@@ -79,7 +80,7 @@ html, body {
 #screen-home { background: var(--bg); }
 
 .home-header {
-  background: #3E5C42;
+  background: var(--green-deep);
   padding: 1.25rem 1rem 1rem;
   text-align: center;
   border-bottom: 3px solid var(--lime);
@@ -88,8 +89,7 @@ html, body {
 .home-header .logo-text {
   font-family: var(--font-head);
   font-size: 1.7rem;
-  font-weight: 400;
-  font-style: italic;
+  font-weight: 600;
   color: var(--cream);
   letter-spacing: 0.02em;
   line-height: 1.1;
@@ -122,7 +122,6 @@ html, body {
   font-size: 0.78rem;
   color: var(--cream);
   text-align: center;
-  font-style: italic;
 }
 
 .topic-grid {
@@ -150,9 +149,8 @@ html, body {
 .topic-card .card-title {
   font-family: var(--font-head);
   font-size: 0.95rem;
-  font-weight: 400;
-  font-style: italic;
-  color: var(--forest);
+  font-weight: 600;
+  color: var(--ink);
   line-height: 1.2;
   margin-bottom: 0.25rem;
 }
@@ -168,7 +166,7 @@ html, body {
   font-size: 0.55rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: #3E5C42;
+  background: var(--green-deep);
   color: var(--lime-pale);
   padding: 0.15rem 0.4rem;
   border-radius: 3px;
@@ -180,7 +178,7 @@ html, body {
 .topic-screen { background: var(--bg); }
 
 .topic-header {
-  background: #3E5C42;
+  background: var(--green-deep);
   padding: 0 0 0;
   position: sticky;
   top: 0;
@@ -204,7 +202,6 @@ html, body {
 .topic-header-title {
   font-family: var(--font-head);
   font-size: 1.1rem;
-  font-style: italic;
   font-weight: 400;
   color: var(--cream);
   flex: 1;
@@ -217,7 +214,7 @@ html, body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  background: #3E5C42;
+  background: var(--green-deep);
   border-top: 1px solid var(--forest-mid);
 }
 .subtab-strip::-webkit-scrollbar { display: none; }
@@ -295,7 +292,7 @@ html, body {
   margin-bottom: 1rem;
 }
 .calc-card-head {
-  background: #3E5C42;
+  background: var(--green-deep);
   padding: 0.65rem 1rem;
   font-size: 0.68rem;
   letter-spacing: 0.1em;
@@ -329,7 +326,7 @@ html, body {
 /* Result boxes */
 .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 0.75rem 0; }
 .result-box {
-  background: #3E5C42;
+  background: var(--green-deep);
   border-radius: 6px;
   padding: 0.65rem 0.5rem;
   text-align: center;
@@ -363,7 +360,7 @@ html, body {
 .step { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; align-items: flex-start; }
 .step-num {
   flex-shrink: 0; width: 1.5rem; height: 1.5rem;
-  background: #3E5C42; color: var(--lime-pale);
+  background: var(--green-deep); color: var(--lime-pale);
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-size: 0.7rem; font-weight: 700; font-family: 'Courier Prime', monospace;
   margin-top: 0.1rem;
@@ -443,7 +440,7 @@ html, body {
 /* Bottom home button */
 .home-fab {
   position: fixed; bottom: calc(1.25rem + 78px + env(safe-area-inset-bottom)); right: 1.25rem;
-  background: #3E5C42;
+  background: var(--green-deep);
   color: var(--lime-pale);
   border: 2px solid var(--lime);
   border-radius: 50px;
@@ -474,7 +471,7 @@ html, body {
   min-height:68px; padding:0 1.1rem; text-align:left;
   background:var(--card-bg); border:1.5px solid var(--border); border-radius:12px;
   color:var(--cream); cursor:pointer; transition:background .2s, border-color .2s; }
-.sec-btn:active { background:#3E5C42; border-color:var(--lime); }
+.sec-btn:active { background:var(--green-deep); border-color:var(--lime); }
 .sec-btn .sec-n { font-family:var(--font-head); font-size:1.18rem; }
 .sec-btn .sec-a { color:var(--lime-pale); font-size:1.5rem; line-height:1; }
 #sec-head { font-family:var(--font-head); font-size:1.3rem; color:var(--cream);
@@ -486,7 +483,7 @@ html, body {
 .nav-b { flex:1; min-height:58px; display:flex; align-items:center; justify-content:center; gap:0.45rem;
   background:var(--card-bg); border:1.5px solid var(--border); border-radius:12px;
   color:var(--cream); font-family:var(--font-body); font-size:1rem; font-weight:600; cursor:pointer; }
-.nav-b:active { background:#3E5C42; border-color:var(--lime); }
+.nav-b:active { background:var(--green-deep); border-color:var(--lime); }
 .nav-b .nb-ic { font-size:1.25rem; line-height:1; color:var(--lime-pale); }
 #screen-topic { padding-bottom:100px; }
 .topic-grid { gap:0.85rem !important; }
@@ -1008,7 +1005,7 @@ const TOPICS = {
             <div class="field"><label>Note</label>
               <textarea id="r-note" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--forest);font-family:var(--font-body);font-size:0.9rem;padding:0.6rem;outline:none;resize:vertical;" placeholder="What did you observe?"></textarea>
             </div>
-            <button onclick="saveObs()" style="width:100%;background:#3E5C42;color:var(--cream);border:none;border-radius:6px;padding:0.75rem;font-family:var(--font-body);font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:0.25rem;">Save to Local Log</button>
+            <button onclick="saveObs()" style="width:100%;background:var(--green-deep);color:var(--cream);border:none;border-radius:6px;padding:0.75rem;font-family:var(--font-body);font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:0.25rem;">Save to Local Log</button>
             <div id="r-saved" style="margin-top:0.5rem;font-size:0.75rem;color:var(--forest);"></div>
           </div>
         </div>
@@ -1433,7 +1430,7 @@ function showLoginModal() {
   if (isAdmin) {
     openModal(`
       <div style="text-align:center;margin-bottom:1rem;">
-        <div style="font-family:var(--font-head);font-style:italic;font-size:1.1rem;color:var(--forest);">Admin Active</div>
+        <div style="font-family:var(--font-head);font-size:1.1rem;color:var(--forest);">Admin Active</div>
         <div style="font-size:0.78rem;color:var(--cream);margin-top:0.25rem;">You can add and edit manual entries.</div>
       </div>
       <button onclick="doAdminLogout()" style="${btnStyle('var(--orange-dim)')}">Sign Out</button>
@@ -1442,7 +1439,7 @@ function showLoginModal() {
     return;
   }
   openModal(`
-    <div style="font-family:var(--font-head);font-style:italic;font-size:1.15rem;color:var(--forest);margin-bottom:0.25rem;">Operator Sign In</div>
+    <div style="font-family:var(--font-head);font-size:1.15rem;color:var(--forest);margin-bottom:0.25rem;">Operator Sign In</div>
     <div style="font-size:0.72rem;color:var(--cream);margin-bottom:1rem;font-family:var(--font-mono);">We'll email you a one-time link</div>
     <div style="margin-bottom:1rem;">
       <label style="font-size:0.65rem;color:var(--cream);display:block;margin-bottom:0.3rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;">Email</label>
@@ -1780,7 +1777,7 @@ async function injectDynamicZones(topic) {
       <button class="add-entry-btn" onclick="showAddEntryModal('${topic}','${tab}')"
         style="display:${isAdmin?'flex':'none'};align-items:center;gap:0.5rem;
           width:100%;margin-top:1rem;padding:0.75rem 1rem;
-          background:#3E5C42;color:var(--lime-pale);
+          background:var(--green-deep);color:var(--lime-pale);
           border:1px dashed var(--lime);border-radius:8px;
           font-family:var(--font-body);font-size:0.82rem;font-weight:600;
           cursor:pointer;justify-content:center;
@@ -1813,7 +1810,7 @@ function showToast(msg) {
   if (!t) {
     t = document.createElement('div');
     t.id = 'toast';
-    t.style.cssText = `position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:#3E5C42;color:var(--lime-pale);padding:0.6rem 1.2rem;border-radius:20px;font-size:0.8rem;font-weight:600;z-index:2000;transition:opacity 0.3s;`;
+    t.style.cssText = `position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:var(--green-deep);color:var(--lime-pale);padding:0.6rem 1.2rem;border-radius:20px;font-size:0.8rem;font-weight:600;z-index:2000;transition:opacity 0.3s;`;
     document.body.appendChild(t);
   }
   t.textContent = msg; t.style.opacity = '1';
