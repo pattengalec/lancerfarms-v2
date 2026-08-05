@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>Do — Lancer Farms &amp; Gardens</title>
+<meta name="description" content="Working numbers for the beds at Lancer Farms &amp; Gardens.">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+<style>
+  :root{
+    --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+    --line:#45423A; --line-strong:#5A554A;
+    --green:#7E9A6E; --leaf:#A8B89A; --amber:#C9973F;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; min-height:100%;}
+  body{font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink);
+    background:var(--paper); -webkit-font-smoothing:antialiased;}
+  h1{font-family:'Fraunces',Georgia,serif; font-weight:600; margin:0; font-size:28px;}
+
+  .wrap{max-width:560px; margin:0 auto; padding:32px 18px 48px;}
+  .back{display:inline-block; font-size:13px; color:var(--leaf); text-decoration:none; margin:0 6px 20px;}
+  .back:hover{color:var(--ink);}
+  .head{padding:0 6px;}
+  .lede{color:var(--ink-soft); font-size:14px; line-height:1.5; margin:4px 0 22px;}
+
+  .tool{background:var(--card); border:1.5px solid var(--line); border-radius:16px;
+    padding:18px 16px; margin-bottom:16px;}
+  .tool h2{font-family:'Fraunces',Georgia,serif; font-size:19px; font-weight:600; margin:0 0 4px;}
+  .tool .why{font-size:13.5px; color:var(--ink-soft); line-height:1.5; margin:0 0 16px;}
+
+  label{display:block; font-size:12px; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-soft); margin:0 0 6px;}
+  .field{margin-bottom:14px;}
+  select, input[type=number], input[type=date]{
+    width:100%; min-height:48px; background:var(--paper); color:var(--ink);
+    border:1.5px solid var(--line-strong); border-radius:11px; padding:0 12px;
+    font-family:inherit; font-size:16px;}
+  select:focus-visible, input:focus-visible{outline:3px solid var(--leaf); outline-offset:2px;}
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+  .out{margin-top:16px; border-top:1.5px solid var(--line); padding-top:16px;}
+  .big{font-family:'Fraunces',Georgia,serif; font-size:38px; font-weight:600; line-height:1.05;}
+  .big small{font-family:'Source Sans 3',sans-serif; font-size:15px; font-weight:600;
+    color:var(--ink-soft); margin-left:6px;}
+  .sub{font-size:14px; color:var(--ink-soft); margin-top:8px; line-height:1.55;}
+  .rows{display:flex; flex-direction:column; gap:1px; background:var(--line);
+    border:1.5px solid var(--line); border-radius:11px; overflow:hidden; margin-top:14px;}
+  .r{display:flex; justify-content:space-between; gap:16px; background:var(--card);
+    padding:11px 13px; font-size:14px;}
+  .r span:first-child{color:var(--ink-soft);}
+  .r span:last-child{font-weight:600;}
+  .caveat{font-size:12.5px; color:var(--ink-soft); line-height:1.55; margin:14px 0 0;
+    border-left:2px solid var(--line-strong); padding-left:11px;}
+  footer{margin-top:36px; text-align:center; font-size:12px; color:var(--ink-soft);}
+  footer a{color:var(--ink-soft);}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="back" href="visitor.html">&larr; Back</a>
+  <div class="head">
+    <h1>Do</h1>
+    <p class="lede">Two numbers worth working out before you start: how much soil a bed
+      takes, and when what you plant will be ready.</p>
+  </div>
+
+  <!-- ── soil ─────────────────────────────────────────────────────────── -->
+  <section class="tool">
+    <h2>How much soil does a bed take?</h2>
+    <p class="why">Bed sizes come from the farm's own records, so the answer is for the
+      real bed, not a guess.</p>
+
+    <div class="field">
+      <label for="bed">Bed</label>
+      <select id="bed"><option>Loading&hellip;</option></select>
+    </div>
+
+    <div class="two">
+      <div class="field">
+        <label for="depth">Fill depth (in)</label>
+        <input id="depth" type="number" min="1" max="48" step="1" value="12">
+      </div>
+      <div class="field">
+        <label for="bag">Bag size</label>
+        <select id="bag">
+          <option value="1.5">1.5 cu ft</option>
+          <option value="2" selected>2 cu ft</option>
+          <option value="3">3 cu ft</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="out">
+      <div class="big" id="soil-cf">&mdash;<small>cubic feet</small></div>
+      <div class="rows" id="soil-rows"></div>
+      <p class="caveat" id="soil-note"></p>
+    </div>
+  </section>
+
+  <!-- ── harvest ──────────────────────────────────────────────────────── -->
+  <section class="tool">
+    <h2>When will it be ready?</h2>
+    <p class="why">Only the annuals appear here. Trees, berries and perennials are not
+      measured in days to maturity, so listing them would invite a false answer.</p>
+
+    <div class="field">
+      <label for="plant">Plant</label>
+      <select id="plant"><option>Loading&hellip;</option></select>
+    </div>
+    <div class="field">
+      <label for="planted">Planted on</label>
+      <input id="planted" type="date">
+    </div>
+
+    <div class="out">
+      <div class="big" id="hv-date">&mdash;</div>
+      <div class="sub" id="hv-sub"></div>
+      <p class="caveat">Days to maturity is the farm's own recorded estimate, and it is
+        usually counted from transplant. Starting from seed adds two to four weeks, and
+        a cool spring or short days will push it later still. Treat it as the earliest
+        week to start checking, not a promise.</p>
+    </div>
+  </section>
+
+  <footer><a href="https://getgrush.com">managed by grush</a></footer>
+</div>
+
+<script>
+const sb = GRUSH.sb;
+let BEDS = [], ANNUALS = [];
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+function round(n, d){ const f = Math.pow(10, d); return Math.round(n * f) / f; }
+
+/* ── soil ───────────────────────────────────────────────────────────────
+   Straight geometry: width × length × depth, feet throughout. The only
+   judgement is rounding bags upward, because you cannot buy most of a bag. */
+async function loadBeds(){
+  const sel = document.getElementById('bed');
+  try{
+    const { data, error } = await sb.from('lfg_growing_areas')
+      .select('id,code,name,width_ft,length_ft,soil_depth_in')
+      .not('width_ft','is',null).not('length_ft','is',null)
+      .order('code');
+    if(error) throw error;
+
+    BEDS = data || [];
+    if(!BEDS.length){ sel.innerHTML = '<option>No beds recorded</option>'; return; }
+
+    sel.innerHTML = BEDS.map(function(b, i){
+      return '<option value="' + i + '">' + esc(b.code || b.name) + ' &middot; '
+           + round(b.width_ft,2) + '&times;' + round(b.length_ft,2) + ' ft</option>';
+    }).join('') + '<option value="custom">Something else&hellip;</option>';
+
+    sel.addEventListener('change', onBed);
+    onBed();
+  }catch(e){
+    sel.innerHTML = '<option>Bed sizes unavailable</option>';
+    document.getElementById('soil-note').textContent =
+      'The bed list could not be loaded, so this cannot be worked out right now.';
+  }
+}
+
+function onBed(){
+  const v = document.getElementById('bed').value;
+  const d = document.getElementById('depth');
+  if(v !== 'custom'){
+    const b = BEDS[Number(v)];
+    if(b && b.soil_depth_in != null) d.value = round(Number(b.soil_depth_in), 0);
+  }
+  soil();
+}
+
+function soil(){
+  const v = document.getElementById('bed').value;
+  const depthIn = Number(document.getElementById('depth').value);
+  const bagCf = Number(document.getElementById('bag').value);
+  const out = document.getElementById('soil-cf');
+  const rows = document.getElementById('soil-rows');
+  const note = document.getElementById('soil-note');
+
+  if(v === 'custom'){
+    out.innerHTML = '&mdash;<small>cubic feet</small>';
+    rows.innerHTML = '';
+    note.textContent = 'Custom beds are not in the farm records. Measure the inside of '
+      + 'the frame and use the bed nearest in size as a starting point.';
+    return;
+  }
+
+  const b = BEDS[Number(v)];
+  if(!b || !(depthIn > 0)){
+    out.innerHTML = '&mdash;<small>cubic feet</small>'; rows.innerHTML = ''; return;
+  }
+
+  const w = Number(b.width_ft), l = Number(b.length_ft);
+  const cf = w * l * (depthIn / 12);
+  const cy = cf / 27;
+  const bags = Math.ceil(cf / bagCf);
+
+  out.innerHTML = round(cf, 1) + '<small>cubic feet</small>';
+  rows.innerHTML =
+      '<div class="r"><span>Bed size</span><span>' + round(w,2) + ' &times; ' + round(l,2) + ' ft</span></div>'
+    + '<div class="r"><span>Fill depth</span><span>' + round(depthIn,0) + ' in</span></div>'
+    + '<div class="r"><span>Cubic yards</span><span>' + round(cy,2) + '</span></div>'
+    + '<div class="r"><span>Bags at ' + bagCf + ' cu ft</span><span>' + bags + '</span></div>';
+
+  const full = (b.soil_depth_in != null) ? Number(b.soil_depth_in) : null;
+  note.textContent = (full && depthIn >= full)
+    ? 'That fills the bed to its full recorded depth of ' + round(full,0)
+      + ' inches. Bags are rounded up, and fresh soil settles, so expect to top up.'
+    : 'Bags are rounded up. Fresh soil settles by roughly an inch over the first '
+      + 'few waterings, so buying one spare is rarely wasted.';
+}
+
+/* ── harvest ────────────────────────────────────────────────────────── */
+async function loadPlants(){
+  const sel = document.getElementById('plant');
+  try{
+    const { data, error } = await sb.from('lfg_master_plants')
+      .select('common_name,days_to_maturity,category')
+      .eq('approval_status','approved')
+      .not('days_to_maturity','is',null);
+    if(error) throw error;
+
+    ANNUALS = (data || []).filter(p => p.common_name && String(p.common_name).trim() !== '');
+    ANNUALS.sort((a,b) => a.common_name.localeCompare(b.common_name));
+
+    if(!ANNUALS.length){ sel.innerHTML = '<option>No plants recorded</option>'; return; }
+    sel.innerHTML = ANNUALS.map(function(p, i){
+      return '<option value="' + i + '">' + esc(p.common_name) + ' &middot; '
+           + p.days_to_maturity + ' days</option>';
+    }).join('');
+    sel.addEventListener('change', harvest);
+    harvest();
+  }catch(e){
+    sel.innerHTML = '<option>Plant list unavailable</option>';
+  }
+}
+
+function harvest(){
+  const p = ANNUALS[Number(document.getElementById('plant').value)];
+  const when = document.getElementById('planted').value;
+  const out = document.getElementById('hv-date');
+  const sub = document.getElementById('hv-sub');
+
+  if(!p || !when){
+    out.textContent = '\u2014';
+    sub.textContent = 'Pick a plant and the date it went in the ground.';
+    return;
+  }
+
+  const start = new Date(when + 'T12:00:00');
+  const days = Number(p.days_to_maturity);
+  const end = new Date(start.getTime() + days * 86400000);
+  const early = new Date(end.getTime() - 7 * 86400000);
+
+  const fmt = function(d){ return d.toLocaleDateString(undefined,
+    { weekday:'short', month:'long', day:'numeric' }); };
+
+  out.textContent = fmt(end);
+  sub.innerHTML = 'Start checking around <strong>' + fmt(early) + '</strong>. That is '
+    + days + ' days for ' + esc(p.common_name) + ', counted from '
+    + start.toLocaleDateString(undefined, { month:'long', day:'numeric' }) + '.';
+}
+
+['depth','bag'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', soil);
+  document.getElementById(id).addEventListener('change', soil);
+});
+document.getElementById('planted').addEventListener('change', harvest);
+
+/* Default the planting date to today so the tool answers something immediately. */
+(function(){
+  const t = new Date();
+  const p = function(n){ return String(n).padStart(2,'0'); };
+  document.getElementById('planted').value =
+    t.getFullYear() + '-' + p(t.getMonth()+1) + '-' + p(t.getDate());
+})();
+
+loadBeds();
+loadPlants();
+</script>
+
+<script>
+  window.GRUSH_NAV = { rail: false, title: 'Lancer Farms' };
+</script>
+<script src="grush-nav.js"></script>
+
+</body>
+</html>
