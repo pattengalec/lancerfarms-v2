@@ -1,6 +1,6 @@
 # Lancer Farms & Gardens — lancerfarms.com
 
-**Rebuild reference as of August 4, 2026.**
+**Rebuild reference as of August 5, 2026.**
 This document is sufficient to reconstruct the site, database, and all tooling from scratch.
 
 ---
@@ -72,21 +72,42 @@ pattengalec/lancerfarms-v2 (branch: main)
 ├── howto.html          Step-by-step how-to card player
 ├── mixbench.html       Mix Bench — recipe configurator + estimators
 ├── irrigation-bom.html Irrigation bill of materials calculator
-├── visitor.html        Public landing page
+├── visitor.html        Visitor hub — four tiles (See / Learn / Do / Share)
+├── see.html            Photo gallery — approved photos, zone filters, lightbox
+├── learn.html          Plant knowledge base — 26 plants, search + category
+├── do.html             Calculators — bed soil volume, harvest date
+├── share.html          Visit counter, moderated notes, share link
+├── bed.html            QR landing page — role-aware, reads ?b=CODE
+├── watch.html          Showcase video player
+├── features.html       Feature overview
 ├── about-grush.html    Redirect → getgrush.com
 │
 ├── grush-auth.js       Auth layer (operator gate, magic link, session)
+├── grush-nav.js        Shared nav/drawer/rail + page-view tracking
+├── grush-settings.js   Theme owner + settings console
+├── grush-shell.css     Shared shell layout
+├── i18n.js             Translation strings
 ├── lfg-config.js       Supabase URL + anon key + Cloudinary config
 ├── lfg-theme.css       Legacy theme tokens (older pages)
 │
 ├── lfg-logo-192.webp   App icon
+├── lfg-logo-512.webp   PWA icon (large)
 ├── lfg-logo-180.png    Apple touch icon
+├── lfg-emblem.svg      Emblem mark
+├── bed-qr-cards.pdf    Print-ready QR cards, 23 beds, 4-up
+├── bed-qr-test-sheet.pdf   Single-page scan test sheet
+├── LFG PO Bed QR Signs v004.docx   Purchase order, $45.63
+├── lancerfarms-showcase-16x9.mp4   Showcase video (landscape)
+├── lancerfarms-showcase-9x16.mp4   Showcase video (portrait)
+├── poster-16x9.jpeg / poster-9x16.jpeg   Video posters
+├── TEACHING-TOOL-CONCEPT.txt   Concept notes
 │
 └── CNAME               lancerfarms.com → GitHub Pages
 ```
 
 **Two design systems co-exist intentionally:**
-- **Old LFG style** (app, admin, manual, data, almanac, triage, howto, visitor): `IM Fell English` / `Source Sans 3` / `Courier Prime`. Earth tones: `#2A2620` bg, `#A8B89A` green, `#C9973F` amber.
+- **LFG style** (app, admin, manual, data, almanac, triage, howto, visitor, see, learn, do, share): `Fraunces` / `Source Sans 3` / `Courier Prime`. Earth tones: `#2A2620` paper, `#F0EDE2` ink, `#7E9A6E` green, `#A8B89A` leaf, `#C9973F` amber. `manual.html` moved off `IM Fell English` on Aug 5 2026; no page uses it now.
+  Canonical tokens: `--ink --ink-soft --paper --card --line --line-strong --green --leaf --amber`.
 - **Grush style** (mixbench, irrigation-bom): `Bricolage Grotesque` / `Source Serif 4` / `JetBrains Mono`. Navy/cyan/chartreuse: `#050a18`, `#00c8ff`, `#c8ff00`, `#ffb830`.
 
 ---
@@ -98,7 +119,7 @@ pattengalec/lancerfarms-v2 (branch: main)
 - Loads `grush-auth.js` for session detection
 - No database calls on load
 
-### app.html — Staff PWA (113KB)
+### app.html — Staff PWA (115KB)
 - Full farm operations interface, mobile-first
 - **Tabs:** Today's tasks · Areas · Log · Photos · How-to · Hub
 - **Hub menu** → Learn section links: Farm manual, How-to cards, Plant triage, Mix Bench, Irrigation BOM
@@ -107,14 +128,14 @@ pattengalec/lancerfarms-v2 (branch: main)
 - Area log entries → `lfg_log`
 - Loads: `grush-auth.js`, `lfg-config.js`, Supabase JS CDN
 
-### admin.html — Admin dashboard (98KB)
+### admin.html — Admin dashboard (104KB)
 - Operator-gated (requires email in `grush_operators` table)
 - Tabs: Areas · Tasks · Photos · Plants · Inventory · Requests · Settings
 - Full CRUD on all major tables
 - Photo approval queue (pending → approved/rejected)
 - Access request management
 
-### manual.html — Farm manual (110KB)
+### manual.html — Farm manual (113KB)
 - 6 topic cards: Soil · Concrete · Irrigation · Pest & Disease · Planting · Tools & Records
 - Each topic has tabs with inline calculators and reference data
 - **Nav links:** Staff App · Farm data · Almanac · **Mix Bench** · **Irrigation BOM**
@@ -179,10 +200,44 @@ Three tools in one file:
 - "What this does not include" table: gauge, tools, mulch, labor, zone valve work
 - Links back to manual.html and mixbench.html
 
-### visitor.html — Public landing (3KB)
-- Static public-facing page about the garden
-- Links to data.html and manual.html
+### visitor.html — Visitor hub (6KB)
+- Four tiles: **See**, **Learn**, **Do**, **Share** — the whole public shape in one screen
+- Shares the staff fork's visual language (82px tiles, Fraunces + Source Sans 3)
+- `NOT_BUILT` array marks tiles whose page does not exist yet; currently empty
 - Staff login link → index.html
+
+### see.html — Photo gallery (11KB)
+- Approved photos from `lfg_photos`, newest first, square grid (2-up phone / 3-up wider)
+- Zone filter chips built from real data; bed-code chips; captions
+- Lightbox with keyboard nav and Escape
+- `subject_type` shown as an inert chip — Learn crossover not yet wired
+
+### learn.html — Plant knowledge base (12KB)
+- 26 approved plants from `lfg_master_plants` with botanical name and summary
+- Search + category filters; detail sheet with facts and days-to-maturity
+- **Filters out 8 placeholder rows** that carry a category and nothing else
+- No plant photographs exist yet, so cards lead with the initial rather than a
+  grey rectangle implying an image is coming
+- Perennials show why days-to-maturity is absent rather than leaving a blank
+
+### do.html — Calculators (13KB)
+- **Bed soil volume** — reads the 23 real beds from `lfg_growing_areas`; cubic feet,
+  cubic yards, bags rounded up; fill depth pre-fills from `soil_depth_in`
+- **Harvest date** — the 14 annuals with `days_to_maturity`; planting date to
+  estimated harvest, with a check-from date a week earlier
+- Trees, berries and perennials are excluded from the harvest tool on purpose:
+  days-to-maturity does not apply to them and listing them would invite a false answer
+
+### share.html — Share (13KB)
+- Site view counter from `grush_total_views('lfg')`; shows an em dash, never 0, on failure
+- Moderated notes insert to `lfg_comments` with `status='new'`
+- Web Share API with copy-link fallback
+- Operator-only per-path breakdown via `GRUSH.isOperator()` (convenience, not security —
+  the SELECT policy on `grush_page_views` is permissive)
+
+### bed.html — QR bed landing (15KB)
+- Reads bed code from `?b=CODE` (uppercased); role-aware staff/visitor fork
+- Target of the 23 printed QR signs
 
 ### about-grush.html — Redirect (459 bytes)
 - `<meta http-equiv="refresh">` → getgrush.com
@@ -290,6 +345,9 @@ Same structure as LFG tables. `fgf_growing_areas` has 7 rows (mushroom station/c
 | `lfg_calendar(date,date)` | SQL stable | Invoker | public | Returns unified calendar projection across log/photos/completions/events/tasks |
 | `area_name_status(text)` | SQL stable | Invoker | public | Fuzzy name lookup for growing areas |
 | `notify_access_request()` | PLpgSQL trigger | **DEFINER** | public,extensions,vault,pg_temp | Sends Resend email on new access request. Must stay DEFINER for vault access |
+| `grush_track_view(text,text)` | PLpgSQL | **DEFINER** | public | The **only** write path into `grush_page_views`. Validates site, normalises path (keeps `?b=CODE` on bed.html, strips query elsewhere), rejects overlong/bad paths |
+| `grush_total_views(text)` | SQL | **DEFINER** | public | Site-wide view sum, used by share.html |
+| `grush_weekly_digest(text,boolean)` | PLpgSQL | **DEFINER** | public | Builds and emails the pending-decisions report. `p_send=false` is a dry run: no email, no snapshot. Pending counts mirror admin.html's queue exactly (`approval_status='pending'`) |
 
 ### Migrations (in order)
 1. `lfg_full_schema_replay` — full schema baseline
@@ -325,12 +383,37 @@ Same structure as LFG tables. `fgf_growing_areas` has 7 rows (mushroom station/c
 31. `lfg_growing_areas_code_and_coords` — code + lat/lng columns
 32. `add_bed_dimensions` — **width_ft, length_ft, soil_depth_in, sun_exposure** (Aug 4 2026)
 33. `fix_function_search_paths` — set_updated_at, lfg_calendar, area_name_status search paths fixed (Aug 4 2026)
+34. `grush_page_views_counter` — `grush_page_views` table + `grush_track_view()` (Aug 5 2026)
+35. `grush_total_views_function` — `grush_total_views()` (Aug 5 2026)
+36. `grush_weekly_digest` — `grush_view_snapshots` table + `grush_weekly_digest()` (Aug 5 2026)
+37. `grush_weekly_digest_fix_pending_predicates` — counted `approval_status<>'approved'`, which swept in **rejected** items and reported them as awaiting approval. Now `='pending'` (Aug 5 2026)
+38. `enable_pg_cron` — pg_cron extension (Aug 5 2026)
+39. `schedule_weekly_digest` — cron job `lfg-weekly-digest` (Aug 5 2026)
+40. `digest_heading_cadence_neutral` — heading "Farm week in review" → "Farm status", rewritten from the live definition rather than retyped (Aug 5 2026)
+41. `digest_twice_weekly` — schedule to Tuesday + Saturday (Aug 5 2026)
+
+### Scheduled jobs (pg_cron)
+
+| Job | Schedule | Command |
+|---|---|---|
+| `lfg-weekly-digest` | `0 14 * * 2,6` | `select public.grush_weekly_digest('lfg', true);` |
+
+- pg_cron evaluates schedules in **UTC**, and this database is set to UTC.
+  `14:00 UTC` = **07:00 America/Los_Angeles while PDT is in force**.
+- **DST, dated:** when PDT ends **Nov 1 2026** the send drifts to 06:00 local.
+  Reschedule to `0 15 * * 2,6` to hold 07:00, and reverse it in March.
+- The job is a handful of counts plus one HTTP call — no quiet window needed.
+  The time is chosen for when the report is worth reading.
+- Reschedule with `cron.schedule('lfg-weekly-digest', …)` — reusing the name
+  **replaces** the job. A new name would add a second job and double-send.
 
 ### RLS summary
 - **Public read:** growing areas (non-archived), config (except admin_password), photos (approved), master plants (approved), log, task completions, howto cards, people, inventory
 - **Operator write:** all tables — areas, tasks, photos, plants, log, events, comments, inventory, config, manual entries, howto cards
 - **Anon insert:** growing areas, log entries, comments, reports, requests, access requests, area events
 - **No public write:** config, operators table, settings
+- **`grush_page_views`:** RLS on, SELECT for anon+authenticated, **no INSERT/UPDATE policy** — all writes go through `grush_track_view()`
+- **`grush_view_snapshots`:** RLS on, **zero policies** — reachable only by the DEFINER digest function
 
 ---
 
@@ -419,12 +502,19 @@ Upload all 12 HTML files + grush-auth.js + lfg-config.js + lfg-theme.css + image
 
 ---
 
-## 11. Open items (as of Aug 4 2026)
+## 11. Open items (as of Aug 5 2026)
 
 | Item | Priority | Notes |
 |---|---|---|
 | Staff gate in mixbench.html wired to real auth | High | `GrushAuth.isOperator()` present; needs grush-auth.js → Supabase operator table integration tested end to end |
-| visitor.html content built out | Medium | Currently a minimal stub — three info cards and staff login link |
+| Plant illustrations | High | **All 34 plants have `stock_image_url` empty.** learn.html ships text-first by design. Planned mechanism: a GitHub Action fetching PD-only botanical illustrations from Wikimedia (`<Botanical name> - botanical illustrations`), restricted to PD-Old / CC-PD-Mark, recording source + author per image |
+| 8 placeholder rows in `lfg_master_plants` | Medium | Carry a category and nothing else — no name, no botanical name, no summary. learn.html filters them out; they should be deleted or completed |
+| `plant-autofill.ts` Edge Function | Medium | Written, **not deployed**. The unbuilt piece of the Learn/Do content pipeline |
+| `lfg_manual_entries` has 1 row | Medium | The manual's topic/tab system is nearly empty. The 7 written procedures live in `lfg_howto_cards` and are now listed on the manual home, but no topic mapping exists |
+| Financials tab | Medium | Stub only, under **Records** in admin.html. No financial table exists. Schema decision pending: plain ledger vs. ledger with purchase-order approval states |
+| DST reschedule of `lfg-weekly-digest` | Low | **Nov 1 2026** — see Scheduled jobs above |
+| Purchase order approver signature | Medium | `LFG PO Bed QR Signs v004.docx` — $45.63, unsigned. Approver not yet named |
+| Bed QR signs fabrication | Medium | Cards printed to `bed-qr-cards.pdf`; cedar/laminate/mount steps written as how-to cards parts 1–3. Signs not yet mounted, so per-bed view counts are all zero |
 | sun_exposure field populated | Low | All 23 beds currently `full`. Field exists for future beds under shade |
 | irrigation retrofit hardware purchased + installed | High | BOM at irrigation-bom.html. ~$838 + 15% contingency. Needs Facilities for controller reprogramming. |
 | Email to Julie Ratzlaff re: garden budget | High | Draft after Lanphere review Aug 17, Koo conversation Aug 18 |
@@ -434,9 +524,62 @@ Upload all 12 HTML files + grush-auth.js + lfg-config.js + lfg-theme.css + image
 
 ---
 
-## 12. Session history — major changes Aug 4 2026
+## 12. Session history
 
-This session added the following to the live site:
+### August 5, 2026
+
+**New files:**
+- `see.html` — photo gallery, 58 approved photos, zone filters, lightbox
+- `learn.html` — plant knowledge base, 26 plants, text-first
+- `do.html` — bed soil volume + harvest date calculators
+- `share.html` — visit counter, moderated notes, share link
+- `bed-qr-cards.pdf` — 23 print-ready QR cards, 4-up, error-correction H
+
+**Modified files:**
+- `visitor.html` — rebuilt as the four-tile hub; `NOT_BUILT` now empty, all tiles live
+- `admin.html` — **12 tabs consolidated into 5 groups** (Review / Work / Farm / Records / People).
+  Two tabs were both labelled "Requests": `lfg_requests` is now **Supplies**,
+  `lfg_access_requests` is **Requests**. The access-request tab had been in
+  position 12, off the right edge on a phone, which is why a request sat unseen
+  for three days. Panel markup and every `load*()` function were left untouched —
+  47 data-layer calls before and after. Sub-tabs are pills, not a second row of
+  underlined tabs, so the shape tells you which depth you are at.
+- `app.html` — Manual tile called `go('manual')`, but `#screen-manual` never
+  existed, so it cleared every panel and left the tool blank. Now opens
+  `manual.html`. `go()` falls back to the hub instead of blanking. Log tile's
+  text wrapper made a flex column — it had been rendering "LogActivity · problem · need"
+  on one line because the primary tile lays out in a row.
+- `manual.html` — restyled to repo conventions: `IM Fell English` → **Fraunces**;
+  palette rebuilt on the nine repo tokens with the old names kept as aliases;
+  body text was `--forest` (pale sage), now `--ink`; removed `maximum-scale=1.0`
+  which blocked pinch-zoom; added `color-scheme` meta; `Inter` was referenced
+  7× and never loaded. Removed the "← App" and Admin buttons and the duplicate
+  nav row — Mix Bench and Irrigation BOM existed **only** there, so they moved
+  into the drawer first. `--terra` was used but never defined, so the Remove
+  button rendered white text on no background. Added a **Field how-tos** list
+  surfacing all 7 `lfg_howto_cards` procedures, each linking to `howto.html?id=`.
+- `howto.html` — steps support an optional `url` + `url_label` button
+- `grush-nav.js` — page-view tracking on every page; staff pages excluded
+
+**Database:**
+- Migrations 34–41 (see list above): page-view counter, total-views function,
+  weekly digest, pending-predicate fix, pg_cron, schedule, heading, twice-weekly
+- `grush_page_views` — RLS on, read-only to clients; `grush_track_view()` is the only writer
+- `grush_view_snapshots` — RLS on, **no policies**; only the digest function reaches it
+- Digest scheduled **Tuesday + Saturday 07:00 Pacific**; first send delivered and confirmed
+- How-to cards: bed QR signs split into **parts 1–3** (5 / 7 / 7 steps)
+
+**Corrections made to earlier assumptions during this session:**
+- The 8 problem rows in `lfg_master_plants` are fully blank placeholders, not
+  named plants missing a botanical name
+- The 12 plants without `days_to_maturity` are all trees, shrubs or perennials.
+  The data is complete wherever the measure applies — Do was never blocked
+- Shipping Learn without images does not violate the accuracy rule. The rule is
+  don't fabricate; an honest blank is fine
+
+---
+
+### August 4, 2026
 
 **New files:**
 - `mixbench.html` — Mix Bench teaching configurator + chemical estimator + water demand calculator + irrigation BOM (all in one)
@@ -459,4 +602,6 @@ This session added the following to the live site:
 
 ---
 
-*README generated August 4, 2026. Verified against live site lancerfarms.com and Supabase project gblizuknnvguxyxfequh.*
+*README updated August 5, 2026. Every figure in this document was verified against
+the live site and Supabase project `gblizuknnvguxyxfequh` at time of writing —
+file sizes from the repository tree, row counts and policies from the database.*
