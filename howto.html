@@ -296,7 +296,8 @@ function render(){
     w.innerHTML='<div class="step-ic">'+iconFor(it.text,idx)+'</div>'
       +(it.prep?'<div style="text-align:center"><span class="prep-chip">\uD83D\uDD52 Day-before step</span></div>':'')
       +'<div class="step-n">Step '+sn+' of '+totalSteps+'</div>'
-      +'<div class="step-t">'+esc(it.text)+'</div>';
+      +'<div class="step-t">'+esc(it.text)+'</div>'
+      +(it.url?'<div style="text-align:center;margin-top:14px"><a href="'+esc(it.url)+'" target="_blank" rel="noopener" style="display:inline-block;background:var(--leaf);color:var(--paper);text-decoration:none;border-radius:999px;padding:11px 20px;font-weight:600;font-size:.95rem">'+esc(it.url_label||'Open')+'</a></div>':'');
     document.getElementById('s-next').innerHTML=(idx===seq.length-1)?'Finish \u2713':'Next \u2192';
   }
 }
