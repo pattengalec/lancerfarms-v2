@@ -1,1 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Feature Guide · Lancer Farms &amp; Gardens</title>
+<meta name="description" content="Everything on the Lancer Farms site — the free visitor side and the Grush-powered staff side — explained page by page.">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@300;400;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   features.html — the page the showcase film points at.
+
+   WHY IT EXISTS. The film names a dozen features in thirty seconds
+   and then ends. Anyone interested enough to want detail had
+   nowhere to go. This is that landing.
+
+   STRUCTURE MIRRORS THE FILM: free side first, Grush side second,
+   same order, same names, and the palette flips at the same point.
+   Someone arriving straight off the video should recognise where
+   they are without being told.
+
+   EVERY ENTRY LINKS TO THE REAL PAGE. If a link 404s, the feature
+   was renamed and this guide went stale — that is the intended
+   failure mode, loud rather than silent.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#2A2620; --card:#34302A; --line:#45423A;
+  --ink:#F0EDE2; --soft:#B0A99C; --leaf:#A8B89A; --green:#7E9A6E; --amber:#C9973F;
+  --g-bg:#050A18; --g-card:#0C1424; --g-line:#1C2C44;
+  --g-ink:#E6F1FA; --g-soft:#7E94AA; --g-cyan:#00C8FF; --g-lime:#C8FF00;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);
+  font-family:'Source Sans 3','Helvetica Neue',sans-serif;font-size:17px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:720px;margin:0 auto;padding:0 22px}
+h1,h2{font-family:'Fraunces',Georgia,serif;font-weight:600;line-height:1.08}
+h1{font-size:clamp(34px,7.2vw,56px)}
+h2{font-size:clamp(26px,5vw,38px)}
+p{color:var(--soft);margin:0 0 16px}
+a{color:var(--amber);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+.kick{font-family:'Courier Prime',monospace;font-size:12px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--leaf);margin-bottom:12px}
+.top{padding:60px 0 46px;border-bottom:1px solid var(--line)}
+.rule{width:44px;height:2px;background:var(--green);margin:18px 0 24px}
+.pill{display:inline-block;font-family:'Courier Prime',monospace;font-size:11.5px;
+  letter-spacing:.16em;text-transform:uppercase;border:1px solid var(--line);
+  border-radius:999px;padding:6px 14px;color:var(--leaf);margin-top:8px}
+
+/* one feature: name, what it does, where it lives */
+.f{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:20px 22px;margin-bottom:14px;transition:border-color .18s,transform .18s}
+.f:hover{border-color:var(--green);transform:translateY(-2px);text-decoration:none}
+.f b{display:block;font-family:'Fraunces',serif;font-size:20px;font-weight:600;
+  color:var(--ink);margin-bottom:5px}
+.f span{display:block;font-size:15.5px;color:var(--soft)}
+.f code{display:inline-block;margin-top:9px;font-family:'Courier Prime',monospace;
+  font-size:12.5px;letter-spacing:.06em;color:var(--green)}
+.sec{padding:48px 0}
+
+/* the Grush half — same components, flipped ground */
+.grush{background:var(--g-bg);color:var(--g-ink);border-top:1px solid var(--g-line);padding:56px 0}
+.grush .kick{color:var(--g-lime)}
+.grush p{color:var(--g-soft)}
+.grush .rule{background:var(--g-cyan)}
+.grush .pill{border-color:var(--g-line);color:var(--g-lime)}
+.grush .f{background:var(--g-card);border-color:var(--g-line)}
+.grush .f:hover{border-color:var(--g-cyan)}
+.grush .f b{color:var(--g-ink)}
+.grush .f span{color:var(--g-soft)}
+.grush .f code{color:var(--g-cyan)}
+.note{border-left:3px solid var(--g-cyan);padding:12px 0 12px 16px;
+  background:rgba(0,200,255,.06);border-radius:0 8px 8px 0;font-size:15px;margin:22px 0}
+.cta{padding:52px 0 68px;text-align:center;border-top:1px solid var(--g-line);
+  background:var(--g-bg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:54px;
+  padding:0 28px;border-radius:999px;background:var(--g-cyan);color:#04121C;
+  font-weight:600;letter-spacing:.05em;font-size:15px;margin:6px}
+.btn.ghost{background:transparent;border:2px solid var(--g-line);color:var(--g-ink)}
+.btn:hover{text-decoration:none}
+footer{padding:24px 0 40px;text-align:center;font-family:'Courier Prime',monospace;
+  font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--g-line);
+  background:var(--g-bg)}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="wrap">
+  <p class="kick">Feature guide</p>
+  <h1>Everything on this site.</h1>
+  <div class="rule"></div>
+  <p style="font-size:19px">One farm, two doors. The visitor side is free and always will be. The staff side is <a href="about-grush.html">Grush</a>, the software the crew runs the garden on. Here is what is behind each one.</p>
+</div></div>
+
+<!-- ── FREE ─────────────────────────────────────────────────── -->
+<section class="sec"><div class="wrap">
+  <p class="kick">The visitor side</p>
+  <h2>Free. Always.</h2>
+  <div class="rule"></div>
+  <p>No login, no account, nothing to sign. Anyone can walk up and read the farm.</p>
+  <span class="pill">English &middot; Español &middot; Français &middot; Português</span>
+
+  <div style="margin-top:28px">
+    <a class="f" href="visitor.html"><b>Welcome &amp; orientation</b>
+      <span>What the garden is, who runs it, and what you are looking at when you stand in it.</span>
+      <code>visitor.html</code></a>
+
+    <a class="f" href="data.html"><b>Live farm data</b>
+      <span>What is planted in which bed, what was sown when, and what has come out of the ground. Updated by the crew as they work, not typed up later.</span>
+      <code>data.html</code></a>
+
+    <a class="f" href="almanac.html"><b>Seasonal almanac</b>
+      <span>Sun, frost dates and the growing calendar for Riverside, zone 9b. What to plant now, and what is already too late.</span>
+      <code>almanac.html</code></a>
+
+    <a class="f" href="howto.html"><b>How-to cards</b>
+      <span>Short, single-task guides for the jobs that come up in a garden. Written to be read standing up with dirty hands.</span>
+      <code>howto.html</code></a>
+
+    <a class="f" href="manual.html"><b>Field manual</b>
+      <span>The long-form reference behind the cards — methods, reasoning and the things that go wrong.</span>
+      <code>manual.html</code></a>
+
+    <a class="f" href="bed.html"><b>Bed pages</b>
+      <span>Every bed carries a QR code on a stake. Scan it and you get that bed's history. Visitors see what is growing; staff see the log.</span>
+      <code>bed.html</code></a>
+  </div>
+</div></section>
+
+<!-- ── GRUSH ────────────────────────────────────────────────── -->
+<section class="grush"><div class="wrap">
+  <p class="kick">The staff side</p>
+  <h2>Powered by Grush.</h2>
+  <div class="rule"></div>
+  <p>The management layer the crew actually runs on. Same site, same data, different door.</p>
+  <span class="pill">Row-level security &middot; Roles</span>
+
+  <div style="margin-top:28px">
+    <a class="f" href="app.html"><b>Staff field tool</b>
+      <span>Log work, tasks and supplies from a phone, outdoors, in gloves. The screen everything else is built around.</span>
+      <code>app.html</code></a>
+
+    <a class="f" href="admin.html"><b>Admin &amp; approvals</b>
+      <span>Crew roster, access requests, and the queue where submitted work gets reviewed before it becomes part of the record.</span>
+      <code>admin.html</code></a>
+
+    <a class="f" href="triage.html"><b>Plant triage</b>
+      <span>Walk a sick plant through symptoms and get to a likely cause and a next action, instead of guessing.</span>
+      <code>triage.html</code></a>
+
+    <a class="f" href="mixbench.html"><b>Mix bench</b>
+      <span>Work out soil, amendment and solution mixes to the volume actually needed. No arithmetic on the back of a seed packet.</span>
+      <code>mixbench.html</code></a>
+
+    <a class="f" href="irrigation-bom.html"><b>Irrigation planning</b>
+      <span>Lay out a run and get the parts list and quantities that come with it.</span>
+      <code>irrigation-bom.html</code></a>
+  </div>
+
+  <div class="note"><strong>Photo pipeline.</strong> Photos taken in the field upload from the phone, land in a moderation queue, and only appear publicly once an operator approves them. Nothing reaches the visitor side unreviewed.</div>
+
+  <div class="note"><strong>Honest blanks.</strong> Where the farm has no data, the site says so. It never fills a gap with a plausible guess — a wrong planting date is worse than an empty one.</div>
+</div></section>
+
+<div class="cta"><div class="wrap">
+  <h2 style="color:var(--g-ink)">Run your own on it.</h2>
+  <p style="max-width:44ch;margin:14px auto 6px">Grush is one system deployed to many sites. Lancer Farms is the first.</p>
+  <a class="btn" href="about-grush.html">About Grush</a>
+  <a class="btn ghost" href="https://getgrush.com">Every deployment &rarr;</a>
+  <br><a class="btn ghost" href="index.html" style="margin-top:14px">&larr; Back to the farm</a>
+</div></div>
+
+<div class="wrap"><p style="font-size:13.5px;line-height:1.55;color:#8A8478;border-top:1px solid #1C2C44;padding-top:18px;margin-top:30px">This website and the tools within it are independently created and maintained &mdash; they are not an official product of, affiliated with, or endorsed by California Baptist University.</p></div>
+<footer>Lancer Farms &amp; Gardens &middot; Managed by Grush</footer>
+</body>
+</html>
 
