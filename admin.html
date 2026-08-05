@@ -54,6 +54,17 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 .tab-btn.active { opacity:1; color:var(--ink); border-bottom-color:var(--accent); }
 .tab-btn:hover { opacity:0.9; }
 
+/* Sub-tabs sit one level down and must not read as more top-level tabs:
+   pill shapes, filled when active, versus the underlined uppercase group tabs. */
+.subtab-bar { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:8px 0 2px; }
+.subtab-bar::-webkit-scrollbar { display:none; }
+.subtab-btn { font-family:'Courier Prime',monospace; font-size:0.66rem; text-transform:uppercase;
+  letter-spacing:0.05em; padding:6px 12px; border-radius:999px; border:1px solid var(--card-border);
+  background:none; color:var(--ink-soft); cursor:pointer; white-space:nowrap; }
+.subtab-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.subtab-bar[hidden] { display:none; }
+.group-badge { display:none; }
+
 /* ── PANELS ── */
 .tab-panel { display:none; flex:1; padding:24px; flex-direction:column; gap:16px; }
 .tab-panel.active { display:flex; }
@@ -215,20 +226,8 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
           <button class="btn btn-ghost btn-sm" onclick="signOut()">Sign out</button>
         </div>
       </div>
-      <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('review',this);loadReview()">Review <span class="badge" id="review-count" style="display:none"></span></button>
-        <button class="tab-btn" onclick="switchTab('dashboard',this)">Dashboard</button>
-        <button class="tab-btn" onclick="switchTab('tasks',this);ensureAdminHowtos()">Tasks</button>
-        <button class="tab-btn" onclick="switchTab('areas',this)">Areas</button>
-        <button class="tab-btn" onclick="switchTab('inventory',this)">Inventory</button>
-        <button class="tab-btn" onclick="switchTab('reports',this)">Reports</button>
-        <button class="tab-btn" onclick="switchTab('requests',this)">Requests</button>
-        <button class="tab-btn" onclick="switchTab('log',this)">Field Log</button>
-        <button class="tab-btn" onclick="switchTab('comments',this)">Comments</button>
-        <button class="tab-btn" onclick="switchTab('completions',this)">Task Log</button>
-        <button class="tab-btn" onclick="switchTab('crew',this);loadCrewAdmin()">Crew</button>
-        <button class="tab-btn" onclick="switchTab('access',this);loadAccessRequests()">Requests <span class="badge" id="access-count" style="display:none"></span></button>
-      </div>
+      <div class="tab-bar" id="group-bar"></div>
+      <div class="subtab-bar" id="subtab-bar"></div>
     </div>
 
     <!-- Everything below scrolls; the header above does not. -->
@@ -658,6 +657,11 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
          OPERATOR request is deliberately NOT one tap: an operator can publish
          to the public site and delete records, so that row goes in by hand.
          The friction is the point. -->
+    <div class="tab-panel" id="tab-financials">
+      <div class="section-label">Financials</div>
+      <div class="empty-state">Not built yet. Purchases, approvals and receipts will live here.</div>
+    </div>
+
     <div class="tab-panel" id="tab-access">
       <div class="section-label">Waiting</div>
       <div class="data-list" id="access-list"><div class="empty-state"><span class="spinner"></span> Loading&hellip;</div></div>
@@ -1941,5 +1945,127 @@ document.addEventListener('grush:auth', (e) => {
 });
 </script>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
+
+<script>
+/* ── Tab grouping ────────────────────────────────────────────────────────
+   The panel markup and every load*() function below are untouched. This only
+   changes how you reach them: twelve flat tabs became five groups, because a
+   pending item parked in tab twelve is a pending item nobody sees. Two tabs
+   were both labelled "Requests" — one is lfg_requests (supplies), the other is
+   lfg_access_requests (people asking to join). They are now named apart. */
+(function () {
+  var GROUPS = [
+    { key:'review',  label:'Review',  tabs:[
+      { name:'review',      label:'Queue',     run:'loadReview',          badge:'review-count' },
+      { name:'access',      label:'Requests',  run:'loadAccessRequests',  badge:'access-count' },
+      { name:'reports',     label:'Reports' },
+      { name:'requests',    label:'Supplies' },
+      { name:'dashboard',   label:'Overview' } ] },
+    { key:'work',    label:'Work',    tabs:[
+      { name:'tasks',       label:'Tasks',     run:'ensureAdminHowtos' },
+      { name:'completions', label:'Task log' } ] },
+    { key:'farm',    label:'Farm',    tabs:[
+      { name:'areas',       label:'Areas' },
+      { name:'inventory',   label:'Inventory' } ] },
+    { key:'records', label:'Records', tabs:[
+      { name:'log',         label:'Field log' },
+      { name:'comments',    label:'Comments' },
+      { name:'financials',  label:'Financials' } ] },
+    { key:'people',  label:'People',  tabs:[
+      { name:'crew',        label:'Crew',      run:'loadCrewAdmin' } ] }
+  ];
+
+  var groupBar = document.getElementById('group-bar');
+  var subBar   = document.getElementById('subtab-bar');
+  if (!groupBar || !subBar) return;
+
+  function call(fn){ try { if (fn && typeof window[fn] === 'function') window[fn](); } catch(e){} }
+
+  function showPanel(name){
+    document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+    var el = document.getElementById('tab-' + name);
+    if (el) el.classList.add('active');
+  }
+
+  function openGroup(gi, ti){
+    var g = GROUPS[gi];
+    groupBar.querySelectorAll('.tab-btn').forEach(function(b,i){
+      b.classList.toggle('active', i === gi);
+    });
+
+    subBar.innerHTML = '';
+    subBar.hidden = g.tabs.length < 2;
+    g.tabs.forEach(function(t, i){
+      var b = document.createElement('button');
+      b.className = 'subtab-btn' + (i === ti ? ' active' : '');
+      b.textContent = t.label;
+      if (t.badge){
+        var sp = document.createElement('span');
+        sp.className = 'badge'; sp.id = t.badge;
+        sp.style.display = 'none';
+        b.appendChild(document.createTextNode(' '));
+        b.appendChild(sp);
+      }
+      b.addEventListener('click', function(){ openGroup(gi, i); });
+      subBar.appendChild(b);
+    });
+
+    var t = g.tabs[ti];
+    showPanel(t.name);
+    call(t.run);
+    syncBadges();
+  }
+
+  GROUPS.forEach(function(g, gi){
+    var b = document.createElement('button');
+    b.className = 'tab-btn' + (gi === 0 ? ' active' : '');
+    b.textContent = g.label;
+    if (g.key === 'review'){
+      var sp = document.createElement('span');
+      sp.className = 'badge'; sp.id = 'group-badge-review';
+      sp.style.display = 'none';
+      b.appendChild(document.createTextNode(' '));
+      b.appendChild(sp);
+    }
+    b.addEventListener('click', function(){ openGroup(gi, 0); });
+    groupBar.appendChild(b);
+  });
+
+  /* The group badge is the sum of the queue and the access requests, so the
+     number you see on the closed group is the number of decisions waiting. */
+  function syncBadges(){
+    var a = document.getElementById('review-count');
+    var c = document.getElementById('access-count');
+    var n = (parseInt(a && a.textContent, 10) || 0) + (parseInt(c && c.textContent, 10) || 0);
+    var g = document.getElementById('group-badge-review');
+    if (g){ g.textContent = n || ''; g.style.display = n ? 'inline-flex' : 'none'; }
+  }
+  setInterval(syncBadges, 2500);
+
+  /* Existing code calls switchTab(name) directly from stat cards and links.
+     Keep it working, and move the group highlight with it. */
+  var raw = window.switchTab;
+  window.switchTab = function(name, btn){
+    for (var gi = 0; gi < GROUPS.length; gi++){
+      for (var ti = 0; ti < GROUPS[gi].tabs.length; ti++){
+        if (GROUPS[gi].tabs[ti].name === name){ openGroup(gi, ti); return; }
+      }
+    }
+    if (typeof raw === 'function') raw(name, btn);
+  };
+
+  /* Stat cards belong beside the queue: what needs doing and how the farm is
+     doing, on one screen. The rest of the dashboard stays where it was. */
+  function liftStats(){
+    var stats = document.getElementById('stat-grid');
+    var review = document.getElementById('tab-review');
+    if (stats && review && stats.parentNode !== review) review.insertBefore(stats, review.firstChild);
+  }
+
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', function(){ liftStats(); openGroup(0,0); });
+  else { liftStats(); openGroup(0,0); }
+})();
+</script>
 </body>
 </html>
