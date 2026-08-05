@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>Share — Lancer Farms &amp; Gardens</title>
+<meta name="description" content="Leave a note for Lancer Farms &amp; Gardens, and see how many people have visited.">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+<style>
+  :root{
+    --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+    --line:#45423A; --line-strong:#5A554A;
+    --green:#7E9A6E; --leaf:#A8B89A; --amber:#C9973F;
+    --shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; min-height:100%;}
+  body{font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink);
+    background:var(--paper); -webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Fraunces',Georgia,serif; font-weight:600; margin:0;}
+
+  .wrap{max-width:420px; margin:0 auto; padding:32px 24px 48px;}
+  .back{display:inline-block; font-size:13px; color:var(--leaf); text-decoration:none; margin-bottom:20px;}
+  .back:hover{color:var(--ink);}
+  h1{font-size:28px; margin-bottom:4px;}
+  .lede{color:var(--ink-soft); font-size:14px; line-height:1.5; margin:0 0 26px;}
+
+  /* Counter — the signature of this page. The number is set in the display
+     face at a size nothing else on the site uses, so it reads as a fact
+     about the farm rather than a UI statistic. */
+  .counter{background:var(--card); border:1.5px solid var(--line-strong); border-radius:20px;
+    padding:22px 24px; margin-bottom:16px; text-align:center; box-shadow:var(--shadow);}
+  .counter .n{font-family:'Fraunces',Georgia,serif; font-weight:600; font-size:46px;
+    line-height:1; color:var(--leaf); letter-spacing:-1px;}
+  .counter .n.pending{color:var(--line-strong);}
+  .counter .lbl{font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-soft); margin-top:8px;}
+
+  .btn{width:100%; min-height:58px; border-radius:20px; border:1.5px solid var(--line-strong);
+    background:var(--card); color:var(--ink); font-family:inherit; font-size:17px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:16px;
+    box-shadow:var(--shadow); transition:transform .1s;}
+  .btn:active{transform:scale(.98);}
+  .btn:focus-visible{outline:3px solid var(--leaf); outline-offset:3px;}
+  .btn-go{background:var(--green); color:#fff; border-color:var(--green);}
+
+  h2{font-size:19px; margin:30px 0 10px;}
+  .note{font-size:12.5px; color:var(--ink-soft); line-height:1.5; margin:0 0 14px;}
+
+  .in{width:100%; min-height:50px; background:var(--card); color:var(--ink);
+    border:1.5px solid var(--line-strong); border-radius:12px; padding:13px 14px;
+    font-family:inherit; font-size:16px; margin-bottom:10px;}
+  textarea.in{min-height:96px; resize:vertical;}
+  .in:focus{outline:none; border-color:var(--leaf);}
+  .msg{font-size:13.5px; line-height:1.45; min-height:1.2em; color:var(--ink-soft); margin-bottom:10px;}
+  .msg.bad{color:var(--amber);}
+  .msg.good{color:var(--leaf);}
+
+  .cmt{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:14px 15px; margin-bottom:9px;}
+  .cmt .who{font-weight:600; font-size:14.5px;}
+  .cmt .when{font-size:11px; color:var(--ink-soft); letter-spacing:.06em; text-transform:uppercase; margin-left:8px;}
+  .cmt .txt{font-size:14.5px; line-height:1.55; color:var(--ink-soft); margin-top:6px; white-space:pre-wrap;}
+  .empty{font-size:14px; color:var(--ink-soft); line-height:1.55;}
+
+  /* Operator breakdown. The rows are readable by anyone with the anon key —
+     this panel is a convenience, not a security boundary. */
+  #ops{display:none; margin-top:34px; border-top:1px solid var(--line); padding-top:22px;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{text-align:left; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-soft); font-weight:600; padding:6px 0; border-bottom:1px solid var(--line);}
+  td{padding:8px 0; border-bottom:1px solid var(--line); color:var(--ink-soft);}
+  td.v{text-align:right; color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  td.p{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px;}
+
+  footer{margin-top:36px; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--line-strong); text-align:center;}
+  footer a{color:var(--line-strong); text-decoration:none;}
+
+  @media (prefers-reduced-motion: reduce){ .btn{transition:none;} .btn:active{transform:none;} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="back" href="visitor.html">&larr; Back to the farm</a>
+
+  <h1>Share</h1>
+  <p class="lede">Leave a note for the crew, or pass the farm along to someone else.</p>
+
+  <div class="counter">
+    <div class="n pending" id="views">&mdash;</div>
+    <div class="lbl" id="views-lbl">Page views</div>
+  </div>
+
+  <button class="btn btn-go" id="share-btn">
+    <span>&#128279;</span><span>Share the farm</span>
+  </button>
+
+  <h2>Leave a note</h2>
+  <p class="note">Notes are read by the caretaker team before they appear here, so yours
+    will not show up straight away.</p>
+
+  <input class="in" id="c-name" type="text" maxlength="60" placeholder="Your name" autocomplete="name">
+  <textarea class="in" id="c-msg" maxlength="1000" placeholder="What did you see? What did you think?"></textarea>
+  <div class="msg" id="c-out"></div>
+  <button class="btn" id="c-send">Send note</button>
+
+  <h2>Notes from visitors</h2>
+  <div id="cmts"><p class="empty">Loading notes&hellip;</p></div>
+
+  <section id="ops">
+    <h2 style="margin-top:0">Where people go</h2>
+    <p class="note">Visible to operators. Bed rows appear once the QR signs are up.</p>
+    <table>
+      <thead><tr><th>Page</th><th style="text-align:right">Views</th></tr></thead>
+      <tbody id="ops-rows"></tbody>
+    </table>
+  </section>
+
+  <footer><a href="https://getgrush.com">managed by grush</a></footer>
+</div>
+
+<script>
+/* Reuse grush-auth's client so a signed-in operator's JWT rides along — that
+   is what lets the breakdown and any pending notes resolve under RLS. */
+const sb = GRUSH.sb;
+const SITE = (window.LFG_CONFIG && window.LFG_CONFIG.SITE) || 'lfg';
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+function when(ts){
+  if(!ts) return '';
+  const d = new Date(ts), now = new Date();
+  const days = Math.floor((now - d) / 86400000);
+  if(days < 1) return 'today';
+  if(days === 1) return 'yesterday';
+  if(days < 30) return days + ' days ago';
+  return d.toLocaleDateString(undefined, { month:'short', year:'numeric' });
+}
+
+/* ── view counter ───────────────────────────────────────────────────────
+   grush-nav parks this load's count on window.GRUSH_PAGE_VIEWS, but that is
+   this page only. The headline number is the whole site, so it needs its
+   own call. */
+async function loadViews(){
+  const el = document.getElementById('views');
+  try{
+    const { data, error } = await sb.rpc('grush_total_views', { p_site: SITE });
+    if(error) throw error;
+    const n = Number(data) || 0;
+    el.textContent = n.toLocaleString();
+    el.classList.remove('pending');
+    document.getElementById('views-lbl').textContent = n === 1 ? 'Page view' : 'Page views';
+  }catch(e){
+    /* A counter that cannot load says so plainly rather than showing a zero
+       that would read as "nobody has been here". */
+    el.textContent = '\u2014';
+    document.getElementById('views-lbl').textContent = 'Count unavailable';
+  }
+}
+
+/* ── share ──────────────────────────────────────────────────────────── */
+document.getElementById('share-btn').addEventListener('click', async function(){
+  const url = location.origin + '/visitor.html';
+  const data = { title: 'Lancer Farms & Gardens',
+                 text: 'A student-run teaching garden at Cal Baptist.', url: url };
+  try{
+    if(navigator.share){ await navigator.share(data); return; }
+    await navigator.clipboard.writeText(url);
+    this.querySelector('span:last-child').textContent = 'Link copied';
+    setTimeout(() => { this.querySelector('span:last-child').textContent = 'Share the farm'; }, 2200);
+  }catch(e){ /* dismissed, or no permission — nothing to report */ }
+});
+
+/* ── notes ──────────────────────────────────────────────────────────── */
+async function loadComments(){
+  const box = document.getElementById('cmts');
+  try{
+    const { data, error } = await sb.from('lfg_comments')
+      .select('commenter_name,message,submitted_at,status')
+      .order('submitted_at', { ascending: false }).limit(50);
+    if(error) throw error;
+    if(!data || !data.length){
+      box.innerHTML = '<p class="empty">No notes yet. Yours would be the first.</p>';
+      return;
+    }
+    box.innerHTML = data.map(function(c){
+      const pend = c.status !== 'reviewed'
+        ? ' <span class="when" style="color:var(--amber)">awaiting review</span>' : '';
+      return '<div class="cmt"><span class="who">' + esc(c.commenter_name) + '</span>'
+           + '<span class="when">' + esc(when(c.submitted_at)) + '</span>' + pend
+           + '<div class="txt">' + esc(c.message) + '</div></div>';
+    }).join('');
+  }catch(e){
+    box.innerHTML = '<p class="empty">Notes could not be loaded. Try again in a moment.</p>';
+  }
+}
+
+document.getElementById('c-send').addEventListener('click', async function(){
+  const name = document.getElementById('c-name').value.trim();
+  const msg  = document.getElementById('c-msg').value.trim();
+  const out  = document.getElementById('c-out');
+  out.className = 'msg';
+
+  if(!name){ out.className='msg bad'; out.textContent='Add your name so the crew knows who wrote it.'; return; }
+  if(msg.length < 2){ out.className='msg bad'; out.textContent='Write a note before sending.'; return; }
+
+  this.disabled = true;
+  out.textContent = 'Sending\u2026';
+  /* status is left to its default of 'new'. RLS only accepts an insert at
+     'new' from a visitor, which is the moderation gate. */
+  const { error } = await sb.from('lfg_comments')
+    .insert({ commenter_name: name, message: msg });
+  this.disabled = false;
+
+  if(error){
+    out.className = 'msg bad';
+    out.textContent = 'That did not send. Check your connection and try again.';
+    return;
+  }
+  out.className = 'msg good';
+  out.textContent = 'Sent. The crew will read it before it appears here.';
+  document.getElementById('c-msg').value = '';
+  loadComments();
+});
+
+/* ── operator breakdown ─────────────────────────────────────────────── */
+async function loadOps(){
+  try{
+    const ok = await GRUSH.isOperator();
+    if(!ok) return;
+  }catch(e){ return; }
+
+  try{
+    const { data, error } = await sb.from('grush_page_views')
+      .select('path,views').eq('site', SITE)
+      .order('views', { ascending: false }).limit(40);
+    if(error) throw error;
+    const rows = document.getElementById('ops-rows');
+    rows.innerHTML = (data && data.length)
+      ? data.map(r => '<tr><td class="p">' + esc(r.path) + '</td><td class="v">'
+          + Number(r.views).toLocaleString() + '</td></tr>').join('')
+      : '<tr><td class="p">No pages counted yet</td><td class="v">0</td></tr>';
+    document.getElementById('ops').style.display = 'block';
+  }catch(e){ /* leave the panel hidden */ }
+}
+
+loadViews();
+loadComments();
+loadOps();
+</script>
+
+<script>
+  window.GRUSH_NAV = { rail: false, title: 'Lancer Farms' };
+</script>
+<script src="grush-nav.js"></script>
+
+</body>
+</html>
