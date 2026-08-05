@@ -145,6 +145,37 @@ html, body {
 }
 .topic-card:active { transform: scale(0.97); box-shadow: 0 1px 3px var(--card-shadow); }
 
+/* Field how-tos are procedures, not topics, so they are a list of rows rather
+   than another grid of squares — the shape says which kind of thing it is. */
+.howto-wrap { padding: 0 0.75rem 5.5rem; }
+.howto-head {
+  font-family: var(--font-head); font-weight: 600; font-size: 1rem;
+  color: var(--ink); padding: 0.25rem 0.25rem 0.15rem;
+}
+.howto-sub {
+  font-size: 0.72rem; color: var(--cream-dim);
+  padding: 0 0.25rem 0.6rem;
+}
+.howto-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: var(--card-bg); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 0.7rem 0.8rem; margin-bottom: 0.5rem;
+  text-decoration: none; color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+.howto-row:active { transform: scale(0.99); }
+.howto-row .ht { font-size: 0.85rem; font-weight: 600; line-height: 1.25; }
+.howto-row .hs {
+  font-size: 0.72rem; color: var(--cream-dim); line-height: 1.4; margin-top: 0.15rem;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.howto-row .hn {
+  flex: 0 0 auto; font-family: var(--font-mono); font-size: 0.62rem;
+  color: var(--lime-pale); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0.15rem 0.5rem; white-space: nowrap;
+}
+.howto-empty { font-size: 0.78rem; color: var(--cream-dim); padding: 0.5rem 0.25rem; }
+
 .topic-card .card-icon { font-size: 2rem; margin-bottom: 0.4rem; display: block; }
 .topic-card .card-title {
   font-family: var(--font-head);
@@ -558,6 +589,16 @@ html, body {
       <div class="card-desc">Observation log, harvest notes, experiment tracking</div>
       <span class="card-badge">Log</span>
     </div>
+  </div>
+
+  <!-- The written procedures live in lfg_howto_cards and were previously
+       unreachable from here. They are listed rather than folded into the
+       topics because no topic column exists, and inventing one would be
+       guessing at where each belongs. -->
+  <div class="howto-wrap">
+    <div class="howto-head">Field how-tos</div>
+    <div class="howto-sub">Step-by-step procedures written up on the farm.</div>
+    <div id="howto-list"><div class="howto-empty">Loading&hellip;</div></div>
   </div>
 </div>
 
@@ -1343,6 +1384,39 @@ document.addEventListener('change', function(e) {
 const SUPA_URL = window.LFG_CONFIG.SUPABASE_URL;
 const SUPA_KEY = window.LFG_CONFIG.SUPABASE_ANON_KEY;
 
+/* Lists the how-to cards on the home screen. Each links into howto.html,
+   which already renders a single card from ?id= — so this adds a way in,
+   not a second renderer that could drift from the first. */
+async function loadHowtos() {
+  const box = document.getElementById('howto-list');
+  if (!box) return;
+  try {
+    const rows = await supaFetch(
+      'lfg_howto_cards?archived_at=is.null&select=id,title,summary,steps&order=title.asc');
+    if (!rows || !rows.length) {
+      box.innerHTML = '<div class="howto-empty">No procedures written up yet.</div>';
+      return;
+    }
+    box.innerHTML = rows.map(function (c) {
+      const esc = function (x) {
+        return String(x == null ? '' : x).replace(/[&<>"']/g, function (m) {
+          return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
+      };
+      const steps = Array.isArray(c.steps) ? c.steps.length : 0;
+      /* Summary is genuinely null on some cards. An empty line is honest;
+         a generated one would not be. */
+      const sub = c.summary ? '<div class="hs">' + esc(c.summary) + '</div>' : '';
+      const cnt = steps ? '<span class="hn">' + steps + ' steps</span>' : '';
+      return '<a class="howto-row" href="howto.html?id=' + encodeURIComponent(c.id) + '">'
+           + '<span><span class="ht">' + esc(c.title) + '</span>' + sub + '</span>'
+           + cnt + '</a>';
+    }).join('');
+  } catch (e) {
+    box.innerHTML = '<div class="howto-empty">The how-to list could not be loaded. '
+                  + 'Pull down to reload.</div>';
+  }
+}
+
 async function supaFetch(path, options = {}) {
   // GRUSH.headers() is awaited per request, so the bearer token is the
   // signed-in operator's JWT when there is one and the anon key otherwise.
@@ -1838,6 +1912,7 @@ function showToast(msg) {
      staff tool; that session is shared, so the edit controls still appear
      here for an operator and stay hidden for everyone else. */
   updateAdminUI();
+  loadHowtos();
 
   // Asks the database whether this session is an operator, then repaints.
   // Deliberately last: it resolves operator status, then repaints the edit
