@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Desk — Lancer Farms &amp; Gardens</title>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     desk.html — the farm's launcher. VISITOR ONLY.
+
+     THIS FILE KNOWS NOTHING ABOUT STAFF, ADMIN, AUTH, OR SUPABASE.
+     It has no network calls at all. Left alone it is a complete, working
+     public screen: a menu of farm pages and a desk of four slots the
+     visitor fills themselves, remembered per device.
+
+     THE STAFF LAYER IS AN OVERLAY. It arrives through the four script
+     tags in the marked block at the very bottom of this file, and it
+     talks to this page only through window.GrushDesk. Delete that block
+     and the staff and admin tiers vanish, the sign-in sheet vanishes,
+     and everything above keeps working untouched.
+
+     THAT REMOVABILITY IS THE POINT. The overlay is the Grush product;
+     this file is the farm's. They ship together and separate cleanly.
+
+     THE CONTRACT — window.GrushDesk
+       addTier({id,label,color,items})   append a tier below the last
+       setLock(id,{locked,action,why,onClick})  gray a tier, give it a way out
+       setViewer(text)                   the line under the wordmark
+       setGate(fn)                       fn(tierId) -> may this open?
+       refresh()                         re-render both panes
+       toast(msg)                        transient status line
+       tiers()                           read-only copy, for debugging
+
+     GLOVE RULES — inherited from grush-nav.js, deliberate, please keep.
+       1. Menu rows are 68px. Add buttons are 56x56 and sit BESIDE the row,
+          never over it. Slots are quarters of the desk.
+       2. No overlapping hit fields. Nothing invisible is layered on
+          anything clickable.
+       3. No edge-swipe. The burger is the only opener.
+       4. Dragging is the SECONDARY path. Tap + to add, long-press a slot
+          to clear. A sustained precision gesture is the least
+          glove-friendly thing an interface can ask for.
+
+     CAPACITIVE REALITY. Ordinary leather or cloth work gloves do not
+     actuate a capacitive screen at all. Large targets fix accuracy, not
+     conductivity. Crew need nitrile or touchscreen-rated gloves.
+     ═══════════════════════════════════════════════════════════════════ -->
+
+<link rel="icon" href="lfg-emblem.svg">
+<link rel="stylesheet" href="lfg-theme.css">
+
+<style>
+:root{
+  --desk-plate:#1E1B16;
+  --desk-line:#45423A;
+  --desk-cell:#34302A;
+  --desk-accent:#D4A44E;
+  --desk-active:#3E5C42;
+  --desk-active-line:#7E9A6E;
+  --desk-slot:#2B2822;
+  --desk-dim:#6E685D;
+  --tier-visitor:#5FA0A8;
+  --tier-staff:#7E9A6E;
+  --tier-admin:#C9973F;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#F2EFE6; --surface:#FFFFFF; --ink:#25221C; --ink-soft:#5E574B;
+    --card:#FFFFFF; --card-border:#D6D0C2; --line:#D6D0C2;
+    --desk-slot:#E7E2D5; --desk-dim:#9A9384;
+  }
+  /* The menu plate stays dark in light mode, like the rail and title bar.
+     Only the ground flips. Rule 4 of grush-nav.js. */
+}
+
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--font-body,'Source Sans 3','Helvetica Neue',sans-serif);
+  -webkit-font-smoothing:antialiased; overscroll-behavior:none;
+}
+
+.frame{display:flex; height:100dvh; overflow:hidden;}
+
+/* ── LEFT: menu plate ── */
+.menu{
+  flex:0 0 320px; background:var(--desk-plate);
+  border-right:1.5px solid var(--desk-line);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.menu-head{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:14px 10px 12px 18px; border-bottom:1px solid var(--desk-line);
+  box-shadow:inset 0 -4px 0 -3px var(--desk-accent);
+}
+.menu-head h1{
+  margin:0; font:700 1.12rem/1.15 var(--font-head,Georgia,serif);
+  color:#F0EDE2; letter-spacing:-.01em;
+}
+.whoami{
+  display:block; margin-top:3px; font-size:.66rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--desk-accent);
+  font-family:var(--font-mono,ui-monospace,monospace);
+}
+.menu-scroll{
+  flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom));
+}
+
+.tier-label{
+  display:flex; align-items:center; gap:8px;
+  padding:18px 18px 8px; font:700 .68rem/1 var(--font-mono,ui-monospace,monospace);
+  letter-spacing:.16em; text-transform:uppercase; color:var(--desk-accent);
+}
+.tier-label .dot{width:9px; height:9px; border-radius:50%; flex:none;}
+.tier-label .lock{margin-left:auto; font-size:.9rem; color:var(--desk-dim); letter-spacing:0;}
+
+.row{display:flex; gap:8px; margin:0 10px 8px; align-items:stretch;}
+.row .go{
+  flex:1 1 auto; min-height:68px; display:flex; align-items:center; gap:14px;
+  padding:0 14px; background:var(--desk-cell);
+  border:1.5px solid var(--desk-line); border-radius:12px;
+  color:#F0EDE2; text-decoration:none; text-align:left;
+  font:600 1.02rem/1.25 inherit; font-family:inherit; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.row .go:active{background:var(--desk-active); border-color:var(--desk-active-line);}
+.row .go .ic{font-size:1.4rem; flex:none; width:28px; text-align:center;}
+.row .add{
+  flex:0 0 56px; width:56px; border-radius:12px; cursor:pointer;
+  background:transparent; border:1.5px dashed var(--desk-line);
+  color:var(--desk-accent); font-size:1.7rem; line-height:1;
+  -webkit-tap-highlight-color:transparent; touch-action:none;
+}
+.row .add:active{background:var(--desk-active); border-style:solid;}
+.row.locked .go, .row.locked .add{opacity:.38; pointer-events:none; filter:grayscale(1);}
+
+.row .go:focus-visible, .row .add:focus-visible, .slot:focus-visible,
+.burger:focus-visible, .menu-close:focus-visible, .tier-cta:focus-visible{
+  outline:3px solid var(--desk-accent); outline-offset:2px;
+}
+
+/* The way out of a locked tier is a control, not a caption. */
+.tier-cta{
+  display:flex; flex-direction:column; align-items:flex-start; gap:5px;
+  width:calc(100% - 20px); margin:0 10px 10px; padding:14px;
+  min-height:68px; border-radius:12px; text-align:left; cursor:pointer;
+  background:rgba(212,164,78,.07); border:1.5px solid var(--desk-accent);
+  color:var(--desk-accent); font-family:inherit;
+  -webkit-tap-highlight-color:transparent;
+}
+.tier-cta:active{background:var(--desk-active); border-color:var(--desk-active-line);}
+.tier-cta .cta-action{font-size:1rem; font-weight:700;}
+.tier-cta .cta-why{font-size:.82rem; line-height:1.45; color:var(--desk-dim);}
+
+/* ── RIGHT: the desk ── */
+.desk{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; padding:20px; gap:16px;}
+.desk-head{flex:0 0 auto; display:flex; align-items:center; gap:12px;}
+.burger{
+  display:none; flex:0 0 auto; width:56px; height:56px; padding:0;
+  align-items:center; justify-content:center;
+  background:var(--desk-accent); border:1.5px solid var(--desk-accent);
+  border-radius:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+.burger:active{filter:brightness(.9);}
+.burger svg{width:32px; height:32px; display:block;}
+.desk-title{margin:0; font:700 1.35rem/1.2 var(--font-head,Georgia,serif);
+  color:var(--ink); letter-spacing:-.01em;}
+.desk-sub{margin:2px 0 0; font-size:.85rem; color:var(--ink-soft);}
+
+.grid{
+  flex:1 1 auto; min-height:0;
+  display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:16px;
+}
+.slot{
+  position:relative; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:12px; text-align:center;
+  padding:18px; border-radius:18px; cursor:pointer;
+  background:var(--desk-slot); border:2px dashed var(--card-border);
+  color:var(--ink-soft); font:600 1rem/1.25 inherit; font-family:inherit;
+  text-decoration:none; -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation; transition:border-color .12s, background .12s;
+}
+.slot .slot-ic{font-size:2.6rem; line-height:1;}
+.slot .slot-label{font-size:1.15rem; font-weight:700; color:var(--ink);}
+.slot .slot-hint{font-size:.78rem; color:var(--desk-dim);
+  font-family:var(--font-mono,ui-monospace,monospace);
+  letter-spacing:.1em; text-transform:uppercase;}
+.slot.filled{
+  border-style:solid; border-color:var(--desk-active-line);
+  background:var(--card); box-shadow:var(--shadow,0 2px 16px rgba(0,0,0,.3));
+}
+.slot.filled:active{background:var(--desk-active);}
+.slot.over{border-color:var(--desk-accent); background:var(--desk-active);}
+.slot.stale{opacity:.5;}
+.slot .tier-chip{position:absolute; top:12px; right:14px; width:10px; height:10px; border-radius:50%;}
+
+.ghost{
+  position:fixed; z-index:2000; pointer-events:none;
+  padding:12px 18px; border-radius:12px; font-weight:700;
+  background:var(--desk-accent); color:#1B1B17;
+  box-shadow:0 8px 30px rgba(0,0,0,.45); transform:translate(-50%,-50%);
+}
+.toast{
+  position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom));
+  transform:translateX(-50%); z-index:2100;
+  padding:13px 20px; border-radius:12px; max-width:88vw;
+  background:var(--desk-plate); color:#F0EDE2;
+  border:1.5px solid var(--desk-accent); font-size:.92rem;
+  opacity:0; pointer-events:none; transition:opacity .2s;
+}
+.toast.on{opacity:1;}
+
+.scrim{position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.55);
+  opacity:0; pointer-events:none; transition:opacity .22s;}
+.scrim.on{opacity:1; pointer-events:auto;}
+.menu-close{display:none; width:60px; height:60px; flex:none; border:0;
+  background:transparent; color:var(--desk-dim); font-size:2rem; line-height:1;
+  cursor:pointer; border-radius:12px; -webkit-tap-highlight-color:transparent;}
+
+@media (max-width: 899px){
+  .burger{display:flex;}
+  .menu-close{display:block;}
+  .menu{
+    position:fixed; top:0; left:0; bottom:0; z-index:1010;
+    width:320px; max-width:86%;
+    transform:translateX(-100%); transition:transform .24s ease;
+  }
+  .menu.on{transform:translateX(0);}
+  .grid{gap:14px;}
+  .slot{border-radius:16px;}
+  .slot .slot-ic{font-size:2.2rem;}
+  .slot .slot-label{font-size:1.02rem;}
+}
+@media (max-width: 380px){ .desk{padding:14px; gap:12px;} }
+@media (prefers-reduced-motion: reduce){ .menu, .scrim, .slot{transition:none;} }
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <aside class="menu" id="menu" aria-label="Menu">
+    <div class="menu-head">
+      <div>
+        <h1>Lancer Farms</h1>
+        <span class="whoami" id="whoami">Visitor</span>
+      </div>
+      <button class="menu-close" id="menuClose" type="button" aria-label="Close menu">&times;</button>
+    </div>
+    <div class="menu-scroll" id="menuScroll"></div>
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <main class="desk">
+    <div class="desk-head">
+      <button class="burger" id="burger" type="button"
+              aria-label="Open menu" aria-expanded="false" aria-controls="menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"
+             stroke="#1B1B17" stroke-width="2.4" stroke-linecap="round">
+          <path d="M3.5 7h17"/><path d="M3.5 12h17"/><path d="M3.5 17h17"/>
+        </svg>
+      </button>
+      <div>
+        <h2 class="desk-title">Your desk</h2>
+        <p class="desk-sub" id="deskSub">Four things you reach for most.</p>
+      </div>
+    </div>
+    <div class="grid" id="grid" role="list"></div>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ═══ THE FARM'S OWN SCRIPT. No network, no auth, no Supabase. ═══ */
+window.GrushDesk = (function(){
+  'use strict';
+
+  /* The visitor menu. Everything the public may open, and nothing else. */
+  var TIERS = [{
+    id:'visitor', label:'Visitor', color:'var(--tier-visitor)', locked:false,
+    items:[
+      { label:'Home',         icon:'\u{1F3E1}', href:'index.html'   },
+      { label:'Plan a visit', icon:'\u{1F5FA}', href:'visitor.html' },
+      { label:'Learn',        icon:'\u{1F4D6}', href:'learn.html'   },
+      { label:'Do',           icon:'\u{1F9E4}', href:'do.html'      },
+      { label:'See',          icon:'\u{1F33B}', href:'see.html'     },
+      { label:'Share',        icon:'\u{1F4AC}', href:'share.html'   },
+      { label:'Films',        icon:'\u{1F3AC}', href:'watch.html'   },
+      { label:'Almanac',      icon:'\u{1F326}', href:'almanac.html' },
+      { label:'Bed lookup',   icon:'\u{1F4CD}', href:'bed.html'     }
+    ]
+  }];
+
+  var SLOTS = 4, KEY = 'grush_lfg_desk_v1';
+  var gate = function(){ return true; };   /* overlay may replace this */
+
+  var $ = function(id){ return document.getElementById(id); };
+  var menu = $('menu'), scrim = $('scrim'), burger = $('burger');
+  var menuScroll = $('menuScroll'), grid = $('grid'), toastEl = $('toast');
+
+  function load(){
+    try{ var v = JSON.parse(localStorage.getItem(KEY));
+         if (Array.isArray(v)){ v.length = SLOTS; return v; } }catch(e){}
+    return new Array(SLOTS).fill(null);
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(desk)); }catch(e){} }
+  var desk = load();
+
+  function findItem(href){
+    for (var t=0; t<TIERS.length; t++)
+      for (var i=0; i<TIERS[t].items.length; i++)
+        if (TIERS[t].items[i].href === href)
+          return { item:TIERS[t].items[i], tier:TIERS[t] };
+    return null;
+  }
+
+  var toastTimer;
+  function toast(msg){
+    toastEl.textContent = msg; toastEl.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove('on'); }, 2400);
+  }
+
+  function openMenu(){ menu.classList.add('on'); scrim.classList.add('on');
+    burger.setAttribute('aria-expanded','true'); }
+  function closeMenu(){ menu.classList.remove('on'); scrim.classList.remove('on');
+    burger.setAttribute('aria-expanded','false'); }
+  burger.addEventListener('click', function(){
+    menu.classList.contains('on') ? closeMenu() : openMenu(); });
+  $('menuClose').addEventListener('click', closeMenu);
+  scrim.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && menu.classList.contains('on')) closeMenu(); });
+
+  function addToDesk(href, slotIndex){
+    var f = findItem(href);
+    if (!f) return;
+    if (f.tier.locked || !gate(f.tier.id)){ toast('That is locked.'); return; }
+    var existing = desk.indexOf(href);
+    var target = (typeof slotIndex === 'number') ? slotIndex : desk.indexOf(null);
+    if (target === -1){ toast('Desk is full. Long-press a button to clear it first.'); return; }
+    if (existing !== -1 && existing !== target) desk[existing] = null;  /* move, don't duplicate */
+    desk[target] = href; save(); renderDesk();
+    toast(f.item.label + ' added to your desk.');
+  }
+  function clearSlot(i){
+    if (!desk[i]) return;
+    var f = findItem(desk[i]);
+    desk[i] = null; save(); renderDesk();
+    toast((f ? f.item.label : 'Button') + ' cleared.');
+  }
+
+  function renderMenu(){
+    menuScroll.innerHTML = '';
+    TIERS.forEach(function(tier){
+      var locked = tier.locked || !gate(tier.id);
+
+      var lb = document.createElement('div');
+      lb.className = 'tier-label';
+      lb.innerHTML = '<span class="dot" style="background:' + tier.color + '"></span>' +
+                     '<span>' + tier.label + '</span>' +
+                     (locked ? '<span class="lock">\u{1F512} Locked</span>' : '');
+      menuScroll.appendChild(lb);
+
+      tier.items.forEach(function(it){
+        var row = document.createElement('div');
+        row.className = 'row' + (locked ? ' locked' : '');
+
+        var go = document.createElement('a');
+        go.className = 'go';
+        go.href = locked ? '#' : it.href;
+        if (locked){ go.setAttribute('aria-disabled','true'); go.tabIndex = -1; }
+        go.innerHTML = '<span class="ic">' + it.icon + '</span><span>' + it.label + '</span>';
+
+        var add = document.createElement('button');
+        add.className = 'add'; add.type = 'button'; add.textContent = '+';
+        add.setAttribute('aria-label','Add ' + it.label + ' to your desk');
+        if (locked) add.disabled = true;
+        add.addEventListener('click', function(){ addToDesk(it.href); });
+        if (!locked) attachDrag(add, it);
+
+        row.appendChild(go); row.appendChild(add);
+        menuScroll.appendChild(row);
+      });
+
+      /* A locked tier with no way out is a dead end. The overlay supplies
+         the way out; without the overlay no tier is ever locked. */
+      if (locked && tier.cta){
+        var cta = document.createElement('button');
+        cta.className = 'tier-cta'; cta.type = 'button';
+        cta.innerHTML = '<span class="cta-action">' + tier.cta.action + '</span>' +
+                        '<span class="cta-why">' + tier.cta.why + '</span>';
+        cta.addEventListener('click', function(){ tier.cta.onClick && tier.cta.onClick(tier.id); });
+        menuScroll.appendChild(cta);
+      }
+    });
+  }
+
+  function renderDesk(){
+    grid.innerHTML = '';
+    for (var i=0; i<SLOTS; i++){
+      (function(i){
+        var href = desk[i], f = href ? findItem(href) : null;
+
+        /* A saved button whose tier has been removed or revoked STAYS in
+           place, visibly unavailable. Silently dropping it would read as
+           data loss, and the tier may come back on the next sign-in. */
+        var open = f && !f.tier.locked && gate(f.tier.id);
+
+        var cell = document.createElement(open ? 'a' : 'div');
+        cell.className = 'slot' + (href ? ' filled' : '') + ((href && !open) ? ' stale' : '');
+        cell.setAttribute('role','listitem');
+        cell.dataset.slot = i;
+        cell.tabIndex = 0;
+        if (open) cell.href = f.item.href;
+
+        if (f){
+          cell.innerHTML =
+            '<span class="tier-chip" style="background:' + f.tier.color + '"></span>' +
+            '<span class="slot-ic">' + f.item.icon + '</span>' +
+            '<span class="slot-label">' + f.item.label + '</span>' +
+            '<span class="slot-hint">' + (open ? 'Hold to clear' : 'Locked') + '</span>';
+        } else if (href){
+          cell.innerHTML =
+            '<span class="slot-ic">\u{2205}</span>' +
+            '<span class="slot-label">Unavailable</span>' +
+            '<span class="slot-hint">Hold to clear</span>';
+        } else {
+          cell.innerHTML =
+            '<span class="slot-ic">\u{FF0B}</span>' +
+            '<span class="slot-hint">Empty \u00b7 tap + in the menu</span>';
+          cell.addEventListener('click', function(){
+            if (window.matchMedia('(max-width: 899px)').matches) openMenu();
+          });
+        }
+
+        /* Long-press to clear: 600ms, cancelled by 12px of movement, so it
+           never fires on a scroll or a mistap. */
+        var timer = null, startY = 0;
+        cell.addEventListener('pointerdown', function(e){
+          if (!desk[i]) return;
+          startY = e.clientY;
+          timer = setTimeout(function(){
+            timer = null;
+            if (navigator.vibrate) navigator.vibrate(30);
+            clearSlot(i);
+          }, 600);
+        });
+        function cancel(){ if (timer){ clearTimeout(timer); timer = null; } }
+        cell.addEventListener('pointerup', function(e){
+          if (timer === null && desk[i]) e.preventDefault();
+          cancel();
+        });
+        cell.addEventListener('pointercancel', cancel);
+        cell.addEventListener('pointermove', function(e){
+          if (Math.abs(e.clientY - startY) > 12) cancel(); });
+        cell.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+        grid.appendChild(cell);
+      })(i);
+    }
+  }
+
+  /* Pointer Events, not HTML5 drag-and-drop: HTML5 drag events never fire
+     on touch devices. One code path for mouse, finger and stylus. Under
+     8px of travel is a tap, so this never steals a plain press. */
+  function attachDrag(handle, item){
+    handle.addEventListener('pointerdown', function(e){
+      if (e.button && e.button !== 0) return;
+      var sx = e.clientX, sy = e.clientY, ghost = null, lastSlot = null;
+
+      function move(ev){
+        if (!ghost){
+          if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 8) return;
+          ghost = document.createElement('div');
+          ghost.className = 'ghost'; ghost.textContent = item.label;
+          document.body.appendChild(ghost);
+          handle.setPointerCapture(e.pointerId);
+        }
+        ghost.style.left = ev.clientX + 'px';
+        ghost.style.top  = ev.clientY + 'px';
+        var el = document.elementFromPoint(ev.clientX, ev.clientY);
+        var slot = el && el.closest ? el.closest('.slot') : null;
+        if (slot !== lastSlot){
+          if (lastSlot) lastSlot.classList.remove('over');
+          if (slot) slot.classList.add('over');
+          lastSlot = slot;
+        }
+      }
+      function up(){
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+        document.removeEventListener('pointercancel', up);
+        if (ghost) ghost.remove();
+        if (lastSlot){
+          lastSlot.classList.remove('over');
+          if (ghost) addToDesk(item.href, Number(lastSlot.dataset.slot));
+        }
+      }
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+      document.addEventListener('pointercancel', up);
+    });
+  }
+
+  function refresh(){ renderMenu(); renderDesk(); }
+  refresh();
+
+  /* ── the contract the overlay talks to ── */
+  return {
+    addTier: function(t){
+      t.color = t.color || 'var(--desk-accent)';
+      t.items = t.items || [];
+      TIERS.push(t); refresh();
+    },
+    setLock: function(id, o){
+      TIERS.forEach(function(t){
+        if (t.id !== id) return;
+        if ('locked' in o) t.locked = o.locked;
+        t.cta = o.locked ? { action:o.action, why:o.why, onClick:o.onClick } : null;
+      });
+      refresh();
+    },
+    setGate:   function(fn){ gate = fn || function(){ return true; }; refresh(); },
+    setViewer: function(txt){ $('whoami').textContent = txt; },
+    setSub:    function(txt){ $('deskSub').textContent = txt; },
+    refresh:   refresh,
+    toast:     toast,
+    openMenu:  openMenu,
+    closeMenu: closeMenu,
+    tiers:     function(){ return JSON.parse(JSON.stringify(TIERS)); }
+  };
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+
+</body>
+</html>
