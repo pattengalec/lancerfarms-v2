@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Lancer Farms · managed by grush</title>
+<!-- Share and search metadata. Without these, a link to lancerfarms.com
+     previews as bare URL text in Messages, Slack and search results — the
+     page had none at all. -->
+<meta name="description" content="Lancer Farms &amp; Gardens is a working teaching garden at California Baptist University in Riverside. See what grows here, plan your own, and use the same tools the crew uses.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Lancer Farms &amp; Gardens">
+<meta property="og:description" content="A working teaching garden in Riverside, California. See what grows here, plan your own, and use the same tools the crew uses.">
+<meta property="og:url" content="https://lancerfarms.com/">
+<meta property="og:image" content="https://lancerfarms.com/lfg-logo-512.webp">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://lancerfarms.com/">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&family=Yellowtail&display=swap" rel="stylesheet">
 <style>
@@ -48,10 +60,12 @@
     display:flex; align-items:center; gap:18px; padding:0 24px; margin-bottom:16px; box-shadow:var(--shadow);
     font-size:21px; font-weight:600; text-align:left; transition:transform .1s;}
   .role-btn:active{transform:scale(.98);}
+  /* Now an <a>, not a <button>: anchors inherit neither of these. */
+  .role-btn{text-decoration:none; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .role-btn:focus-visible{outline:3px solid var(--green); outline-offset:3px;}
   .role-btn .ic{font-size:34px; flex:0 0 auto;}
   .role-btn small{display:block; font-weight:400; font-size:13px; opacity:.8; margin-top:3px;}
   .role-staff{background:var(--green); color:#fff;}
-  .role-visitor{background:var(--card); color:var(--ink); border:1.5px solid var(--line-strong);}
   .langrow{margin-top:24px; display:flex; gap:8px;}
   .lang-pill{border:1.5px solid var(--line-strong); background:var(--card); color:var(--ink-soft);
     border-radius:999px; padding:9px 18px; font-size:14px; font-weight:600;}
@@ -109,16 +123,11 @@
   <div class="mark" style="background:none;box-shadow:none;border:none"><img src="lfg-logo-512.webp" alt="Lancer Farms" style="height:100%;width:auto;border-radius:50%"></div>
   <h1>Lancer Farms</h1>
   <div class="sub"><span class="mbg" style="margin-top:2px">managed by <a href="about-grush.html" class="grush-sig">grush</a></span></div>
-  <button class="role-btn role-staff" onclick="chooseRole('staff')">
+  <a class="role-btn role-staff" href="desk.html">
     <span class="ic">&#127793;</span>
-    <span><span data-i18n="role.staff">Staff</span><small data-i18n="role.staff_sub">Log work, tasks &amp; supplies</small></span>
-  </button>
-  <button class="role-btn role-visitor" onclick="chooseRole('visitor')">
-    <span class="ic">&#128065;</span>
-    <span><span data-i18n="role.visitor">Visitor</span><small data-i18n="role.visitor_sub">Explore the farm</small></span>
-  </button>
+    <span><span data-i18n="role.enter">Enter the farm</span><small data-i18n="role.enter_sub">Tools, records and what grows here</small></span>
+  </a>
   <div class="langrow"><span data-lang-switch></span></div>
-  <div class="tiny" data-i18n="role.tiny">Tap to choose &mdash; we&rsquo;ll remember next time.</div>
   <button class="req-link" onclick="openRequest()">Work here? Request access</button>
 </div>
 
@@ -165,13 +174,20 @@ window.addEventListener('load', function(){
     document.getElementById('hero').classList.add('show');
   }, 1400);
 });
-function chooseRole(r){
-  localStorage.setItem('lfg_role', r);
-  if(r === 'staff'){ go('/app.html'); }
-  else { go('/visitor.html'); }
-}
+/* chooseRole() lived here. It asked people to DECLARE a role, stored the
+   answer in localStorage, and routed on it — a second, weaker answer to a
+   question grush_role() and the operator allowlist already answer
+   properly. It also outlived the visit, which the tool contract forbids
+   for anything a visitor does.
 
-function go(url){ window.location.href = url; }
+   desk.html now handles the distinction honestly: everyone sees the whole
+   menu, what a visitor cannot reach is greyed with a way in, and the tier
+   comes from the database rather than from a button press. One door. */
+
+/* Clear the stale preference from anyone who chose a role under the old
+   page. Harmless if absent; leaving it would strand a value nothing
+   reads. */
+try{ localStorage.removeItem('lfg_role'); }catch(e){}
 
 /* ── access request ──
    Writes to lfg_access_requests. RLS lets anyone insert but only as

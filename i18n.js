@@ -4,6 +4,7 @@ window.I18N = {
   langs: ['en','es','fr','pt'],
   dict: {
     en: {
+      'role.enter':'Enter the farm','role.enter_sub':'Tools, records and what grows here',
       'role.staff':'Staff','role.staff_sub':'Log work, tasks & supplies',
       'role.visitor':'Visitor','role.visitor_sub':'Explore the farm',
       'role.tiny':'Tap to choose — we\u2019ll remember next time.',
@@ -25,6 +26,7 @@ window.I18N = {
       'ag.kicker':'a management platform for growing spaces','ag.lead':'grush turns the daily work of running a growing space — a garden, a farm, a controlled-environment grow — into something simple enough to use with dirt on your hands.','ag.body':'Tasks, plantings, harvests, inventory, and records become a tap-not-type system anyone on the ground can run. Over time, that daily work turns into real data: what was planted, when, where, and how it did.','ag.deployments':'Deployments','ag.deploy_desc':'Every place that runs grush is a deployment — branded as its own, running on the same engine underneath.','ag.deploy_card':'Lancer Farms is a live deployment of grush — a working teaching garden in Riverside, California.','ag.back':'Back to Lancer Farms'
     },
     es: {
+      'role.enter':'Entrar a la granja','role.enter_sub':'Herramientas, registros y lo que crece aquí',
       'role.staff':'Personal','role.staff_sub':'Registra trabajo, tareas e insumos',
       'role.visitor':'Visitante','role.visitor_sub':'Explora la granja',
       'role.tiny':'Toca para elegir — lo recordaremos la próxima vez.',
@@ -46,6 +48,7 @@ window.I18N = {
       'ag.kicker':'una plataforma de gestión para espacios de cultivo','ag.lead':'grush convierte el trabajo diario de manejar un espacio de cultivo —un jardín, una granja, un cultivo en ambiente controlado— en algo lo bastante sencillo como para usarse con las manos en la tierra.','ag.body':'Tareas, siembras, cosechas, inventario y registros se vuelven un sistema de tocar, no escribir, que cualquiera puede usar en el campo. Con el tiempo, ese trabajo diario se convierte en datos reales: qué se sembró, cuándo, dónde y cómo resultó.','ag.deployments':'Implementaciones','ag.deploy_desc':'Cada lugar que usa grush es una implementación: con su propia marca, pero funcionando con el mismo motor por debajo.','ag.deploy_card':'Lancer Farms es una implementación activa de grush: un jardín-huerto educativo en Riverside, California.','ag.back':'Volver a Lancer Farms'
     },
     fr: {
+      'role.enter':'Entrer dans la ferme','role.enter_sub':'Outils, registres et ce qui pousse ici',
       'role.staff':'Personnel','role.staff_sub':'Consigner travaux, tâches et fournitures',
       'role.visitor':'Visiteur','role.visitor_sub':'Explorez la ferme',
       'role.tiny':'Touchez pour choisir — nous nous en souviendrons la prochaine fois.',
@@ -67,6 +70,7 @@ window.I18N = {
       'ag.kicker':'une plateforme de gestion pour les espaces de culture','ag.lead':'grush transforme le travail quotidien de gestion d’un espace de culture — un jardin, une ferme, une culture en milieu contrôlé — en quelque chose d’assez simple pour s’utiliser les mains dans la terre.','ag.body':'Tâches, semis, récoltes, inventaire et registres deviennent un système où l’on touche plutôt que l’on tape, utilisable par n’importe qui sur le terrain. Avec le temps, ce travail quotidien se transforme en données réelles : ce qui a été planté, quand, où et comment ça a poussé.','ag.deployments':'Déploiements','ag.deploy_desc':'Chaque endroit qui utilise grush est un déploiement — avec sa propre image de marque, mais fonctionnant sur le même moteur en dessous.','ag.deploy_card':'Lancer Farms est un déploiement actif de grush — un jardin pédagogique à Riverside, en Californie.','ag.back':'Retour à Lancer Farms'
     },
     pt: {
+      'role.enter':'Entrar na fazenda','role.enter_sub':'Ferramentas, registros e o que cresce aqui',
       'role.staff':'Equipe','role.staff_sub':'Registre trabalho, tarefas e insumos',
       'role.visitor':'Visitante','role.visitor_sub':'Explore a fazenda',
       'role.tiny':'Toque para escolher — vamos lembrar na próxima vez.',
