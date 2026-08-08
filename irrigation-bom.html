@@ -95,11 +95,52 @@ footer.foot a{color:var(--cyan);text-decoration:none}
   .bom{padding:22px 18px 28px}.row4{grid-template-columns:repeat(2,1fr)}
   table.bom-t th:nth-child(3),table.bom-t td:nth-child(3){display:none}
 }
+/* ---- mode banner ----
+   Says what is true rather than what is forbidden. Nothing on this page
+   is gated; nothing on it persists either. Same contract as mixbench. */
+.modebar{
+  border:1px solid var(--line,#22304d); border-left:3px solid var(--amber,#ffb830);
+  border-radius:10px; padding:13px 16px; margin:0 0 22px;
+  background:rgba(255,184,48,.06);
+}
+.modebar[data-mode="staff"]{ border-left-color:var(--cyan,#00c8ff); background:rgba(0,200,255,.06); }
+.mode-tag{
+  display:block; font-size:.66rem; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--amber,#ffb830); margin-bottom:5px;
+  font-family:var(--f-mono, ui-monospace, monospace);
+}
+.modebar[data-mode="staff"] .mode-tag{ color:var(--cyan,#00c8ff); }
+.mode-why{ margin:0; font-size:.9rem; line-height:1.5; color:var(--dim,#8fa3c4); }
+
+/* Echoed inputs: hidden on screen (the fields are right there), shown on
+   paper, because a bill of materials with no record of the settings that
+   produced it cannot be checked or re-ordered against. */
+.printecho{ display:none; }
+.printsig{ display:none; }
+
 @media print{
   body{background:#fff;color:#000}
-  header.mast,.cfg,.notes,footer.foot,.printbtn,.add-grp{display:none!important}
+  header.mast,.cfg,.notes,footer.foot,.printbtn,.add-grp,.modebar{display:none!important}
   .wrap{padding:0;max-width:none}
   .bom{box-shadow:none;background:#fff;margin:0;padding:0}
+
+  .bom,.bom *{ color:#000 !important; background:#fff !important; }
+  table{ border-collapse:collapse; width:100%; }
+  th,td{ border:1px solid #999 !important; padding:5px 7px !important; color:#000 !important; }
+
+  .printecho{
+    display:block !important; margin:0 0 14px; padding:9px 0;
+    border-top:1px solid #999; border-bottom:1px solid #999;
+    font-family:var(--f-mono, ui-monospace, monospace);
+    font-size:9.5pt; line-height:1.6; color:#000;
+  }
+  .printecho b{ font-weight:600; }
+  .printsig{
+    display:block !important; margin-top:16px; padding-top:9px;
+    border-top:1px solid #ccc; font-family:var(--f-mono, ui-monospace, monospace);
+    font-size:8pt; letter-spacing:.1em; color:#666;
+  }
+  @page{ margin:14mm; }
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -154,7 +195,13 @@ footer.foot a{color:var(--cyan);text-decoration:none}
   <button class="add-grp" id="addGrp" type="button">+ Add another bed group</button>
 </div>
 
+<div id="ibMode" class="modebar" data-mode="visitor">
+  <span class="mode-tag" id="ibModeTag">Nothing here is saved</span>
+  <p class="mode-why" id="ibModeWhy">Everything you enter stays in this browser tab and is gone when you close it. Print the BOM to keep it.</p>
+</div>
+<div class="printecho" id="ibEcho"></div>
 <div id="bomOut"></div>
+<div class="printsig">Lancer Farms &amp; Gardens · lancerfarms.com · quantities are a planning figure, not a purchase order · powered by grush</div>
 
 <div class="notes">
   <h2>Design decisions</h2>
@@ -427,8 +474,32 @@ function render(){
       render();
     });
   }
+  /* Echo the settings onto the printout. Same reasoning as mixbench:
+     a sheet of quantities that does not say what produced it cannot be
+     verified or re-ordered against a week later. */
+  function ibEcho(){
+    var t=document.getElementById("ibEcho"); if(!t) return;
+    function lab(id){
+      var e=document.getElementById(id); if(!e) return null;
+      var o=e.options?e.options[e.selectedIndex]:null;
+      return o?o.text:e.value;
+    }
+    var parts=[["Supply GPM",lab("sGpm")],["Emitter",lab("sGph")],
+               ["Spacing",lab("sSpacing")],["Zones",lab("sZones")],
+               ["Bed depth",lab("sDepth")],["Header",lab("sHdr")]]
+              .filter(function(x){return x[1]!==null && x[1]!=="";});
+    t.innerHTML='<b>Irrigation bill of materials</b> \u00b7 '+
+      new Date().toLocaleDateString()+'<br>'+
+      parts.map(function(x){return x[0]+": "+x[1];}).join(" \u00b7 ");
+  }
+  ibEcho();
+  ["sGpm","sGph","sSpacing","sZones","sDepth","sHdr"].forEach(function(id){
+    var e=document.getElementById(id); if(!e) return;
+    e.addEventListener("change",ibEcho); e.addEventListener("input",ibEcho);
+  });
+
   var pb=document.getElementById("pb");
-  if(pb) pb.addEventListener("click",function(){window.print();});
+  if(pb) pb.addEventListener("click",function(){ ibEcho(); window.print(); });
 }
 
 function fmtN(v){return Math.round(v).toLocaleString();}
@@ -451,5 +522,27 @@ render();
      page keeps working, only the count stops. -->
 <script src="lfg-config.js"></script>
 <script src="grush-track.js?v=1"></script>
+<script>
+/* ---- mode banner, optional upgrade ----
+   Reads GRUSH only if grush-auth.js happens to be loaded. Bare lexical
+   name, guarded — never window.GrushAuth, which is the mistake that left
+   mixbench's estimator invisible to everyone for months. No dependency
+   is added just to change a sentence. */
+(function(){
+  var G; try{ G = GRUSH; }catch(e){ return; }
+  if(!G || !G.sb || typeof G.session !== 'function') return;
+  G.session().then(function(sess){
+    if(!sess) return;
+    return G.sb.rpc('grush_role').then(function(r){
+      if(r.error || !r.data || r.data === 'visitor') return;
+      var bar=document.getElementById('ibMode'); if(!bar) return;
+      bar.setAttribute('data-mode','staff');
+      document.getElementById('ibModeTag').textContent='Signed in as '+r.data;
+      document.getElementById('ibModeWhy').textContent=
+        'This BOM still is not saved anywhere \u2014 no tier stores it yet. Print it to keep it.';
+    });
+  }).catch(function(){});
+})();
+</script>
 </body>
 </html>
