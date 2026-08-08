@@ -50,6 +50,24 @@
 
   window.GRUSH_TRACKED = true;
 
+  /* PATH NORMALISATION. A server hands the same file to "/" and to
+     "/index.html", so a bookmark or a direct link creates a SECOND row
+     for the page you already have — and your busiest page then reports
+     at half strength twice. Collapse them before sending.
+
+     Trailing slashes on subdirectories go the same way: "/docs/" and
+     "/docs" are one page, not two. Root stays "/" rather than becoming
+     an empty string.
+
+     Doing this at write time rather than at read time is deliberate: the
+     numbers stay correct for anything that queries the table directly,
+     including the weekly digest. */
+  function normalise(p) {
+    p = p.replace(/\/index\.html?$/i, '/');
+    if (p.length > 1) p = p.replace(/\/+$/, '') || '/';
+    return p || '/';
+  }
+
   try {
     fetch(C.SUPABASE_URL + '/rest/v1/rpc/grush_track_view', {
       method: 'POST',
@@ -60,7 +78,7 @@
       },
       body: JSON.stringify({
         p_site: C.SITE,
-        p_path: location.pathname + location.search
+        p_path: normalise(location.pathname) + location.search
       })
     }).then(function (r) {
       return r.ok ? r.json() : null;
