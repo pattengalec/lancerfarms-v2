@@ -299,13 +299,70 @@ table.est input.price{
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
+/* ---- mode banner ----
+   States what is true rather than what is forbidden. A visitor is not
+   locked out of anything here; they simply have nothing that persists. */
+.modebar{
+  border:1px solid var(--line); border-left:3px solid var(--amber);
+  border-radius:10px; padding:13px 16px; margin:0 0 22px;
+  background:rgba(255,184,48,.06);
+}
+.modebar[data-mode="staff"]{ border-left-color:var(--cyan); background:rgba(0,200,255,.06); }
+.mode-tag{
+  display:block; font-family:var(--f-mono); font-size:.66rem; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--amber); margin-bottom:5px;
+}
+.modebar[data-mode="staff"] .mode-tag{ color:var(--cyan); }
+.mode-why{ margin:0; font-size:.9rem; line-height:1.5; color:var(--dim); }
+
+/* ---- print bar ---- */
+.printbar{ display:flex; gap:10px; flex-wrap:wrap; margin:22px 0 0; }
+.printbar button{
+  min-height:52px; padding:0 20px; border-radius:10px; cursor:pointer;
+  background:transparent; border:1px solid var(--line); color:var(--dim);
+  font-family:var(--f-mono); font-size:.72rem; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase;
+}
+.printbar button:hover{ border-color:var(--cyan); color:var(--cyan); }
+
+/* Echoed inputs. Screen hides them — they are already visible in the
+   fields. Print shows them, because a sheet of numbers with no record of
+   what produced it is unreadable a week later. */
+.printecho{ display:none; }
+
 @media print{
   body{background:#fff;color:#000}
-  header.mast,.thesis,.step,section.blk,footer.foot,.printbtn{display:none!important}
+  header.mast,.thesis,.step,section.blk,footer.foot,.printbtn,
+  .printbar,.modebar,#staffTabs,.fields,.opts{display:none!important}
   .wrap{padding:0;max-width:none}
   .card{box-shadow:none;background:#fff;margin:0;padding:0}
   .card h4{border-bottom:1px solid #999}
+
+  /* the estimator, on paper */
+  #estimator{ color:#000; }
+  #estimator h2,#estimator h3,#estimator h4{ color:#000 !important; }
+  #estimator p{ color:#333 !important; }
+  .res,.res *{ background:#fff !important; color:#000 !important; border-color:#999 !important; }
+  table{ border-collapse:collapse; width:100%; }
+  th,td{ border:1px solid #999 !important; padding:5px 7px !important; color:#000 !important; }
+  .hidden{ display:none !important; }
+
+  .printecho{
+    display:block !important; margin:0 0 14px; padding:9px 0;
+    border-top:1px solid #999; border-bottom:1px solid #999;
+    font-family:var(--f-mono); font-size:9.5pt; line-height:1.6; color:#000;
+  }
+  .printecho b{ font-weight:600; }
+
+  /* the signature, on paper */
+  .printsig{
+    display:block !important; margin-top:16px; padding-top:9px;
+    border-top:1px solid #ccc;
+    font-family:var(--f-mono); font-size:8pt; letter-spacing:.1em; color:#666;
+  }
+  @page{ margin:14mm; }
 }
+.printsig{ display:none; }
 </style>
 </head>
 <body>
@@ -390,13 +447,12 @@ table.est input.price{
 
 
 <section id="estimator">
-  <div id="estLocked" class="locked">
-    <span class="badge-staff">Staff tool</span>
-    <h2>Stock &amp; budget estimator</h2>
-    <p>Turns the recipes above into a season's shopping list and a minimum budget for a given growing space. Sign in as an operator to use it.</p>
+  <div id="estMode" class="modebar" data-mode="visitor">
+    <span class="mode-tag" id="modeTag">Nothing here is saved</span>
+    <p class="mode-why" id="modeWhy">Everything you enter stays in this browser tab and is gone when you close it. Print the estimate to keep it.</p>
   </div>
 
-  <div id="estPanel" class="hidden">
+  <div id="estPanel">
     <span class="badge-staff">Staff tool</span>
     <div class="opts" id="staffTabs" style="margin:14px 0 26px">
       <button class="opt" type="button" id="tabBtnChem" aria-pressed="true">Chemical stock</button>
@@ -452,7 +508,10 @@ table.est input.price{
     </div>
     <p class="est-note">Prices below are editable. Replace them with your actual invoice figures before this number goes anywhere official.</p>
 
+    <div class="printecho" id="echoChem"></div>
     <div class="res" id="estResult"></div>
+    <div class="printbar"><button type="button" id="printChem">Print this estimate</button></div>
+    <div class="printsig">Lancer Farms &amp; Gardens · lancerfarms.com · estimate is a planning figure, not a purchase order · powered by grush</div>
     </div>
 
     <div id="tabWater" class="hidden">
@@ -522,7 +581,10 @@ table.est input.price{
       <div id="wGroups"></div>
       <p class="est-note">Emitter counts default to roughly 0.75 per square foot, which keeps runtime consistent across different bed sizes. Set a group's bed count to 0 to ignore it.</p>
 
+      <div class="printecho" id="echoWater"></div>
       <div class="res" id="wResult"></div>
+      <div class="printbar"><button type="button" id="printWater">Print this estimate</button></div>
+      <div class="printsig">Lancer Farms &amp; Gardens · lancerfarms.com · estimate is a planning figure, not an irrigation schedule · powered by grush</div>
     </div>
   </div>
 </section>
@@ -1327,28 +1389,52 @@ function boot(){
     el(id).addEventListener("change",render); el(id).addEventListener("input",render);
   });
   syncFields();
+
+  /* Echo the inputs onto the printout. A page of quantities with no
+     record of what produced them cannot be checked or repeated. */
+  function echo(){
+    var lab = function(id){ var e=el(id); if(!e) return ''; 
+      var o=e.options ? e.options[e.selectedIndex] : null; return o ? o.text : e.value; };
+    var parts = [
+      ['Mode',      lab('fMode')],
+      ['Beds',      el('fCount') ? el('fCount').value : ''],
+      ['Bed size',  lab('fBedSize')],
+      ['Cycles',    el('fCycles') ? el('fCycles').value : ''],
+      ['Crop',      lab('fCrop')],
+      ['Zone',      lab('fZone')],
+      ['Paths %',   el('fPath') ? el('fPath').value : ''],
+      ['Rate',      el('fRate') ? el('fRate').value : '']
+    ].filter(function(x){ return x[1] !== '' && x[1] != null; });
+    el('echoChem').innerHTML =
+      '<b>Stock &amp; budget estimate</b> \u00b7 ' + new Date().toLocaleDateString() + '<br>' +
+      parts.map(function(x){ return x[0] + ': ' + x[1]; }).join(' \u00b7 ');
+  }
+  echo();
+  ['fMode','fCount','fBedSize','fCycles','fCrop','fZone','fPath','fRate'].forEach(function(id){
+    var e = el(id); if(!e) return;
+    e.addEventListener('change', echo); e.addEventListener('input', echo);
+  });
+  var pb = el('printChem');
+  if(pb) pb.addEventListener('click', function(){ echo(); window.print(); });
 }
 
-/* ---- staff gate ----
-   Cosmetic only. Nothing private is exposed here \u2014 the estimator is static
-   tables and arithmetic \u2014 so a client-side check is appropriate. Any real
-   data this ever reads must be protected by Supabase RLS, not by this. */
-function unlock(){
-  el("estLocked").classList.add("hidden");
-  el("estPanel").classList.remove("hidden");
-  boot();
-}
-(function gate(){
-  var GA = window.GrushAuth || window.grushAuth || null;
-  
-  if(GA && typeof GA.isOperator==="function"){
-    try{
-      var r=GA.isOperator();
-      if(r && typeof r.then==="function"){ r.then(function(ok){ if(ok) unlock(); }).catch(function(){}); }
-      else if(r){ unlock(); }
-    }catch(e){}
-  }
-})();
+/* ---- no gate ----
+   THIS PANEL USED TO BE HIDDEN FROM EVERYONE.
+
+   The old gate looked for window.GrushAuth. The real export from
+   grush-auth.js is GRUSH, a lexical const that never lands on window —
+   and this page never loaded grush-auth.js in the first place. So the
+   check could not pass, unlock() had exactly one caller inside that dead
+   check, and the estimator shipped invisible. Not gated: unreachable.
+
+   It is open now, for two reasons. First, nothing here is private: it is
+   static tables and arithmetic over numbers the visitor types in. Second,
+   a visitor using the tool and printing the result IS the demonstration —
+   hiding it protects nothing and shows nothing.
+
+   The staff difference is persistence, not access. Today no tier saves
+   anything, so every tier sees the same thing and the banner says so. */
+boot();
 })();
 </script>
 
@@ -1573,6 +1659,26 @@ function boot(){
   ["wZone","wStart","wEnd","wKc","wEff","wMulch","wGph","wFreq","wSupply"].forEach(function(id){
     el(id).addEventListener("change",render); el(id).addEventListener("input",render);
   });
+
+  function echo(){
+    var lab=function(id){ var e=el(id); if(!e) return '';
+      var o=e.options?e.options[e.selectedIndex]:null; return o?o.text:e.value; };
+    var parts=[['Zone',lab('wZone')],['From',lab('wStart')],['To',lab('wEnd')],
+               ['Kc',lab('wKc')],['Efficiency',lab('wEff')],['Mulch',lab('wMulch')],
+               ['Emitter gph',lab('wGph')],['Frequency',lab('wFreq')],['Supply',lab('wSupply')]]
+              .filter(function(x){ return x[1]!=='' && x[1]!=null; });
+    var t=el('echoWater'); if(!t) return;
+    t.innerHTML='<b>Water demand estimate</b> \u00b7 '+new Date().toLocaleDateString()+'<br>'+
+      parts.map(function(x){return x[0]+': '+x[1];}).join(' \u00b7 ');
+  }
+  echo();
+  ["wZone","wStart","wEnd","wKc","wEff","wMulch","wGph","wFreq","wSupply"].forEach(function(id){
+    var e=el(id); if(!e) return;
+    e.addEventListener("change",echo); e.addEventListener("input",echo);
+  });
+  var pb=el('printWater');
+  if(pb) pb.addEventListener('click',function(){ echo(); window.print(); });
+
   render();
 }
 
@@ -1594,5 +1700,35 @@ el("tabBtnWater").addEventListener("click",function(){tab("water");});
      page keeps working, only the count stops. -->
 <script src="lfg-config.js"></script>
 <script src="grush-track.js?v=1"></script>
+<script>
+/* ---- mode banner, optional upgrade ----------------------------------
+   The estimator works for everyone; this only changes what the banner
+   SAYS. It reads GRUSH if grush-auth.js happens to be present on the
+   page and does nothing at all if it is not — no new dependency, and no
+   repeat of the bug this file just had, where a tool assumed an
+   interface that was never loaded.
+
+   Read the bare name, guarded: grush-auth.js declares `const GRUSH`, a
+   lexical binding that never appears on window. That is exactly what the
+   old gate got wrong. ------------------------------------------------ */
+(function(){
+  var G; try{ G = GRUSH; }catch(e){ return; }
+  if(!G || !G.sb || typeof G.session !== 'function') return;
+
+  G.session().then(function(sess){
+    if(!sess) return;
+    return G.sb.rpc('grush_role').then(function(r){
+      if(r.error || !r.data || r.data === 'visitor') return;
+      var bar = document.getElementById('estMode');
+      if(!bar) return;
+      bar.setAttribute('data-mode','staff');
+      document.getElementById('modeTag').textContent =
+        'Signed in as ' + r.data;
+      document.getElementById('modeWhy').textContent =
+        'This estimate still is not saved anywhere \u2014 no tier stores it yet. Print it to keep it.';
+    });
+  }).catch(function(){ /* stay on the visitor wording */ });
+})();
+</script>
 </body>
 </html>
