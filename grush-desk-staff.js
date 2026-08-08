@@ -209,7 +209,7 @@
   out.addEventListener('click', async function () {
     var G = auth();
     if (G && G.signOut) { await G.signOut(); }
-    location.reload();
+    syncRole();
   });
 
   var sig = document.createElement('a');
@@ -232,7 +232,7 @@
   /* ── read the role ───────────────────────────────────────────────── */
   applyRole('visitor', 'Visitor');
 
-  (async function () {
+  async function syncRole() {
     var actual = 'visitor';
     try {
       var G = auth();
@@ -241,6 +241,14 @@
         if (s) {
           var r = await G.sb.rpc('grush_role');
           if (!r.error && r.data) actual = r.data;
+
+          /* A magic link lands with #access_token=... in the URL. Once
+             supabase-js has consumed it, strip it: leaving it means a
+             refresh re-processes a spent token, and it is a bearer
+             credential sitting in the address bar and in history. */
+          if (/access_token|refresh_token/.test(location.hash)) {
+            history.replaceState(null, '', location.pathname + location.search);
+          }
         }
       }
     } catch (e) { console.warn('[grush-desk] role lookup failed; staying visitor', e); }
@@ -255,7 +263,21 @@
       (valid && RANK[p] > RANK[actual] ? ' \u2014 preview denied' : '');
 
     applyRole(shown, label);
-  })();
+  }
 
-  document.addEventListener('grush:auth', function () { location.reload(); });
+  syncRole();
+
+  /* NEVER RELOAD FROM THIS HANDLER.
+     grush-auth.js dispatches grush:auth on every state change, and
+     supabase-js emits INITIAL_SESSION on page load plus TOKEN_REFRESHED
+     on a timer. A reload here means: load, event, reload, load, event —
+     an infinite loop that a magic-link redirect makes worse, because the
+     link opens a second tab and both spin.
+
+     Re-reading the role in place does the same job and cannot loop. */
+  document.addEventListener('grush:auth', function (e) {
+    var evt = e && e.detail;
+    if (evt === 'INITIAL_SESSION' || evt === 'TOKEN_REFRESHED' || evt === 'USER_UPDATED') return;
+    syncRole();
+  });
 })();
