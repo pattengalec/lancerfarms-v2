@@ -356,12 +356,23 @@
      Staff tooling is excluded: those are crew pages, not visits, and
      counting them would drown the visitor signal we actually want.
 
+     KEPT HERE ON PURPOSE. grush-track.js now carries the same logic as a
+     standalone file, so pages without a nav can be counted. This copy
+     stays because funguyfungi.org and any other deployment may load the
+     nav WITHOUT that file, and silently losing their counts would be
+     worse than the duplication. Both check window.GRUSH_TRACKED, so a
+     page carrying both scripts counts exactly once.
+
      Every failure here is swallowed on purpose. A counter must never be
      able to break a page. */
   (function trackView() {
+    if (window.GRUSH_TRACKED) return;          /* grush-track.js got there first */
+
     var C = window.LFG_CONFIG || window.FGF_CONFIG;
     if (!C || !C.SUPABASE_URL || !C.SUPABASE_ANON_KEY || !C.SITE) return;
     if (/\/(admin|triage|app)\.html$/i.test(location.pathname)) return;
+
+    window.GRUSH_TRACKED = true;
 
     try {
       fetch(C.SUPABASE_URL + '/rest/v1/rpc/grush_track_view', {
