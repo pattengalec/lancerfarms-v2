@@ -37,7 +37,19 @@ const GRUSH = (() => {
   if (!URL_ || !ANON)
     console.error('[grush] lfg-config.js must load BEFORE grush-auth.js');
 
-  const sb = window.supabase.createClient(URL_, ANON);
+  /* BORROW the farm's client if lfg-db.js already made one.
+
+     This module used to be the only place a Supabase client got created,
+     so every public page imported the whole identity layer just to reach
+     GRUSH.sb — and broke whenever the Grush layer was removed. lfg-db.js
+     now owns the connection; this file is a guest on it.
+
+     Creating a second client would be worse than redundant. supabase-js
+     stores its session in localStorage, so two GoTrue instances race over
+     the same keys, log "Multiple GoTrueClient instances detected", and
+     can drop a session on refresh. One client per page. */
+  const sb = (window.LFG && window.LFG.sb)
+           || window.supabase.createClient(URL_, ANON);
 
   /* ---------- CREW: attribution, no credentials ---------- */
 

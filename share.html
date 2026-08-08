@@ -11,7 +11,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
+<script src="lfg-db.js?v=1"></script>
+<!-- GRUSH OVERLAY — only the operator page-view panel needs this.
+     Delete this tag and the panel stays hidden; the rest of the page
+     is unaffected, because loadOps() bails when GRUSH is absent. -->
 <script src="grush-auth.js?v=2"></script>
+<!-- END GRUSH OVERLAY -->
 <style>
   :root{
     --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
@@ -130,7 +135,7 @@
 <script>
 /* Reuse grush-auth's client so a signed-in operator's JWT rides along — that
    is what lets the breakdown and any pending notes resolve under RLS. */
-const sb = GRUSH.sb;
+const sb = LFG.sb;
 const SITE = (window.LFG_CONFIG && window.LFG_CONFIG.SITE) || 'lfg';
 
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){

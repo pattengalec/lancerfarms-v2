@@ -156,7 +156,7 @@
      this page has no other database use. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
-<script src="grush-auth.js?v=2"></script>
+<script src="lfg-db.js?v=1"></script>
 <script>
 /* Splash → role chooser (always). Language pref remembered. */
 window.addEventListener('load', function(){
@@ -204,7 +204,7 @@ async function sendRequest(){
     requested_role: document.getElementById('req-role').value,
     reason:         document.getElementById('req-reason').value.trim() || null
   };
-  var res = await GRUSH.sb.from('lfg_access_requests').insert(row);
+  var res = await LFG.sb.from('lfg_access_requests').insert(row);
   if(res.error){
     msg.textContent = 'Could not send: ' + (res.error.message || 'please try again');
     btn.disabled = false;

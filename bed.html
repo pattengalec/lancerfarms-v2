@@ -14,7 +14,7 @@
 <!-- Identity stack. Order is load-bearing. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
-<script src="grush-auth.js?v=2"></script>
+<script src="lfg-db.js?v=1"></script>
 <script src="grush-settings.js?v=11"></script>
 
 <style>
@@ -163,7 +163,7 @@ function fail(title, detail){
 
   let bed;
   try{
-    const r = await GRUSH.sb.from('lfg_growing_areas')
+    const r = await LFG.sb.from('lfg_growing_areas')
       .select('id,name,code,zone,area_type,manager,blessing,lat,lng')
       .eq('code', code).is('archived_at', null).maybeSingle();
     if(r.error) throw r.error;
@@ -226,15 +226,15 @@ function fail(title, detail){
   body.innerHTML = '<div class="empty">Loading bed history\u2026</div>';
 
   const [plantsR, tasksR, photosR, logR] = await Promise.all([
-    GRUSH.sb.from('lfg_area_events').select('plant_name,event_type,event_date')
+    LFG.sb.from('lfg_area_events').select('plant_name,event_type,event_date')
       .eq('area_id', bed.id).order('event_date', {ascending:false}).limit(6),
-    GRUSH.sb.from('lfg_tasks').select('id,title,recurrence_type,due_date')
+    LFG.sb.from('lfg_tasks').select('id,title,recurrence_type,due_date')
       .eq('area_id', bed.id).is('archived_at', null).limit(6),
     /* Approved only. Anyone can scan a sign, including a visitor on a tour. */
-    GRUSH.sb.from('lfg_photos').select('id,thumbnail_url,cloudinary_url,caption')
+    LFG.sb.from('lfg_photos').select('id,thumbnail_url,cloudinary_url,caption')
       .eq('area_id', bed.id).eq('approval_status','approved')
       .order('uploaded_at', {ascending:false}).limit(6),
-    GRUSH.sb.from('lfg_log').select('note,logged_by,logged_at')
+    LFG.sb.from('lfg_log').select('note,logged_by,logged_at')
       .eq('area_id', bed.id).eq('approval_status','approved')
       .order('logged_at', {ascending:false}).limit(4)
   ]);

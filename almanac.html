@@ -61,14 +61,17 @@ h1{font-family:var(--font-head);font-size:2rem;font-weight:400;letter-spacing:.0
 </style>
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
-<!-- Identity stack. Needed only so grush-nav can ask is_operator() and
-     decide whether to show the Staff group — this page has no other
-     database use. Order is load-bearing: supabase-js, then lfg-config.js,
-     then grush-auth.js, which consumes both as it parses. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
-<script src="grush-auth.js?v=2"></script>
 <script src="grush-settings.js?v=11"></script>
+<!-- GRUSH OVERLAY — this page has NO database use of its own. The only
+     reason the identity stack is here is so grush-nav can ask
+     is_operator() and decide whether to show its Staff group.
+     Delete this block and the Staff group stays hidden; the almanac
+     itself is unaffected. Order is load-bearing: supabase-js, then
+     lfg-config.js (already loaded above), then grush-auth.js. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="grush-auth.js?v=2"></script>
+<!-- END GRUSH OVERLAY -->
 </head>
 <body>
 

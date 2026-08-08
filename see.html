@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
-<script src="grush-auth.js?v=2"></script>
+<script src="lfg-db.js?v=1"></script>
 <style>
   :root{
     --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
@@ -115,7 +115,7 @@
 </div>
 
 <script>
-const sb = GRUSH.sb;
+const sb = LFG.sb;
 let PHOTOS = [], VIEW = [], cur = -1;
 
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
