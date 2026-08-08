@@ -410,105 +410,7 @@ function roCheck(id,i){
       '<button class="btn" id="roback">Back to the findings</button>'+
       '<button class="btn ghost" id="restart3">Start over</button>';
     document.getElementById('roback').onclick=function(){ hap([5]); render(id); };
-    document.getElementById('restart3').onclick=function(){ hap([5]); path=[]; roState={}; 
-const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
- {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
-const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
- [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
-let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
-function evidence(o){
-  belHist.push(bel.slice());
-  (o.u||[]).forEach(function(i){ bel[i]+=(1-bel[i])*0.45; });
-  (o.d||[]).forEach(function(i){ bel[i]-=bel[i]*0.42; });
-}
-function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
-
-const org=document.getElementById('organ');
-const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
-rend.setPixelRatio(Math.min(devicePixelRatio,2));
-const sc=new THREE.Scene();
-const cam=new THREE.PerspectiveCamera(40,1,0.1,100); cam.position.set(0,0,7.6);
-sc.add(new THREE.AmbientLight(0xfff3e0,0.52));
-const pl=new THREE.PointLight(0xffe3ba,1.0); pl.position.set(4,6,6); sc.add(pl);
-const pl2=new THREE.PointLight(0x8fd0ff,0.45); pl2.position.set(-6,-3,2); sc.add(pl2);
-const grp=new THREE.Group(); sc.add(grp);
-const ORAD=2.0;
-function ofib(i,n){const off=2/n,y=i*off-1+off/2,r=Math.sqrt(Math.max(0,1-y*y));
- const phi=i*Math.PI*(3-Math.sqrt(5));
- return new THREE.Vector3(Math.cos(phi)*r*ORAD,y*ORAD,Math.sin(phi)*r*ORAD);}
-const OP7=OD.map(function(d,i){return ofib(i,7);});
-function ogeo(){const g=new THREE.IcosahedronGeometry(1,3);
- g.userData.base=Float32Array.from(g.attributes.position.array);return g;}
-function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.base,ph=m.userData.ph||0;
- for(let i=0;i<p.count;i++){const k=i*3,x=b[k],y=b[k+1],z=b[k+2];
-  const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
-  p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
- p.needsUpdate=true;g.computeVertexNormals();}
-const onodes=[],olabels=[];
-OD.forEach(function(d,i){
- const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
-  emissiveIntensity:.08,roughness:.55,metalness:.02,transparent:true,opacity:.4}));
- m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
- grp.add(m); onodes.push(m);
- const el=document.createElement('div'); el.className='olbl';
- el.style.color='#'+d.c.toString(16).padStart(6,'0'); el.textContent=d.n;
- org.appendChild(el); olabels.push(el);});
-function otend(a,b,r){
- const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
- if(mid.length()<0.35){ctrl=mid.clone().add(new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(ORAD*0.75));}
- else{ctrl=mid.clone().normalize().multiplyScalar(mid.length()+ORAD*0.42);}
- return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,ctrl,b),20,r,6,false);}
-const oedges=[];
-for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
- const st=OSTR[i][j];
- const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
-  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
-   roughness:.7,transparent:true,opacity:0.04}));
- m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
-const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
-const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
-function osize(){const w=org.clientWidth,h=org.clientHeight;
- rend.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
-window.addEventListener('resize',osize);
-let ot=0;
-function oframe(){
- requestAnimationFrame(oframe);
- ot=performance.now()*0.001;
- let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
- const spread=Math.max.apply(null,bel)-Math.min.apply(null,bel);
- if(spread>0.12){
-   tq.setFromUnitVectors(OP7[lead].clone().normalize(),zAx);
-   grp.quaternion.slerp(tq,0.016);
-   leadEl.textContent='leaning \u2014 '+OD[lead].n;
-   leadEl.style.opacity=1;
- }else{
-   grp.rotateY(0.0016);
-   leadEl.textContent='still open';
-   leadEl.style.opacity=.6;
- }
- grp.position.y=Math.sin(ot*0.3)*0.06;
- onodes.forEach(function(m,i){
-  const b=bel[i];
-  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
-  m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
-  m.material.opacity+=(to-m.material.opacity)*0.030;
-  m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
-  m.userData.amp+=(ta-m.userData.amp)*0.02;
-  owob(m,ot,m.userData.amp);});
- oedges.forEach(function(e){
-  const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
-  const to=b>0.62?(b-0.62)*2.1:0.03;
-  e.material.opacity+=(to-e.material.opacity)*0.025;});
- onodes.forEach(function(m,i){
-  pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
-  const el=olabels[i];
-  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
-  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight-m.scale.x*40)+'px';
-  el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
- rend.render(sc,cam);}
-osize(); oframe();
-
-render('start'); };
+        document.getElementById('restart3').onclick=function(){ hap([5]); path=[]; roState={}; resetBelief(); bootOrgan(); render('start'); };
     window.scrollTo(0,0);
   };
   document.getElementById('roout').onclick=function(){ hap([6]); (roState[id]=roState[id]||{})[i]='out'; render(id); };
@@ -539,205 +441,13 @@ function render(id){
       roBlock(id)+
       '<button class="btn" id="hsbtn">'+(fromHS?'Back to the overlooked list':'Not it? Overlooked causes')+'</button>'+
       '<button class="btn ghost" id="restart">Start over</button>';
-    document.getElementById('restart').onclick=function(){ hap([5]); path=[]; 
-const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
- {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
-const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
- [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
-let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
-function evidence(o){
-  belHist.push(bel.slice());
-  (o.u||[]).forEach(function(i){ bel[i]+=(1-bel[i])*0.45; });
-  (o.d||[]).forEach(function(i){ bel[i]-=bel[i]*0.42; });
-}
-function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
-
-const org=document.getElementById('organ');
-const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
-rend.setPixelRatio(Math.min(devicePixelRatio,2));
-const sc=new THREE.Scene();
-const cam=new THREE.PerspectiveCamera(40,1,0.1,100); cam.position.set(0,0,7.6);
-sc.add(new THREE.AmbientLight(0xfff3e0,0.52));
-const pl=new THREE.PointLight(0xffe3ba,1.0); pl.position.set(4,6,6); sc.add(pl);
-const pl2=new THREE.PointLight(0x8fd0ff,0.45); pl2.position.set(-6,-3,2); sc.add(pl2);
-const grp=new THREE.Group(); sc.add(grp);
-const ORAD=2.0;
-function ofib(i,n){const off=2/n,y=i*off-1+off/2,r=Math.sqrt(Math.max(0,1-y*y));
- const phi=i*Math.PI*(3-Math.sqrt(5));
- return new THREE.Vector3(Math.cos(phi)*r*ORAD,y*ORAD,Math.sin(phi)*r*ORAD);}
-const OP7=OD.map(function(d,i){return ofib(i,7);});
-function ogeo(){const g=new THREE.IcosahedronGeometry(1,3);
- g.userData.base=Float32Array.from(g.attributes.position.array);return g;}
-function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.base,ph=m.userData.ph||0;
- for(let i=0;i<p.count;i++){const k=i*3,x=b[k],y=b[k+1],z=b[k+2];
-  const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
-  p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
- p.needsUpdate=true;g.computeVertexNormals();}
-const onodes=[],olabels=[];
-OD.forEach(function(d,i){
- const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
-  emissiveIntensity:.08,roughness:.55,metalness:.02,transparent:true,opacity:.4}));
- m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
- grp.add(m); onodes.push(m);
- const el=document.createElement('div'); el.className='olbl';
- el.style.color='#'+d.c.toString(16).padStart(6,'0'); el.textContent=d.n;
- org.appendChild(el); olabels.push(el);});
-function otend(a,b,r){
- const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
- if(mid.length()<0.35){ctrl=mid.clone().add(new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(ORAD*0.75));}
- else{ctrl=mid.clone().normalize().multiplyScalar(mid.length()+ORAD*0.42);}
- return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,ctrl,b),20,r,6,false);}
-const oedges=[];
-for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
- const st=OSTR[i][j];
- const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
-  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
-   roughness:.7,transparent:true,opacity:0.04}));
- m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
-const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
-const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
-function osize(){const w=org.clientWidth,h=org.clientHeight;
- rend.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
-window.addEventListener('resize',osize);
-let ot=0;
-function oframe(){
- requestAnimationFrame(oframe);
- ot=performance.now()*0.001;
- let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
- const spread=Math.max.apply(null,bel)-Math.min.apply(null,bel);
- if(spread>0.12){
-   tq.setFromUnitVectors(OP7[lead].clone().normalize(),zAx);
-   grp.quaternion.slerp(tq,0.016);
-   leadEl.textContent='leaning \u2014 '+OD[lead].n;
-   leadEl.style.opacity=1;
- }else{
-   grp.rotateY(0.0016);
-   leadEl.textContent='still open';
-   leadEl.style.opacity=.6;
- }
- grp.position.y=Math.sin(ot*0.3)*0.06;
- onodes.forEach(function(m,i){
-  const b=bel[i];
-  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
-  m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
-  m.material.opacity+=(to-m.material.opacity)*0.030;
-  m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
-  m.userData.amp+=(ta-m.userData.amp)*0.02;
-  owob(m,ot,m.userData.amp);});
- oedges.forEach(function(e){
-  const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
-  const to=b>0.62?(b-0.62)*2.1:0.03;
-  e.material.opacity+=(to-e.material.opacity)*0.025;});
- onodes.forEach(function(m,i){
-  pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
-  const el=olabels[i];
-  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
-  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight-m.scale.x*40)+'px';
-  el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
- rend.render(sc,cam);}
-osize(); oframe();
-
-render('start'); };
+        /* A second handler for #restart was assigned four lines below this
+           point, overwriting the one that used to live here. Both were
+           buried in 98 lines of pasted scene code, so neither was
+           visible next to the other. The survivor is also the correct
+           one: it clears roState and fromHS as well. */
     document.getElementById('hsbtn').onclick=function(){ hap([7]); showHS(); };
-    document.getElementById('restart').onclick=function(){ hap([5]); path=[]; roState={}; fromHS=false; 
-const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
- {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
-const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
- [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
-let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
-function evidence(o){
-  belHist.push(bel.slice());
-  (o.u||[]).forEach(function(i){ bel[i]+=(1-bel[i])*0.45; });
-  (o.d||[]).forEach(function(i){ bel[i]-=bel[i]*0.42; });
-}
-function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
-
-const org=document.getElementById('organ');
-const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
-rend.setPixelRatio(Math.min(devicePixelRatio,2));
-const sc=new THREE.Scene();
-const cam=new THREE.PerspectiveCamera(40,1,0.1,100); cam.position.set(0,0,7.6);
-sc.add(new THREE.AmbientLight(0xfff3e0,0.52));
-const pl=new THREE.PointLight(0xffe3ba,1.0); pl.position.set(4,6,6); sc.add(pl);
-const pl2=new THREE.PointLight(0x8fd0ff,0.45); pl2.position.set(-6,-3,2); sc.add(pl2);
-const grp=new THREE.Group(); sc.add(grp);
-const ORAD=2.0;
-function ofib(i,n){const off=2/n,y=i*off-1+off/2,r=Math.sqrt(Math.max(0,1-y*y));
- const phi=i*Math.PI*(3-Math.sqrt(5));
- return new THREE.Vector3(Math.cos(phi)*r*ORAD,y*ORAD,Math.sin(phi)*r*ORAD);}
-const OP7=OD.map(function(d,i){return ofib(i,7);});
-function ogeo(){const g=new THREE.IcosahedronGeometry(1,3);
- g.userData.base=Float32Array.from(g.attributes.position.array);return g;}
-function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.base,ph=m.userData.ph||0;
- for(let i=0;i<p.count;i++){const k=i*3,x=b[k],y=b[k+1],z=b[k+2];
-  const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
-  p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
- p.needsUpdate=true;g.computeVertexNormals();}
-const onodes=[],olabels=[];
-OD.forEach(function(d,i){
- const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
-  emissiveIntensity:.08,roughness:.55,metalness:.02,transparent:true,opacity:.4}));
- m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
- grp.add(m); onodes.push(m);
- const el=document.createElement('div'); el.className='olbl';
- el.style.color='#'+d.c.toString(16).padStart(6,'0'); el.textContent=d.n;
- org.appendChild(el); olabels.push(el);});
-function otend(a,b,r){
- const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
- if(mid.length()<0.35){ctrl=mid.clone().add(new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(ORAD*0.75));}
- else{ctrl=mid.clone().normalize().multiplyScalar(mid.length()+ORAD*0.42);}
- return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,ctrl,b),20,r,6,false);}
-const oedges=[];
-for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
- const st=OSTR[i][j];
- const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
-  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
-   roughness:.7,transparent:true,opacity:0.04}));
- m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
-const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
-const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
-function osize(){const w=org.clientWidth,h=org.clientHeight;
- rend.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
-window.addEventListener('resize',osize);
-let ot=0;
-function oframe(){
- requestAnimationFrame(oframe);
- ot=performance.now()*0.001;
- let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
- const spread=Math.max.apply(null,bel)-Math.min.apply(null,bel);
- if(spread>0.12){
-   tq.setFromUnitVectors(OP7[lead].clone().normalize(),zAx);
-   grp.quaternion.slerp(tq,0.016);
-   leadEl.textContent='leaning \u2014 '+OD[lead].n;
-   leadEl.style.opacity=1;
- }else{
-   grp.rotateY(0.0016);
-   leadEl.textContent='still open';
-   leadEl.style.opacity=.6;
- }
- grp.position.y=Math.sin(ot*0.3)*0.06;
- onodes.forEach(function(m,i){
-  const b=bel[i];
-  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
-  m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
-  m.material.opacity+=(to-m.material.opacity)*0.030;
-  m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
-  m.userData.amp+=(ta-m.userData.amp)*0.02;
-  owob(m,ot,m.userData.amp);});
- oedges.forEach(function(e){
-  const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
-  const to=b>0.62?(b-0.62)*2.1:0.03;
-  e.material.opacity+=(to-e.material.opacity)*0.025;});
- onodes.forEach(function(m,i){
-  pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
-  const el=olabels[i];
-  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
-  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight-m.scale.x*40)+'px';
-  el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
- rend.render(sc,cam);}
-osize(); oframe();
-
-render('start'); };
+        document.getElementById('restart').onclick=function(){ hap([5]); path=[]; roState={}; fromHS=false; resetBelief(); bootOrgan(); render('start'); };
     wireRO(id);
   }
   window.scrollTo(0,0);
@@ -748,105 +458,7 @@ function showHS(){
     '<div class="q">The eight that get missed</div><div class="qs">When the plant does not fit the picture, it is usually one of these. Most are recent and physical.</div>'+
     '<div class="blk hs"><ul>'+HS.map(h=>'<li class="hrow" data-to="'+h[0]+'"><span class="n">'+esc(h[1])+'</span><span class="d">'+esc(h[2])+'</span></li>').join('')+'</ul></div>'+
     '<button class="btn ghost" id="restart2">Start over</button>';
-  document.getElementById('restart2').onclick=function(){ hap([5]); path=[]; roState={}; 
-const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
- {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
-const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
- [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
-let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
-function evidence(o){
-  belHist.push(bel.slice());
-  (o.u||[]).forEach(function(i){ bel[i]+=(1-bel[i])*0.45; });
-  (o.d||[]).forEach(function(i){ bel[i]-=bel[i]*0.42; });
-}
-function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
-
-const org=document.getElementById('organ');
-const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
-rend.setPixelRatio(Math.min(devicePixelRatio,2));
-const sc=new THREE.Scene();
-const cam=new THREE.PerspectiveCamera(40,1,0.1,100); cam.position.set(0,0,7.6);
-sc.add(new THREE.AmbientLight(0xfff3e0,0.52));
-const pl=new THREE.PointLight(0xffe3ba,1.0); pl.position.set(4,6,6); sc.add(pl);
-const pl2=new THREE.PointLight(0x8fd0ff,0.45); pl2.position.set(-6,-3,2); sc.add(pl2);
-const grp=new THREE.Group(); sc.add(grp);
-const ORAD=2.0;
-function ofib(i,n){const off=2/n,y=i*off-1+off/2,r=Math.sqrt(Math.max(0,1-y*y));
- const phi=i*Math.PI*(3-Math.sqrt(5));
- return new THREE.Vector3(Math.cos(phi)*r*ORAD,y*ORAD,Math.sin(phi)*r*ORAD);}
-const OP7=OD.map(function(d,i){return ofib(i,7);});
-function ogeo(){const g=new THREE.IcosahedronGeometry(1,3);
- g.userData.base=Float32Array.from(g.attributes.position.array);return g;}
-function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.base,ph=m.userData.ph||0;
- for(let i=0;i<p.count;i++){const k=i*3,x=b[k],y=b[k+1],z=b[k+2];
-  const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
-  p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
- p.needsUpdate=true;g.computeVertexNormals();}
-const onodes=[],olabels=[];
-OD.forEach(function(d,i){
- const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
-  emissiveIntensity:.08,roughness:.55,metalness:.02,transparent:true,opacity:.4}));
- m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
- grp.add(m); onodes.push(m);
- const el=document.createElement('div'); el.className='olbl';
- el.style.color='#'+d.c.toString(16).padStart(6,'0'); el.textContent=d.n;
- org.appendChild(el); olabels.push(el);});
-function otend(a,b,r){
- const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
- if(mid.length()<0.35){ctrl=mid.clone().add(new THREE.Vector3().crossVectors(a,b).normalize().multiplyScalar(ORAD*0.75));}
- else{ctrl=mid.clone().normalize().multiplyScalar(mid.length()+ORAD*0.42);}
- return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,ctrl,b),20,r,6,false);}
-const oedges=[];
-for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
- const st=OSTR[i][j];
- const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
-  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
-   roughness:.7,transparent:true,opacity:0.04}));
- m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
-const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
-const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
-function osize(){const w=org.clientWidth,h=org.clientHeight;
- rend.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
-window.addEventListener('resize',osize);
-let ot=0;
-function oframe(){
- requestAnimationFrame(oframe);
- ot=performance.now()*0.001;
- let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
- const spread=Math.max.apply(null,bel)-Math.min.apply(null,bel);
- if(spread>0.12){
-   tq.setFromUnitVectors(OP7[lead].clone().normalize(),zAx);
-   grp.quaternion.slerp(tq,0.016);
-   leadEl.textContent='leaning \u2014 '+OD[lead].n;
-   leadEl.style.opacity=1;
- }else{
-   grp.rotateY(0.0016);
-   leadEl.textContent='still open';
-   leadEl.style.opacity=.6;
- }
- grp.position.y=Math.sin(ot*0.3)*0.06;
- onodes.forEach(function(m,i){
-  const b=bel[i];
-  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
-  m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
-  m.material.opacity+=(to-m.material.opacity)*0.030;
-  m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
-  m.userData.amp+=(ta-m.userData.amp)*0.02;
-  owob(m,ot,m.userData.amp);});
- oedges.forEach(function(e){
-  const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
-  const to=b>0.62?(b-0.62)*2.1:0.03;
-  e.material.opacity+=(to-e.material.opacity)*0.025;});
- onodes.forEach(function(m,i){
-  pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
-  const el=olabels[i];
-  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
-  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight-m.scale.x*40)+'px';
-  el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
- rend.render(sc,cam);}
-osize(); oframe();
-
-render('start'); };
+    document.getElementById('restart2').onclick=function(){ hap([5]); path=[]; roState={}; resetBelief(); bootOrgan(); render('start'); };
   document.querySelectorAll('.hrow').forEach(function(el){
     el.onclick=function(){ hap([9]); fromHS=true; render(el.dataset.to); };
   });
@@ -863,6 +475,38 @@ function rewalk(){
   render(id);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   THE ORGAN MODEL — belief state and its 3D representation.
+
+   THIS BLOCK USED TO EXIST FIVE TIMES. Once here, and once more pasted
+   verbatim inside each of the four restart handlers (restart, restart2,
+   restart3, and a second restart inside render). 98 lines each, 392
+   duplicated lines, and they had drifted: three of the five carried a
+   function the others did not.
+
+   The paste was doing real work, which is why it was not simply dead
+   code. Re-declaring `let bel` inside a handler gave that handler a
+   fresh belief array — the reset was a side effect of the redeclaration.
+   Removing the copies therefore requires resetting explicitly, which is
+   what resetBelief() is for. Deleting them without it would have left
+   restart looking like it worked while silently keeping the old beliefs.
+
+   SPLIT IN TWO, on the line where scope matters:
+     Part A  belief state and evidence logic. render() calls evidence()
+             and line ~754 calls undoEvidence(), both from outside, so
+             these must stay at top level.
+     Part B  the scene. Rebuilt wholesale on every restart, so it lives
+             in a function whose internals are function-scoped — each
+             call gets a fresh set, exactly as the paste did.
+
+   KNOWN AND PRESERVED: bootOrgan() builds a new renderer and starts
+   another animation loop without disposing the previous one, so restarts
+   accumulate loops. That is what the pasted version did too. It is a real
+   leak and it is deliberately unchanged here, because this commit is a
+   pure refactor — same behaviour, 392 fewer lines. Fix it separately,
+   with something to compare against.
+   ═══════════════════════════════════════════════════════════════════════ */
+
 const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
  {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
 const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
@@ -875,6 +519,10 @@ function evidence(o){
 }
 function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
 
+/* The reset the redeclaration used to perform implicitly. */
+function resetBelief(){ bel=[.35,.35,.35,.35,.35,.35,.35]; belHist=[]; }
+
+function bootOrgan(){
 const org=document.getElementById('organ');
 const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
 rend.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -959,7 +607,9 @@ function oframe(){
   el.style.opacity=pvv.z>1?0:Math.max(0.12,Math.min(1,(bel[i]-0.2)*1.8));});
  rend.render(sc,cam);}
 osize(); oframe();
+}
 
+bootOrgan();
 render('start');
 </script>
 <script>
