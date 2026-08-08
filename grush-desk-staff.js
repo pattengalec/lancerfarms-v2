@@ -186,33 +186,32 @@
       });
     });
 
-    if (role !== 'visitor') addSignOut();
+    /* addFooter LAST. setLock and setGate each trigger a render that
+       clears menuScroll, so anything appended before them is lost. */
     D.setGate(function (t) { return RANK[t] <= RANK[role]; });
-    addSignature();
+    addFooter();
   }
 
-  var outAdded = false;
-  function addSignOut() {
-    if (outAdded) return;
-    outAdded = true;
-    var scroll = document.getElementById('menuScroll');
-    if (!scroll) return;
-    var b = document.createElement('button');
-    b.className = 'gd-out'; b.type = 'button'; b.textContent = 'Sign out';
-    b.addEventListener('click', async function () {
-      var G = auth();
-      if (G && G.signOut) { await G.signOut(); }
-      location.reload();
-    });
-    scroll.appendChild(b);
-  }
+  /* ── the footer ──────────────────────────────────────────────────────
+     Both of these are RETAINED NODES, created once and re-appended after
+     every render. That is not a style choice — renderMenu() clears
+     menuScroll, and D.setLock/D.setGate each trigger a render. Anything
+     built fresh inside applyRole gets wiped by the next one. appendChild
+     on an existing node moves it, so re-appending never duplicates.
 
-  /* ── the signature ───────────────────────────────────────────────────
-     Last thing in the drawer, below every tier and below sign-out. A
-     maker's mark sits at the foot of the work, not at the top of it.
+     Sign-out first, then the mark: a maker's mark sits at the foot of
+     the work, below everything, including the way out. */
 
-     Re-appended on each render because renderMenu() clears menuScroll —
-     appendChild on an existing node moves it, so this never duplicates. */
+  var out = document.createElement('button');
+  out.className = 'gd-out';
+  out.type = 'button';
+  out.textContent = 'Sign out';
+  out.addEventListener('click', async function () {
+    var G = auth();
+    if (G && G.signOut) { await G.signOut(); }
+    location.reload();
+  });
+
   var sig = document.createElement('a');
   sig.className = 'grush-sig-block';
   sig.href = 'https://getgrush.com';
@@ -222,9 +221,12 @@
   sig.innerHTML = '<span class="sig-cap">powered by</span>' +
                   '<img src="grush-mark.png" alt="" width="494" height="294">';
 
-  function addSignature() {
+  function addFooter() {
     var scroll = document.getElementById('menuScroll');
-    if (scroll) scroll.appendChild(sig);
+    if (!scroll) return;
+    if (role !== 'visitor') scroll.appendChild(out);
+    else if (out.parentNode) out.parentNode.removeChild(out);
+    scroll.appendChild(sig);
   }
 
   /* ── read the role ───────────────────────────────────────────────── */
