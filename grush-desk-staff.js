@@ -188,6 +188,7 @@
 
     if (role !== 'visitor') addSignOut();
     D.setGate(function (t) { return RANK[t] <= RANK[role]; });
+    addSignature();
   }
 
   var outAdded = false;
@@ -204,6 +205,24 @@
       location.reload();
     });
     scroll.appendChild(b);
+  }
+
+  /* ── the signature ───────────────────────────────────────────────────
+     Last thing in the drawer, below every tier and below sign-out. A
+     maker's mark sits at the foot of the work, not at the top of it.
+
+     Re-appended on each render because renderMenu() clears menuScroll —
+     appendChild on an existing node moves it, so this never duplicates. */
+  var sig = document.createElement('a');
+  sig.className = 'grush-sig-block';
+  sig.href = 'https://getgrush.com';
+  sig.setAttribute('aria-label', 'Grush — see how this software works');
+  sig.innerHTML = '<img src="grush-mark.png" alt="" width="494" height="294">' +
+                  '<span class="sig-cap">powered by</span>';
+
+  function addSignature() {
+    var scroll = document.getElementById('menuScroll');
+    if (scroll) scroll.appendChild(sig);
   }
 
   /* ── read the role ───────────────────────────────────────────────── */
