@@ -217,8 +217,10 @@
   sig.className = 'grush-sig-block';
   sig.href = 'https://getgrush.com';
   sig.setAttribute('aria-label', 'Grush — see how this software works');
-  sig.innerHTML = '<img src="grush-mark.png" alt="" width="494" height="294">' +
-                  '<span class="sig-cap">powered by</span>';
+  /* Caption first. "powered by" then the mark reads as one sentence; the
+     other order reads as two unrelated fragments. */
+  sig.innerHTML = '<span class="sig-cap">powered by</span>' +
+                  '<img src="grush-mark.png" alt="" width="494" height="294">';
 
   function addSignature() {
     var scroll = document.getElementById('menuScroll');
