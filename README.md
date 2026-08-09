@@ -1,7 +1,13 @@
 # Lancer Farms & Gardens — lancerfarms.com
 
-**Rebuild reference as of August 5, 2026.**
+**Rebuild reference as of August 8, 2026.**
 This document is sufficient to reconstruct the site, database, and all tooling from scratch.
+
+> **August 8, 2026 was a large session.** The Grush layer became formally
+> removable, `desk.html` was built, the tool contract was written and
+> published to the getgrush repo, `triage.html` was rewritten, and the
+> translation strategy changed. Sections 4, 5, 6, 6a, 11 and 12 all
+> changed. If you are reading an older copy, most of it is now wrong.
 
 ---
 
@@ -62,7 +68,8 @@ lancerfarms.com
 ```
 pattengalec/lancerfarms-v2 (branch: main)
 │
-├── index.html          Landing page — role router (Staff / Visitor)
+├── index.html          Landing page — one door to desk.html + access request
+├── desk.html           The console — tiered menu + 2x2 glove desktop
 ├── app.html            Staff PWA — tasks, photos, areas, log, triage
 ├── admin.html          Admin dashboard — all CRUD + approval queues
 ├── manual.html         Farm manual — 6 topic sections with tabs
@@ -74,26 +81,42 @@ pattengalec/lancerfarms-v2 (branch: main)
 ├── irrigation-bom.html Irrigation bill of materials calculator
 ├── visitor.html        Visitor hub — four tiles (See / Learn / Do / Share)
 ├── see.html            Photo gallery — approved photos, zone filters, lightbox
-├── learn.html          Plant knowledge base — 26 plants, search + category
+├── learn.html          Plant knowledge base — 36 plants, search + category
 ├── do.html             Calculators — bed soil volume, harvest date
 ├── share.html          Visit counter, moderated notes, share link
 ├── bed.html            QR landing page — role-aware, reads ?b=CODE
 ├── watch.html          Showcase video player
 ├── features.html       Feature overview
-├── about-grush.html    Redirect → getgrush.com
+├── about-grush.html    What Grush is → links to getgrush.com
 │
-├── grush-auth.js       Auth layer (operator gate, magic link, session)
-├── grush-nav.js        Shared nav/drawer/rail + page-view tracking
+│                       ── FARM-OWNED (survive removal of the Grush layer) ──
+├── lfg-config.js       Supabase URL + anon key + Cloudinary config
+├── lfg-db.js           The farm's Supabase client. Split out of grush-auth
+│                       on Aug 8 so public pages stop importing identity
+│                       just to reach a database handle
+├── lfg-theme.css       Legacy theme tokens (older pages)
+├── i18n.js             English + Spanish chrome. Every other language is
+│                       the browser's job — see section 6b
+│
+│                       ── GRUSH LAYER (removable; see section 6a) ──
+├── grush-auth.js       Identity: magic link, session, grush_role()
+├── grush-nav.js        Shared nav/drawer/rail + a copy of the tracker
+├── grush-track.js      Page-view counter, standalone. Extracted from
+│                       grush-nav on Aug 8 so a page can be counted
+│                       without inheriting a nav rail
+├── grush-tool.js       The tool contract implementation — banner, input
+│                       echo, print, guarded role read
+├── grush-desk-staff.js desk.html's tier definitions and sign-in sheet
 ├── grush-settings.js   Theme owner + settings console
 ├── grush-shell.css     Shared shell layout
-├── i18n.js             Translation strings
-├── lfg-config.js       Supabase URL + anon key + Cloudinary config
-├── lfg-theme.css       Legacy theme tokens (older pages)
+├── grush-theme.css     The Grush design language applied to desk.html
 │
 ├── lfg-logo-192.webp   App icon
 ├── lfg-logo-512.webp   PWA icon (large)
 ├── lfg-logo-180.png    Apple touch icon
 ├── lfg-emblem.svg      Emblem mark
+├── grush-mark.png      Grush wordmark, 494x294 RGBA. Canonical copy lives
+│                       in the getgrush repo; this is a deliberate duplicate
 ├── bed-qr-cards.pdf    Print-ready QR cards, 23 beds, 4-up
 ├── bed-qr-test-sheet.pdf   Single-page scan test sheet
 ├── LFG PO Bed QR Signs v004.docx   Purchase order, $45.63
@@ -105,21 +128,39 @@ pattengalec/lancerfarms-v2 (branch: main)
 └── CNAME               lancerfarms.com → GitHub Pages
 ```
 
-**Two design systems co-exist intentionally:**
+**Three design systems co-exist intentionally:**
 - **LFG style** (app, admin, manual, data, almanac, triage, howto, visitor, see, learn, do, share): `Fraunces` / `Source Sans 3` / `Courier Prime`. Earth tones: `#2A2620` paper, `#F0EDE2` ink, `#7E9A6E` green, `#A8B89A` leaf, `#C9973F` amber. `manual.html` moved off `IM Fell English` on Aug 5 2026; no page uses it now.
   Canonical tokens: `--ink --ink-soft --paper --card --line --line-strong --green --leaf --amber`.
-- **Grush style** (mixbench, irrigation-bom): `Bricolage Grotesque` / `Source Serif 4` / `JetBrains Mono`. Navy/cyan/chartreuse: `#050a18`, `#00c8ff`, `#c8ff00`, `#ffb830`.
+- **Grush tool style** (mixbench, irrigation-bom): `Bricolage Grotesque` / `Source Serif 4` / `JetBrains Mono`. Navy/cyan/chartreuse: `#050a18`, `#00c8ff`, `#c8ff00`, `#ffb830`. Predates the design language below and has not been migrated.
+- **Grush design language** (`grush-theme.css`, applied to desk.html): `Fraunces` / `IBM Plex Sans` / `IBM Plex Mono`. Substrate `#14110F`, mycelium `#E8E1D4`, spore `#C9A227`, steel `#5C7080`, oxblood `#8C2F39` — reserved for destructive actions only. 1px hairlines, 14px radius, one easing curve. The signature move is *the pin*: a spore bar grows down a row's leading edge on press, from the docking-port story the showcase narrates. Canonical tokens live in `grush-brand.css` in the **getgrush repo**; this repo carries a copy.
 
 ---
 
 ## 5. Page-by-page function reference
 
-### index.html — Landing / role router
-- Displays a role selector: **Staff** routes to `app.html`, **Visitor** routes to `visitor.html`
-- Loads `grush-auth.js` for session detection
-- No database calls on load
+### index.html — Landing page (13KB)
 
-### app.html — Staff PWA (115KB)
+One door. Enters `desk.html`; there is no longer a Staff/Visitor fork.
+
+**Removed Aug 8 2026:** `chooseRole()` asked people to *declare* a role, stored it in `localStorage`, and routed staff to app.html / visitors to visitor.html. That was a second, weaker answer to a question `grush_role()` and the operator allowlist already answer properly, and it outlived the visit, which the tool contract forbids. A one-line cleanup clears the stale `lfg_role` key from anyone who used the old page.
+
+Also carries: the access request sheet (writes `lfg_access_requests`; a trigger emails Chad), the EN/ES switch, and — added Aug 8 — description, Open Graph and canonical meta, which the page previously had none of, so a shared link previewed as bare URL text.
+
+### desk.html — The console (23KB)
+
+The launcher, and the shop window. Built Aug 8 2026.
+
+- **Left**: a menu in tiers — Visitor, Tools, Staff, Admin. Locked tiers are shown greyed, not hidden: seeing a locked door is how you learn the building exists.
+- **Right**: a 2×2 desktop the person fills themselves, persisted per device.
+- **Glove rules inherited from grush-nav.js**: 68px rows, 56px add buttons, no overlapping hit fields, no edge-swipe. Refinement means thinner hairlines, never smaller targets.
+- **Drag is the secondary path.** Tap `+` to add, long-press a slot to clear. Implemented with Pointer Events, because HTML5 drag events never fire on touch devices at all.
+- **`?preview=visitor|staff|admin`** shows another tier's view. It may only ever *narrow* — it cannot grant access you lack.
+
+**Structure matters here.** `desk.html` itself is farm-owned and contains no reference to auth, Supabase, staff or admin. The whole Grush layer arrives through one marked block at the bottom of the file. See section 6a.
+
+**Capacitive reality:** ordinary leather or cloth work gloves do not actuate a capacitive screen at all. Large targets fix accuracy, not conductivity. Crew need nitrile or touchscreen-rated gloves; no amount of CSS changes that.
+
+### app.html — Staff PWA (111KB)
 - Full farm operations interface, mobile-first
 - **Tabs:** Today's tasks · Areas · Log · Photos · How-to · Hub
 - **Hub menu** → Learn section links: Farm manual, How-to cards, Plant triage, Mix Bench, Irrigation BOM
@@ -128,14 +169,14 @@ pattengalec/lancerfarms-v2 (branch: main)
 - Area log entries → `lfg_log`
 - Loads: `grush-auth.js`, `lfg-config.js`, Supabase JS CDN
 
-### admin.html — Admin dashboard (104KB)
+### admin.html — Admin dashboard (101KB)
 - Operator-gated (requires email in `grush_operators` table)
 - Tabs: Areas · Tasks · Photos · Plants · Inventory · Requests · Settings
 - Full CRUD on all major tables
 - Photo approval queue (pending → approved/rejected)
 - Access request management
 
-### manual.html — Farm manual (113KB)
+### manual.html — Farm manual (110KB)
 - 6 topic cards: Soil · Concrete · Irrigation · Pest & Disease · Planting · Tools & Records
 - Each topic has tabs with inline calculators and reference data
 - **Nav links:** Staff App · Farm data · Almanac · **Mix Bench** · **Irrigation BOM**
@@ -153,10 +194,19 @@ pattengalec/lancerfarms-v2 (branch: main)
 - Plant database browser from `lfg_master_plants`
 - Zone 9b planting calendar
 
-### triage.html — Plant triage (68KB)
-- ACLS-style plant health assessment tool
-- Three.js 3D organic model
-- Operator-gated write functions
+### triage.html — Plant triage (58KB)
+
+A decision tree over plant symptoms, with a live Three.js model of seven plant systems whose spheres grow and brighten as belief shifts.
+
+**Rewritten Aug 8 2026.** The file carried **five near-copies of the same 98-line block** — the belief logic plus the whole scene — one at top level and four pasted inside restart-button click handlers. 392 duplicated lines, and they had drifted: three of the five carried a function the others did not.
+
+The paste was doing real work: re-declaring `let bel` inside a handler gave that handler a fresh belief array, so **the reset was a side effect of the redeclaration.** Removing the copies required `resetBelief()` to do it on purpose. Deleting them without that would have left restart looking like it worked while silently keeping the old beliefs.
+
+Now: `bootOrgan()` builds the scene, `resetBelief()` resets state, and each restart handler calls both. Collapsing the copies also exposed **two `onclick` handlers assigned to the same `#restart` element four lines apart** — the second overwriting the first, neither visible next to the other.
+
+**Five leaks fixed at the same time.** Every `bootOrgan()` used to add an animation loop, a WebGLRenderer, a resize listener, seven label divs and a caption, none of which were ever taken down. Browsers cap live WebGL contexts around 16, so **the canvas would have gone blank after roughly fifteen restarts**, silently. Fixed with a generation counter — a stale `oframe()` sees `gen !== organGen` and returns rather than re-queueing, which is the only way to end a `requestAnimationFrame` chain from outside — plus explicit disposal, because Three.js holds GPU buffers that outlive their JS references.
+
+**Readability, same session.** The palette was rebuilt *against the label colour* rather than in isolation: cream `#F0EDE2` on the old `#4FA83C` scored 2.56 and on `#EDA100` scored 1.85, unreadable exactly when it mattered because a sphere grows as belief rises. Deep hues now clear 4.5:1 on all seven at peak emissive, worst case 4.82. Labels are one cream instead of seven tints, positioned from the actual projection maths (`scale × height × 0.181 + 13px`), with overlap resolved by belief so the strongest label keeps the position it earned. Edge opacity floor went 0.03 → 0.09 and the threshold 0.62 → 0.50, because the lattice — the actual content — was invisible for most of a session.
 
 ### howto.html — How-to cards (18KB)
 - Step-by-step card player (swipe/tap navigation)
@@ -164,31 +214,15 @@ pattengalec/lancerfarms-v2 (branch: main)
 - Cards have: title, summary, materials checklist, safety note, steps (JSONB array of `{text}`)
 - **5 cards as of Aug 4 2026:** string trellis, + 3 others + removable shade structure
 
-### mixbench.html — Mix Bench (83KB)
-Three tools in one file:
+### mixbench.html — Mix Bench (84KB)
 
-**Teaching configurator (public)**
-- 17 recipe cards across 5 task categories: Pest, Disease, Weed, Clean, Feed
-- 8 "Not a bottle" cards with measured cultural protocols
-- Seven-slot functional anatomy display
-- Par stock reference, never-combine safety section
-- Print-ready card per recipe
+Three calculators: The Mix (recipe reference), Stock & budget estimator, Water demand estimator. Zero database calls, zero storage, zero writes.
 
-**Chemical stock estimator (staff-gated)**
-- Inputs: grow mode (beds/sqft/acres/containers), crop profile, USDA zone, spray rate, settling rate
-- Outputs: application program, chemical shopping list, amendment inputs, structural soil settling line, contingency, grand total
-- Prices editable; recalculate live
-- 7 crop profiles, 5 USDA zone bands
-- Structural settling section (amber-bordered): annual soil top-up from 30" bed compaction
+**The estimator was invisible to everyone until Aug 8 2026.** Three independent reasons, any one sufficient: the page never loaded `grush-auth.js`; the gate looked for `window.GrushAuth`, which does not exist under any casing; and `unlock()` had exactly one caller, inside that dead gate. `<div id="estPanel" class="hidden">` shipped hidden and nothing ever removed the class. Not gated — unreachable.
 
-**Water demand calculator (staff-gated)**
-- Inputs: date range, CIMIS ETo zone (all 18), crop stage Kc, efficiency, mulch factor, emitter GPH, frequency, supply GPM
-- Bed groups: up to N groups, each with beds/width/length/emitters/sun exposure
-- Sun exposure per group: Full sun (Kc ×1.0), Partial shade (×0.75), Shade (×0.55)
-- Outputs: total gallons, daily/peak averages, month-by-month runtimes per group, flow check against measured supply
-- ETo data: CIMIS Zone table (DWR/UC Davis), all 18 zones
+The gate is gone. Nothing there is private: static tables and arithmetic over numbers the visitor types. A visitor using the tool and printing the result *is* the demonstration.
 
-**Staff gate:** `GrushAuth.isOperator()` check — requires operator email in `grush_operators` table.
+**Now conforms to the tool contract** (section 6c) via `grush-tool.js`: mode banner, print with echoed inputs, guarded optional role read. Mounts twice, once per tab.
 
 ### irrigation-bom.html — Irrigation BOM (25KB)
 - Standalone parts list calculator for drip retrofit
@@ -239,7 +273,7 @@ Three tools in one file:
 - Reads bed code from `?b=CODE` (uppercased); role-aware staff/visitor fork
 - Target of the 23 printed QR signs
 
-### about-grush.html — Redirect (459 bytes)
+### about-grush.html — About Grush (8KB)
 - `<meta http-equiv="refresh">` → getgrush.com
 - Handles all "managed by grush" footer links across the site
 
@@ -247,19 +281,91 @@ Three tools in one file:
 
 ## 6. Authentication architecture
 
-**File:** `grush-auth.js` (loads from CDN Supabase JS + lfg-config.js)
+**File:** `grush-auth.js` (needs supabase-js from CDN, then `lfg-config.js`, then `lfg-db.js`)
 
-**Two-tier system:**
-1. **Staff** — any user who opens app.html. No password required. Name is self-reported, logged with completions.
-2. **Operator** — email must appear in `grush_operators` table with `revoked_at IS NULL`. Gates admin.html, staff sections of mixbench.html, and write operations across the site.
+**Three tiers as of Aug 8 2026.** The old two-tier model could not express the difference between crew tooling and irreversible actions.
 
-**Key functions exported:**
-- `isOperator()` — checks JWT email against `grush_operators`
-- `sendLink(email)` — sends magic link via Supabase Auth
-- `requireOperator()` — throws if not operator
-- `headers()` — returns auth headers for Supabase REST calls
+1. **Visitor** — the absence of a row. Never stored.
+2. **Staff** — email in `grush_operators`, `revoked_at IS NULL`, `role = 'staff'`.
+3. **Admin** — same, `role = 'admin'`. Approvals, crew, configuration.
 
-**Operator gate in mixbench.html:** `GrushAuth.isOperator()` unlocks the estimator panel. The `#staff` URL bypass was present during development and was **removed** (Aug 4 2026 session).
+`grush_operators.role` was added Aug 8 (`text not null default 'staff'`, checked against `('staff','admin')`).
+
+**`grush_role()`** — SECURITY DEFINER, returns `'visitor' | 'staff' | 'admin'`. Reads the allowlist without exposing it and returns `'visitor'` for any signed-in stranger. Granted to `anon` and `authenticated`.
+
+**Key exports:** `isOperator()`, `sendLink(email)`, `requireOperator()`, `session()`, `signOut()`, `headers()`, `rest()`, `stamp()`, and `sb` — though public pages should use `LFG.sb` from `lfg-db.js` instead.
+
+**`GRUSH` is a lexical `const`, not a property of `window`.** Read the bare name inside a `try`:
+
+```js
+var G; try { G = GRUSH; } catch (e) { return; }   // correct
+var G = window.GrushAuth;                          // silently always null
+```
+
+This is not hypothetical. `mixbench.html` looked for `window.GrushAuth`, on a page that never loaded `grush-auth.js` at all, and **its entire Stock & budget estimator shipped invisible to every user, including admins, for months.** Nobody noticed, because the failure path was "show nothing." The gate was removed Aug 8 — see section 6c.
+
+**One client per page.** supabase-js keeps its session in `localStorage`; two clients means two GoTrue instances racing the same keys, logging *"Multiple GoTrueClient instances detected"* and occasionally dropping a session on refresh. `grush-auth.js` borrows `window.LFG.sb` when `lfg-db.js` has already made one.
+
+**Never reload from a `grush:auth` handler.** supabase-js emits `INITIAL_SESSION` on every page load and `TOKEN_REFRESHED` on a timer. A `location.reload()` there is an infinite loop, and a magic-link redirect makes it worse because the link opens a second tab and both spin. Re-read the role in place instead.
+
+**The real boundary is Postgres.** Every client-side check shows and hides UI. Row-level security is what enforces.
+
+---
+
+## 6a. The Grush layer is removable
+
+**This is the product thesis, not a tidiness preference.** Grush is an overlay on a site an organisation already has. Deleting it must leave the original intact.
+
+**The removal test**, run — not asserted — on Aug 8:
+
+1. Delete `grush-auth.js`, `grush-desk-staff.js`, `grush-theme.css`, `grush-track.js`
+2. Delete the marked block at the bottom of `desk.html`
+3. Delete the `GRUSH OVERLAY` blocks in `share.html` and `almanac.html`
+4. Delete the counter blocks in the pages that carry them
+
+Result: **zero dangling script references across every public page.** One code reference survives, in `share.html`, and it degrades correctly — `GRUSH` is a lexical const, so the bare name throws `ReferenceError`, the existing `catch` swallows it, and the operator panel stays hidden.
+
+**What made this possible:** `GRUSH.sb` used to be the only way to get a Supabase client, so six public pages imported the whole identity module to reach a database handle they were entitled to anyway. `lfg-db.js` now owns the connection and `grush-auth.js` is a guest on it.
+
+Staff and admin pages (`admin`, `app`, `data`, `howto`, `manual`, `triage`) still reference `grush-auth.js` — correctly, since they *are* the Grush layer and would be removed with it.
+
+---
+
+## 6b. Languages
+
+**Spanish by hand. Everything else by browser.**
+
+CBU has ~316 international students across 60+ countries — five to fifteen people per language. Riverside itself is ~53% Latino. So Spanish has a large, local, permanent audience and the international cohort is a long tail no dictionary can serve.
+
+- `i18n.js` carries **en + es only**, 35 keys, wired across index / visitor / learn / do / see / share.
+- The previous dictionary held en/es/fr/pt and **0 of 38 keys matched the live copy** on learn, do or see. It had drifted so far that switching to English would have changed the English. Rebuilt from scratch Aug 8.
+- Every other language is handled by Chrome/Safari/Edge native translation, which reaches **everything** — including plant summaries and how-to cards in Postgres that can never appear in a file.
+
+**Keeping the site translatable is the actual work:**
+- All text is real DOM. Nothing is drawn into a canvas — including the triage organ labels, which are `<div>` elements positioned over the canvas.
+- Every page declares `lang`; `setSiteLang()` updates it so a translator knows what it is starting from.
+- `translate="no"` on brand links and the EN/ES switch.
+- `translate="no" lang="la"` on botanical names. Chrome renders *Mentha spicata* as "spiked mint" otherwise, which is not the plant's name and is not searchable against any reference.
+
+**Unreviewed.** The Spanish has not been checked by a native speaker. Low risk for tiles and headings; higher for anything a stranger acts on.
+
+---
+
+## 6c. The tool contract
+
+Written Aug 8, published to the **getgrush repo** as `GRUSH-TOOL-CONTRACT.md` and `grush-tool.js`. Extracted from two working tools, not designed in advance.
+
+> **A Grush tool is a page with inputs, a computed result, and a printable artifact.**
+
+- **Mode, not access.** The visitor/staff line is whether a result *persists*, never whether the tool runs. Neither reference tool gates anything, because neither has anything to protect.
+- **Compute tools get a visitor mode; recording tools do not.** A visitor logging fake activity against a farm that is not theirs produces nothing worth printing.
+- **Role reads are optional and guarded.** A tool must work with the auth layer absent, and must not add a dependency merely to change a sentence.
+- **Print is the visitor's only artifact**, so it echoes the readable inputs, the date, and provenance.
+- **Ephemeral means `sessionStorage`.** `localStorage` outlives the visit and breaks the promise the banner made.
+
+**Conforming tools:** `mixbench.html`, `irrigation-bom.html`. Both dropped their hand-rolled implementations onto `grush-tool.js` — 4,688 and 3,608 bytes removed respectively.
+
+**Deliberately undefined:** how a staff result persists. No tool has ever written a record, so persistence has no proven shape. It gets defined when a third tool needs it.
 
 ---
 
@@ -485,11 +591,11 @@ This file is in the repo and contains the public anon key. If the Supabase proje
 Create upload preset `lfg-photos` on cloud `ddbsuxerb` (unsigned, folder: `lfg`). If using a new cloud, update `lfg-config.js`.
 
 ### Step 5 — Seed data
-- Insert operator email into `grush_operators`
+- Insert operator email into `grush_operators`, **with a `role`** — `'admin'` for the first one, or nothing works
 - Seed `lfg_config` with: `farm_name`, `farm_lat`, `farm_lng`, `cloudinary_cloud`, `cloudinary_preset`, `visit_days`, `admin_password`
 - Seed `grush_people` with crew names
 - Seed `lfg_growing_areas` with the 35 records (23 beds + grove/grounds/landmarks)
-- Seed `lfg_master_plants` (34 records), `lfg_inventory` (13 records), `lfg_howto_cards` (5 records)
+- Seed `lfg_master_plants` (36 records), `lfg_inventory` (13 records), `lfg_howto_cards` (7 records)
 
 ### Step 6 — Vault secrets (for access request emails)
 In Supabase Vault: add `resend_api_key`, `notify_email_to`, `notify_email_from`.
@@ -498,17 +604,31 @@ In Supabase Vault: add `resend_api_key`, `notify_email_to`, `notify_email_from`.
 Point `lancerfarms.com` A record or CNAME to GitHub Pages. Verify HTTPS is enabled in repo Settings → Pages.
 
 ### Step 8 — Upload all files
-Upload all 12 HTML files + grush-auth.js + lfg-config.js + lfg-theme.css + image assets to `main`.
+Upload all 20 HTML files, every `.js` and `.css` listed in section 4, and the image assets to `main`.
+
+**Load order is load-bearing** on any page that talks to the database:
+
+```
+1. https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
+2. lfg-config.js      supplies URL + anon key
+3. lfg-db.js          creates the one client
+4. grush-auth.js      borrows it — only on pages that need identity
+```
+
+Getting 2 and 3 the wrong way round fails silently: `lfg-db.js` logs a warning and every query returns nothing.
+
+### Step 9 — Verify the removal test
+Before calling a rebuild done, run the procedure in section 6a. If deleting the Grush layer leaves a dangling reference on a public page, the seam has leaked and the deployment is not clean.
 
 ---
 
-## 11. Open items (as of Aug 5 2026)
+## 11. Open items (as of Aug 8 2026)
 
 | Item | Priority | Notes |
 |---|---|---|
-| Staff gate in mixbench.html wired to real auth | High | `GrushAuth.isOperator()` present; needs grush-auth.js → Supabase operator table integration tested end to end |
-| Plant illustrations | High | **All 34 plants have `stock_image_url` empty.** learn.html ships text-first by design. Planned mechanism: a GitHub Action fetching PD-only botanical illustrations from Wikimedia (`<Botanical name> - botanical illustrations`), restricted to PD-Old / CC-PD-Mark, recording source + author per image |
-| 8 placeholder rows in `lfg_master_plants` | Medium | Carry a category and nothing else — no name, no botanical name, no summary. learn.html filters them out; they should be deleted or completed |
+| ~~Staff gate in mixbench.html~~ | ✅ Aug 8 | Gate was dead and is **removed**. The estimator is open to everyone; nothing there is private. See section 6c. |
+| Plant illustrations | High | **All 36 plants have `stock_image_url` empty.** learn.html ships text-first by design. Planned mechanism: a GitHub Action fetching PD-only botanical illustrations from Wikimedia (`<Botanical name> - botanical illustrations`), restricted to PD-Old / CC-PD-Mark, recording source + author per image |
+| ~~8 placeholder rows in `lfg_master_plants`~~ | ✅ Aug 8 | All completed. 36 plants, every one with a botanical name, common name and summary. Mint was split into Spearmint / Peppermint / Apple Mint; "Kabotia" corrected to Kabocha Squash; Borage recategorised Shrub → Herb. |
 | `plant-autofill.ts` Edge Function | Medium | Written, **not deployed**. The unbuilt piece of the Learn/Do content pipeline |
 | `lfg_manual_entries` has 1 row | Medium | The manual's topic/tab system is nearly empty. The 7 written procedures live in `lfg_howto_cards` and are now listed on the manual home, but no topic mapping exists |
 | Financials tab | Medium | Stub only, under **Records** in admin.html. No financial table exists. Schema decision pending: plain ledger vs. ledger with purchase-order approval states |
@@ -521,10 +641,45 @@ Upload all 12 HTML files + grush-auth.js + lfg-config.js + lfg-theme.css + image
 | Supabase: is_operator() callable by anon | Advisory | Intentional — function needs DEFINER context. Documented, not fixable without breaking auth. |
 | Supabase: notify_access_request() callable by anon | Advisory | Intentional — needs DEFINER for vault access. |
 | Empty Cottages project (muecvqxsqnhkhjrabtxh) | Low | Delete from Grush org when ready. Blank project, no data. |
+| Spanish review by a native speaker | Medium | `i18n.js` es strings are unreviewed. Low risk on tiles; higher on anything a stranger acts on. |
+| mixbench / triage Spanish | Medium | Currently machine-translated along with everything else. A mistranslated dilution ratio is a safety problem, not a UX one. Hand-translate if crew start relying on them in Spanish. |
+| Grush tool style not migrated | Low | mixbench and irrigation-bom still use the navy/cyan palette that predates `grush-theme.css`. Two Grush looks co-exist. |
+| `desk.html` 2×2 uses `localStorage` | Low | The tool contract says ephemeral state is `sessionStorage`. A visitor's slot choices currently outlive the visit. |
+| i18n only covers visitor chrome | Low | 35 keys. The manual, triage tree and plant records are browser-translated by design — see section 6b. |
 
 ---
 
 ## 12. Session history
+
+### August 8, 2026
+
+The longest session so far. Roughly in order:
+
+**Data.** Eight plant records completed — the weekly digest had flagged them for weeks. Mint split into three species, "Kabotia" corrected to Kabocha Squash, Borage recategorised. `lfg_master_plants` now 36 rows with no gaps.
+
+**Three-tier auth.** `grush_operators.role` added; `grush_role()` written as SECURITY DEFINER. Chad set to `admin`.
+
+**`desk.html` built** — tiered menu, 2×2 glove desktop, drag via Pointer Events, `?preview=` for checking other tiers.
+
+**The Grush layer became removable.** `lfg-db.js` split out of `grush-auth.js` so six public pages stopped importing identity to reach a database client. The removal test now passes site-wide. A regression was caught mid-way: `almanac.html` needed the identity stack after all, for `grush-nav`'s staff group, and got it back inside a marked block.
+
+**The mark.** Designed in Canva (deep-orange baseball script, no swoosh), keyed to true transparency by hand because Canva's transparent export could not clear an image background. Placed at the foot of the desk drawer. Canonical copy plus `grush-brand.css` published to the getgrush repo; `grush_badge_rect.png` deleted as an unused orphan whose cyan appeared nowhere in the palette.
+
+**Tracking extracted.** `grush-track.js` split from `grush-nav.js`, so a page can be counted without inheriting a nav rail. Coverage 12 → 17 pages. Paths normalised at write time (`/index.html` → `/`) so one page cannot split across two rows.
+
+**The tool contract** written and published, then made load-bearing: `mixbench.html` and `irrigation-bom.html` both refitted onto `grush-tool.js`, shedding 4,688 and 3,608 bytes of hand-rolled implementation.
+
+**`mixbench`'s estimator turned on** after months invisible to every user.
+
+**`index.html`** lost `chooseRole()` and gained share metadata it never had.
+
+**Tiering resolved** on the contract's own line: Tools open to everyone, Staff and Admin locked. `manual.html` came out from behind a login it never needed. `features.html` finally linked.
+
+**`triage.html` rewritten** — 392 duplicated lines removed, a dead handler found, five leaks fixed, palette and labels rebuilt for readability.
+
+**Languages.** Old dictionary discarded (0 of 38 keys matched the live copy), rebuilt as en+es, with the site made translatable for everything else.
+
+**Bugs I introduced and then fixed in the same session:** a reload loop from wiring `location.reload()` to `grush:auth`, and a wiped Sign-out button from appending it before a call that clears the menu. Both were violations of contracts documented in the files I was editing.
 
 ### August 5, 2026
 
