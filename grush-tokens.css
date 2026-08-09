@@ -153,6 +153,27 @@ body{
   font-family: var(--font-body);
 }
 
+/* ── the card ───────────────────────────────────────────────────────────
+   Five pages defined .card and they already agreed on nearly everything —
+   same background, same border colour, same variables. They differed on
+   radius (12px, 12px, 14px) and border weight (1px, 1.5px, var), which is
+   the kind of drift nobody chooses and nobody notices until two cards sit
+   next to each other.
+
+   Only those two properties are set here. Padding stays with the page:
+   24px on a marketing page and 16px on a phone card are different jobs,
+   not drift, and flattening them would be tidying at the cost of the
+   thing the page was doing.
+
+   body:not(.card-custom) outranks a page's own .card by specificity, so
+   this does not depend on load order — and a page that genuinely needs a
+   different card says so with a class instead of losing silently. */
+body:not(.card-custom) .card{
+  border-radius: var(--radius);
+  border-width: var(--hair);
+  border-style: solid;
+}
+
 /* One colour on the whole site, used once per page at most. */
 ::selection{ background: var(--green); color: var(--paper); }
 
