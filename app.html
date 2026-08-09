@@ -672,7 +672,8 @@ window.addEventListener('unhandledrejection', function(e){
 
 window.addEventListener('load', ()=>{
   const lang = localStorage.getItem('lfg_lang') || null;
-  const role = localStorage.getItem('lfg_role') || null;
+  /* lfg_role is no longer consulted on load — see the enterStaff() call
+     below. chooseRole() still writes it for the hero's own buttons. */
   if(localStorage.getItem('lfg_admin')==='1') document.body.classList.add('is-admin');
   // The flag above is only a paint-flicker optimisation. refreshAdminMode()
   // immediately re-checks it against is_operator() and drops it if the session
@@ -725,9 +726,20 @@ window.addEventListener('load', ()=>{
   })();
   setTimeout(()=>{
     document.getElementById('splash').classList.add('gone');
-    if(role==='staff'){ enterStaff(); }
-    else if(role==='visitor'){ enterVisitor(); }
-    else { document.getElementById('hero').classList.add('show'); }
+    /* Straight in. This used to read localStorage.lfg_role and show a
+       Staff / Visitor picker when it was unset — a THIRD front door, after
+       index.html's and the desk's. desk.html is the console now, and
+       arriving here means someone already chose the staff side; asking
+       again is a question with one answer.
+
+       It also broke outright on Aug 8: index.html clears lfg_role as
+       cleanup from the old role fork, not knowing this page read the same
+       key, so every deep link from the desk landed on the picker instead
+       of the screen it asked for.
+
+       The hero markup and goHero() stay — the drawer's Home item still
+       uses them, and it is a reasonable place to land deliberately. */
+    enterStaff();
   }, 1400);
 });
 
