@@ -1092,7 +1092,12 @@ async function submitLog(){
     const when = state.loggedAt ? new Date(state.loggedAt) : new Date();
     const ev = {
       area_id: state.areaId,
-      event_type: pe.kind === 'Harvested' ? 'harvest' : 'planting',
+      /* The column carries a CHECK constraint — planted | harvested |
+         pruned | treated | fruited | removed | observed | other. The first
+         version of this wrote 'planting' and 'harvest', which are not in
+         that list, so every insert was rejected while the log line saved
+         fine. The table already had a vocabulary; I should have read it. */
+      event_type: pe.kind === 'Harvested' ? 'harvested' : 'planted',
       plant_id: pe.plant_id,
       plant_name: pe.plant_name,
       quantity: pe.quantity,
@@ -1103,7 +1108,14 @@ async function submitLog(){
       submitted_by: state.who || 'Staff'
     };
     const r2 = await sb.from('lfg_area_events').insert(ev);
-    if(r2.error){ evOk=false; }
+    if(r2.error){
+      evOk=false;
+      /* Say what went wrong. The first version of this reported only that
+         the record failed, which told nobody that event_type had violated
+         a CHECK constraint — the one fact that would have fixed it. */
+      console.error('[area_events]', r2.error);
+      toast('Planting record failed: ' + (r2.error.message || 'unknown'));
+    }
   }
 
   toast(pe && pe.plant_id
