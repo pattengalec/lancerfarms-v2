@@ -422,6 +422,18 @@
         <div class="field" id="what-field">
           <div class="field-label"><span class="ic">&#128296;</span> What</div>
           <div class="btn-grid" id="what-grid"></div>
+          <!-- Appears only when a how-to exists for the action just chosen.
+               The procedure is most useful at the moment someone is about
+               to do the thing, not filed in a menu they would have to go
+               looking for. -->
+          <a id="what-howto" href="#" style="display:none;align-items:center;gap:9px;
+             margin-top:10px;padding:11px 14px;border-radius:11px;text-decoration:none;
+             background:rgba(126,154,110,.14);border:1.5px solid rgba(126,154,110,.45);
+             color:inherit;font-size:.9rem;min-height:52px">
+            <span style="font-size:1.15rem">&#128214;</span>
+            <span><b id="what-howto-t"></b><br>
+              <span style="opacity:.75;font-size:.82rem">How this is done here</span></span>
+          </a>
         </div>
 
         <div class="field">
@@ -942,6 +954,7 @@ function pickType(el,t){
   if(!wasOn){ el.classList.add('on'); if(t==='problem')el.classList.add('bad'); if(t==='need')el.classList.add('warn'); state.type=t; }
   else { state.type=null; }
   renderWhat();
+  showHowtoFor(state.type, null);
 }
 function pickArea(el,id,label){
   el.classList.toggle('on');
@@ -952,10 +965,58 @@ function pickArea(el,id,label){
   state.areaLabel=state.areaIds.map(a=>a.label).join(', ');
 }
 function pickWho(el,n){ el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); state.who=n; }
+/* ── how-to cards, matched to the action ────────────────────────────────
+   Looked up by TITLE, not by a hardcoded id. A card recreated in the
+   editor gets a new uuid, and 26 uuids pasted into this file would go
+   stale silently — the link would simply stop appearing and nobody would
+   know why.
+
+   Most chips match a card title exactly. These are the ones that do not:
+   the Need chips are verbs on screen and nouns as titles, and each type
+   has its own "Other". */
+const HOWTO_ALIAS = {
+  'problem:Other'   : 'Other problem',
+  'need:Supplies'   : 'Supplies needed',
+  'need:Repair'     : 'Repair needed',
+  'need:Tools'      : 'Tools needed',
+  'need:Water'      : 'Water needed',
+  'need:Assistance' : 'Assistance needed',
+  'report:End of day': 'End of day report',
+  'report:Incident' : 'Incident report'
+};
+let HOWTO_BY_TITLE = null;
+
+async function ensureHowtoIndex(){
+  if(HOWTO_BY_TITLE) return HOWTO_BY_TITLE;
+  HOWTO_BY_TITLE = {};
+  try{
+    const {data} = await sb.from('lfg_howto_cards')
+      .select('id,title').is('archived_at', null);
+    (data||[]).forEach(function(c){ HOWTO_BY_TITLE[c.title] = c.id; });
+  }catch(e){ /* the log still works without the cards */ }
+  return HOWTO_BY_TITLE;
+}
+
+async function showHowtoFor(type, what){
+  const link = document.getElementById('what-howto');
+  if(!link) return;
+  if(!what){ link.style.display='none'; return; }
+
+  const map = await ensureHowtoIndex();
+  const title = HOWTO_ALIAS[type+':'+what] || what;
+  const id = map[title];
+  if(!id){ link.style.display='none'; return; }
+
+  document.getElementById('what-howto-t').textContent = title;
+  link.href = 'howto.html?id=' + encodeURIComponent(id);
+  link.style.display = 'flex';
+}
+
 function pickWhat(el,a){
   const wasOn=el.classList.contains('on');
   el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
   if(!wasOn){ el.classList.add('on'); state.what=a; } else { state.what=null; }
+  showHowtoFor(state.type, state.what);
 
   /* Planted and Harvested carry data the log line cannot hold — which
      plant, how much. Ask while the person is standing in the bed. */
@@ -1139,6 +1200,7 @@ async function submitLog(){
   document.getElementById('log-note').value='';
   state.what=null; state.loggedAt=null; state.areaIds=[]; state.areaId=null; state.areaLabel=null;
   state.plantEvent=null;
+  showHowtoFor(null, null);
   document.querySelectorAll('[data-area]').forEach(c=>c.classList.remove('on'));
   document.getElementById('when-picker').style.display='none';
   document.getElementById('when-label').textContent='Now';
