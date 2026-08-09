@@ -787,13 +787,28 @@ function enterVisitor(){
  window.location.href='visitor.html';
 }
 function enterStaff(){
-  go('hub');
+  /* Honour ?s= if the desk sent us to a specific screen; otherwise the hub. */
+  if(!routeFromURL()) go('hub');
   loadAreas(); loadTasks(); loadInventory(); refreshApproveBadge();
 }
 
 /* ---------- navigation ---------- */
 const TITLES={hub:'Lancer Farms',log:'Log activity',tasks:'Tasks',inventory:'Inventory',photos:'Photos',approvals:'Approvals'};
-function go(scr){
+/* ── screens are addressable ────────────────────────────────────────────
+   The five tools in this file — log, tasks, photos, inventory, areas —
+   were <section> elements swapped by go(), with no URL of their own. That
+   is why the desk could only offer "Field tool" and not "Log": there was
+   nothing to link to, so this page's hub had to exist as a second launcher
+   just to reach them.
+
+   go() now writes the screen into the address bar and the page reads it on
+   load, so app.html?s=log opens the log. Nothing about how the screens
+   work changed; they simply have addresses now. replaceState rather than
+   pushState so the back button still leaves the tool rather than walking
+   backwards through every screen someone tapped. */
+const SCREENS = ['hub','log','tasks','photos','inventory','areas','approvals'];
+
+function go(scr, silent){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById('screen-'+scr);
   /* No such screen: stay where we are rather than clearing every panel and
@@ -805,6 +820,22 @@ function go(scr){
   const ab=document.getElementById('actionbar');
   if(scr==='log'){ ab.style.display='block'; document.getElementById('primary-action').textContent='Log it'; document.getElementById('primary-action').onclick=submitLog; }
   else ab.style.display='none';
+
+  if(!silent){
+    try{
+      const u=new URL(location.href);
+      if(scr==='hub') u.searchParams.delete('s'); else u.searchParams.set('s',scr);
+      history.replaceState(null,'',u);
+    }catch(e){ /* no history API; the screen still switched */ }
+  }
+}
+
+/* Open whatever the URL asked for. Runs after the screens exist. */
+function routeFromURL(){
+  let s=null;
+  try{ s=new URLSearchParams(location.search).get('s'); }catch(e){}
+  if(s && SCREENS.indexOf(s)!==-1 && s!=='hub'){ go(s, true); return true; }
+  return false;
 }
 /* The drawer is grush-nav's now. These two are kept as thin shims because
    eleven call sites below still use them — and because grush-settings.js
