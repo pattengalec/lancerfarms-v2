@@ -3,6 +3,14 @@
      layout. Delete that one class to fall back to document scrolling. -->
 <html lang="en" class="grush-shell">
 <head>
+<!-- app.html carries no version string in its URL — unlike the .js and .css
+     files, nothing tells a CDN or a phone that this page changed. That is
+     why edits to it kept appearing not to deploy. These three headers ask
+     for a revalidation on every load. They cost one conditional request and
+     save an afternoon of "nothing behaves differently". -->
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="color-scheme" content="dark">
