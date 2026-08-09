@@ -206,6 +206,63 @@
   font-size:.82rem; font-weight:700; letter-spacing:.04em; white-space:nowrap;
 }
 .ap-go:active{ background:var(--green); color:var(--paper); }
+
+/* Deny sits beside Approve, weighted lower — it is the less common
+   answer and should not compete for the thumb. */
+.ap-no{
+  width:auto; min-height:52px; padding:0 14px; flex:none;
+  color:var(--ink-soft); border-color:var(--line-strong);
+  font-size:.8rem; font-weight:600; letter-spacing:.03em; white-space:nowrap;
+}
+.ap-no:active{ background:var(--line-strong); }
+
+/* The rejected group reads as an archive, not a queue. */
+.rejected-group{ opacity:.65; margin-top:26px; }
+.inv-row.is-rejected{ opacity:.72; border-style:dashed; }
+.ap-back{
+  width:auto; min-height:52px; padding:0 13px; flex:none;
+  font-size:.8rem; font-weight:600; white-space:nowrap; color:var(--ink-soft);
+}
+/* The only irreversible control in the tool, so it is the only one that
+   carries the warning colour. */
+.ap-kill{
+  width:auto; min-height:52px; padding:0 13px; flex:none;
+  font-size:.8rem; font-weight:700; white-space:nowrap;
+  color:#B4231F; border-color:#B4231F;
+}
+.ap-kill:active{ background:#B4231F; color:var(--paper); }
+#approve-list .ap-no, #approve-list .ap-back, #approve-list .ap-kill{
+  flex:1 1 auto; margin-top:10px; justify-content:center;
+}
+@media (min-width:620px){
+  #approve-list .ap-no, #approve-list .ap-back, #approve-list .ap-kill{
+    flex:none; margin-top:0;
+  }
+}
+
+/* Approval rows stack on a phone. They are the widest rows in the app —
+   a photo card carries three dropdowns AND the button — and a <select>
+   keeps an intrinsic minimum width that min-width:0 on its parent does
+   not fully override, so the row overflowed and pushed Approve off the
+   right edge. It was only reachable in landscape.
+
+   Adding a text label to that button is what tipped it over, so this is
+   the second half of that change rather than a separate fix.
+
+   Scoped to #approve-list: the same .inv-row class is used by inventory,
+   where the horizontal layout is correct and there is room for it. */
+#approve-list .inv-row{ flex-wrap:wrap; }
+#approve-list .inv-body{ flex:1 1 100%; min-width:0; }
+#approve-list .ap-go{
+  flex:1 0 100%; width:100%; margin-top:10px;
+  justify-content:center; min-height:54px;
+}
+@media (min-width:620px){
+  /* Room again: put it back beside the content. */
+  #approve-list .inv-row{ flex-wrap:nowrap; }
+  #approve-list .inv-body{ flex:1 1 auto; }
+  #approve-list .ap-go{ flex:none; width:auto; margin-top:0; }
+}
   .step-btn:active{background:var(--paper);}
   .qty{min-width:46px; text-align:center; font-size:17px; font-weight:700;}
   .qty small{font-weight:400; font-size:12px; color:var(--ink-soft); display:block;}
@@ -1479,15 +1536,25 @@ function _escA(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</
 async function loadApprovals(){
   const el=document.getElementById('approve-list');
   await ensurePlants();
-  const [logsR,commentsR,photosR]= await Promise.all([
+  /* Rejected items are fetched too. A queue that hides what you turned
+     down cannot be corrected, and the second deny — the permanent one —
+     has to live somewhere you can find it deliberately. */
+  const [logsR,commentsR,photosR,rlogR,rphotoR]= await Promise.all([
     sb.from('lfg_log').select('*').eq('approval_status','pending').order('logged_at',{ascending:false}),
     sb.from('lfg_comments').select('*').eq('status','new').order('submitted_at',{ascending:false}),
-    sb.from('lfg_photos').select('*').eq('approval_status','pending').order('uploaded_at',{ascending:false})
+    sb.from('lfg_photos').select('*').eq('approval_status','pending').order('uploaded_at',{ascending:false}),
+    sb.from('lfg_log').select('*').eq('approval_status','rejected').order('logged_at',{ascending:false}),
+    sb.from('lfg_photos').select('*').eq('approval_status','rejected').order('uploaded_at',{ascending:false})
   ]);
   if(logsR.error&&commentsR.error&&photosR.error){ el.innerHTML='<div class="empty">Could not load</div>'; return; }
   const logs=logsR.data||[], comments=commentsR.data||[], photos=photosR.data||[];
-  const stubs=(staffPlants||[]).filter(function(p){return p.approval_status!=='approved';});
-  if(!logs.length && !comments.length && !photos.length && !stubs.length){
+  const rlogs=rlogR.data||[], rphotos=rphotoR.data||[];
+  /* A rejected plant stub is still a stub — filter it out of both groups
+     by status rather than lumping everything not-approved together. */
+  const stubs=(staffPlants||[]).filter(function(p){return p.approval_status==='pending';});
+  const rstubs=(staffPlants||[]).filter(function(p){return p.approval_status==='rejected';});
+  const nRejected = rlogs.length + rphotos.length + rstubs.length;
+  if(!logs.length && !comments.length && !photos.length && !stubs.length && !nRejected){
     el.innerHTML='<div class="empty"><span class="ic">&#9989;</span>Nothing waiting. All caught up.</div>'; return;
   }
   let html='';
@@ -1495,14 +1562,14 @@ async function loadApprovals(){
     html+='<div class="approve-group">Field logs</div>';
     html+=logs.map(r=>(
       '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(r.location_label||'\u2014')+'</div><div class="inv-cat">'+_escA(r.note)+' &middot; '+_escA(r.submitted_by||'?')+'</div></div>'+
-      '<button class="step-btn ap-go" onclick="approveItem(\'log\',\''+r.id+'\')">&#10003; Approve</button></div>'
+      '<button class="step-btn ap-go" onclick="approveItem(\'log\',\''+r.id+'\')">&#10003; Approve</button><button class="step-btn ap-no" onclick="denyItem(\'log\',\''+r.id+'\')">Deny</button></div>'
     )).join('');
   }
   if(comments.length){
     html+='<div class="approve-group">Visitor notes</div>';
     html+=comments.map(c=>(
       '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(c.commenter_name||'Visitor')+'</div><div class="inv-cat">'+_escA(c.message)+'</div></div>'+
-      '<button class="step-btn ap-go" onclick="approveItem(\'comment\',\''+c.id+'\')">&#10003; Approve</button></div>'
+      '<button class="step-btn ap-go" onclick="approveItem(\'comment\',\''+c.id+'\')">&#10003; Approve</button><button class="step-btn ap-no" onclick="denyItem(\'comment\',\''+c.id+'\')">Deny</button></div>'
     )).join('');
   }
   if(photos.length){
@@ -1515,7 +1582,7 @@ async function loadApprovals(){
         '<select class="ap-type" data-id="'+p.id+'" style="'+_apSel+'">'+typeOptionsHTML(p.subject_type)+'</select>'+
         '<select class="ap-plant" data-id="'+p.id+'" style="'+_apSel+'">'+plantOptionsHTML(p.plant_id)+'</select></div>'+
       '</div>'+
-      '<button class="step-btn ap-go" onclick="approveItem(\'photo\',\''+p.id+'\')">&#10003; Approve</button></div>'
+      '<button class="step-btn ap-go" onclick="approveItem(\'photo\',\''+p.id+'\')">&#10003; Approve</button><button class="step-btn ap-no" onclick="denyItem(\'photo\',\''+p.id+'\')">Deny</button></div>'
     )).join('');
   }
   if(stubs.length){
@@ -1531,6 +1598,26 @@ async function loadApprovals(){
         +'<button class="chip" style="min-height:40px">Fill in</button></div>';
     });
   }
+  /* ── Rejected ──────────────────────────────────────────────────────
+     Last, and visually quieter than the queue above it. These are not
+     waiting on anyone; they are here so a mistake can be undone and so
+     the permanent delete has a deliberate home rather than sitting next
+     to the approve button. */
+  if(nRejected){
+    html+='<div class="approve-group rejected-group">Rejected \u00b7 '+nRejected+'</div>';
+    var rrow = function(kind, id, title, sub){
+      return '<div class="inv-row is-rejected"><div class="inv-body">'+
+        '<div class="inv-name">'+_escA(title)+'</div>'+
+        '<div class="inv-cat">'+_escA(sub)+'</div></div>'+
+        '<button class="step-btn ap-back" onclick="restoreItem(\''+kind+'\',\''+id+'\')">Restore</button>'+
+        '<button class="step-btn ap-kill" onclick="purgeItem(\''+kind+'\',\''+id+'\')">Delete</button></div>';
+    };
+    rlogs.forEach(function(r){ html+=rrow('log', r.id, r.location_label||'\u2014',
+      (r.note||'')+' \u00b7 '+(r.submitted_by||'?')); });
+    rphotos.forEach(function(r){ html+=rrow('photo', r.id, r.caption||'(no caption)', 'Photo'); });
+    rstubs.forEach(function(r){ html+=rrow('plant', r.id, r.plant_name||'(unnamed)', 'Plant'); });
+  }
+
   el.innerHTML=html;
   el.querySelectorAll('.ap-plant').forEach(function(s){
     const prev=s.value;
@@ -1611,6 +1698,48 @@ async function approveItem(kind,id){
   }
   if(error){ toast('Failed'); return; }
   toast('Approved'); loadApprovals(); refreshApproveBadge();
+}
+
+/* ── deny, in two stages ────────────────────────────────────────────────
+   First deny moves an item to Rejected. A second deny from there removes
+   it for good. Two stages because approving is reversible by editing and
+   deleting is not, and the person doing this is on a phone, outdoors,
+   with a gloved thumb.
+
+   The rule is enforced in Postgres, not here: the DELETE policies added
+   Aug 2026 permit an operator to delete a row ONLY when it is already
+   rejected. A bug in this file cannot destroy something in one step. */
+const DENY_TABLE = { log:'lfg_log', photo:'lfg_photos', plant:'lfg_master_plants', event:'lfg_area_events' };
+
+async function denyItem(kind, id){
+  if(kind === 'comment'){
+    const { error } = await sb.from('lfg_comments').update({ status:'rejected' }).eq('id', id);
+    if(error){ toast('Failed'); return; }
+  } else {
+    const t = DENY_TABLE[kind]; if(!t) return;
+    const { error } = await sb.from(t).update({ approval_status:'rejected' }).eq('id', id);
+    if(error){ toast('Failed'); return; }
+  }
+  if(window.GrushFeel) GrushFeel.tap();
+  toast('Moved to Rejected'); loadApprovals(); refreshApproveBadge();
+}
+
+async function purgeItem(kind, id){
+  /* The only irreversible control in this tool. It asks, and it says what
+     it is going to do rather than "Are you sure?" */
+  if(!confirm('Delete this permanently? It cannot be recovered.')) return;
+  const t = DENY_TABLE[kind]; if(!t) return;
+  const { error } = await sb.from(t).delete().eq('id', id);
+  if(error){ toast('Could not delete: ' + (error.message||'refused')); return; }
+  if(window.GrushFeel) GrushFeel.warn();
+  toast('Deleted'); loadApprovals(); refreshApproveBadge();
+}
+
+async function restoreItem(kind, id){
+  const t = DENY_TABLE[kind]; if(!t) return;
+  const { error } = await sb.from(t).update({ approval_status:'pending' }).eq('id', id);
+  if(error){ toast('Failed'); return; }
+  toast('Back in the queue'); loadApprovals(); refreshApproveBadge();
 }
 // wire approvals screen load
 const _go=go; go=function(s){ _go(s); if(s==='approvals') loadApprovals(); if(s==='areas') loadAreasScreen(); if(s==='tasks') loadTasks(); if(s==='inventory') loadInventory(); if(s==='photos') loadPhotos(); };
