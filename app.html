@@ -287,6 +287,12 @@
   .pr-card{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
   .pr-card img{width:64px;height:64px;border-radius:10px;object-fit:cover;flex:0 0 auto;}
   .pr-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+  /* Consent is a decision, not a field. Given room and a real tap target
+     rather than squeezed into the row of selects. */
+  .pr-consent{display:flex; align-items:flex-start; gap:9px; margin-top:2px;
+    padding:9px 10px; border-radius:10px; font-size:.88rem; line-height:1.35;
+    background:rgba(201,151,63,.10); border:1px solid rgba(201,151,63,.45);}
+  .pr-consent input{margin-top:2px; width:20px; height:20px; flex:0 0 auto;}
   .pr-fields select,.pr-fields input,.pr-bulk select{background:var(--paper);color:var(--ink);border:1.5px solid var(--line-strong);border-radius:8px;padding:8px;font-size:14px;font-family:inherit;width:100%;min-width:0;}
   .pr-actions{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line);}
   .pr-btn{flex:1;border:none;border-radius:12px;padding:13px;font-weight:600;font-size:15px;cursor:pointer;font-family:inherit;}
@@ -1744,6 +1750,15 @@ async function openPhotoEdit(id){
   document.getElementById('pe-type').innerHTML=typeOptionsHTML(p.subject_type||'');
   await ensurePlants();
   document.getElementById('pe-plant').innerHTML=plantOptionsHTML(p.plant_id||'');
+  /* Consent has to be withdrawable, or it is not consent. Unticking here
+     drops the row out of the public read policy on the next query — no
+     deletion, no re-approval, immediate. */
+  var _cw=document.getElementById('pe-consent-wrap');
+  var _cb=document.getElementById('pe-consent');
+  if(_cw && _cb){
+    _cw.style.display = (p.subject_type==='selfie') ? 'flex' : 'none';
+    _cb.checked = !!p.consent_public;
+  }
   document.getElementById('pe-plant').onchange=function(){ plantSelChange(this, p.plant_id||''); };
   document.getElementById('pe-status').value=(p.approval_status==='approved')?'approved':'pending';
   document.getElementById('photo-edit').style.display='flex';
@@ -1756,6 +1771,10 @@ async function savePhotoEdit(){
     area_id: (function(v){return (v&&v!=='__addnew')?v:null;})(document.getElementById('pe-area').value),
     subject_type: document.getElementById('pe-type').value||null,
     plant_id: (function(v){return (v&&v!=='__newplant')?v:null;})(document.getElementById('pe-plant').value),
+    consent_public: (function(){
+      var b=document.getElementById('pe-consent');
+      return !!(b && b.checked && document.getElementById('pe-type').value==='selfie');
+    })(),
     approval_status: document.getElementById('pe-status').value
   };
   const {error}= await sb.from('lfg_photos').update(upd).eq('id',peId);
@@ -1809,6 +1828,13 @@ async function reviewPhotos(input){
       /* Hidden until Type is Plant. A creature or a bench does not need a
          species, and four permanent selects on a phone card is a wall. */
       '<select class="pr-plant" data-i="'+i+'" style="display:none">'+plantOpts+'</select>'+
+      /* Selfies only. A photograph of an identifiable person on a public
+         university site needs someone to say, on the record, that the
+         person agreed. Unticked means the photo is still stored and still
+         visible to the crew — it simply is not served to the public. */
+      '<label class="pr-consent" data-i="'+i+'" style="display:none">'+
+        '<input type="checkbox" class="pr-consent-box" data-i="'+i+'">'+
+        '<span>Everyone shown agreed to appear on the public site</span></label>'+
       '<input class="pr-cap" data-i="'+i+'" placeholder="Caption (optional)" autocomplete="off"></div></div>';
   });
   document.getElementById('pr-list').innerHTML=html;
@@ -1832,10 +1858,17 @@ function applyAllPlant(v){
    same tomato in one batch is the common case, so it is worth being quick. */
 function prTypeChange(sel){
   const card=sel.closest('.pr-card'); if(!card) return;
-  const pl=card.querySelector('.pr-plant'); if(!pl) return;
+  const pl=card.querySelector('.pr-plant');
   const on = sel.value==='plant';
-  pl.style.display = on ? '' : 'none';
-  if(!on) pl.value='';
+  if(pl){ pl.style.display = on ? '' : 'none'; if(!on) pl.value=''; }
+
+  const cs=card.querySelector('.pr-consent');
+  if(cs){
+    const isSelfie = sel.value==='selfie';
+    cs.style.display = isSelfie ? '' : 'none';
+    if(!isSelfie){ const b=cs.querySelector('.pr-consent-box'); if(b) b.checked=false; }
+  }
+  if(!pl) return;
   /* The bulk plant select appears once any card is asking for a plant. */
   const bulk=document.getElementById('pr-all-plant');
   if(bulk){
@@ -1856,6 +1889,7 @@ async function uploadReviewed(){
   const types=document.querySelectorAll('#pr-list .pr-type');
   const caps=document.querySelectorAll('#pr-list .pr-cap');
   const plants=document.querySelectorAll('#pr-list .pr-plant');
+  const cons=document.querySelectorAll('#pr-list .pr-consent-box');
   const btn=document.getElementById('pr-upload'); btn.disabled=true;
   const rows=[]; let ok=0, fail=0;
   for(let i=0;i<reviewFiles.length;i++){
@@ -1870,11 +1904,16 @@ async function uploadReviewed(){
          approval queue uses for "not in the list yet"; it is not an id and
          must never reach the column. */
       const _pv = (types[i].value==='plant' && plants[i]) ? plants[i].value : '';
+      const _selfie = types[i].value==='selfie';
+      const _ok = _selfie && cons[i] && cons[i].checked;
       rows.push({cloudinary_url:url, thumbnail_url:thumb,
         caption:(caps[i].value.trim()||null),
         area_id:(areas[i].value||null),
         subject_type:(types[i].value||null),
         plant_id:((_pv && _pv!=='__newplant') ? _pv : null),
+        consent_public: _ok,
+        consent_recorded_by: _ok ? (GRUSH.who() ? GRUSH.who().display_name : 'staff') : null,
+        consent_recorded_at: _ok ? new Date().toISOString() : null,
         uploaded_by:'staff', approval_status:'pending', submitted_by:'staff'});
       ok++;
     }catch(e){ fail++; }
@@ -1892,7 +1931,7 @@ async function uploadReviewed(){
 
 <div id="howto-create" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">New how-to card</span><button class="pr-x" onclick="closeHowtoCreate()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><input id="hc-title" placeholder="Title, e.g. Trellis vine crops off the ground" autocomplete="off" style="width:100%;margin-bottom:10px"><textarea id="hc-steps" rows="7" placeholder="Steps — one per line" style="width:100%;margin-bottom:10px"></textarea><div id="hc-mat-list" style="margin-bottom:8px"></div><select id="hc-mat-add" style="width:100%;margin-bottom:10px" onchange="addMatToCard()"><option value="">Add item from inventory&hellip;</option></select><input id="hc-materials" placeholder="Other materials (free text, optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><input id="hc-safety" placeholder="Safety note (optional)" autocomplete="off" style="width:100%"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeHowtoCreate()">Cancel</button><button class="pr-btn go" onclick="saveHowtoCard()">Save card</button></div></div></div>
 <div id="howto-view" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="hv-title">How-to</span><button class="pr-x" onclick="closeHowtoView()">&times;</button></div><div id="hv-body" style="padding:14px 16px;overflow-y:auto;font-size:1.05rem;line-height:1.6"></div><div class="pr-actions" id="hv-actions"><button class="pr-btn cancel" onclick="closeHowtoView()">Close</button></div></div></div>
-<div id="photo-edit" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">Edit photo</span><button class="pr-x" onclick="closePhotoEdit()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><img id="pe-img" src="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px"><input id="pe-caption" placeholder="Caption (optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><select id="pe-area" style="width:100%;margin-bottom:10px"></select><select id="pe-type" style="width:100%;margin-bottom:10px"></select><select id="pe-plant" style="width:100%;margin-bottom:10px"></select><select id="pe-status" style="width:100%"><option value="approved">Approved (public)</option><option value="pending">Pending (hidden)</option></select></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closePhotoEdit()">Cancel</button><button class="pr-btn go" onclick="savePhotoEdit()">Save</button></div></div></div>
+<div id="photo-edit" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">Edit photo</span><button class="pr-x" onclick="closePhotoEdit()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><img id="pe-img" src="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px"><input id="pe-caption" placeholder="Caption (optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><select id="pe-area" style="width:100%;margin-bottom:10px"></select><select id="pe-type" style="width:100%;margin-bottom:10px"></select><select id="pe-plant" style="width:100%;margin-bottom:10px"></select><label id="pe-consent-wrap" style="display:none;align-items:flex-start;gap:8px;margin-bottom:10px;font-size:.92rem;line-height:1.35"><input type="checkbox" id="pe-consent" style="margin-top:3px"><span>Everyone shown agreed to appear on the public site. <b>Unticking this removes it from public view immediately.</b></span></label><select id="pe-status" style="width:100%"><option value="approved">Approved (public)</option><option value="pending">Pending (hidden)</option></select></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closePhotoEdit()">Cancel</button><button class="pr-btn go" onclick="savePhotoEdit()">Save</button></div></div></div>
 <a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
 
 <script>
