@@ -87,9 +87,10 @@ h1{font-family:var(--font-head);font-size:1.25rem;font-weight:600;}
 /* .lfback — a hand-rolled fixed bottom bar — is replaced by grush-nav's
    rail and drawer. It already sat at z-index:900, the same layer the rail
    uses, so this is a like-for-like swap. */
-/* grush-nav reserves the rail's height on <body> itself, so the
+/* grush-nav reserves the rail's height on <body class="grush-surface"> itself, so the
    hardcoded clearance that used to be here is gone. */
 </style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
 <!-- Identity stack. Needed only so grush-nav can ask is_operator() and

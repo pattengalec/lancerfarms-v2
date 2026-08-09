@@ -24,7 +24,7 @@
 html,body{height:100%;}
 body{background:var(--paper);color:var(--ink);font-family:var(--font-body);display:flex;flex-direction:column;}
 /* The bottom padding is back, and here is why it has to be.
-   grush-nav reserves the rail's height by adding padding-bottom to <body> —
+   grush-nav reserves the rail's height by adding padding-bottom to <body class="grush-surface"> —
    which works on a page that scrolls its content. THIS page does not: body
    is height:100% and display:flex, so the layout is height-constrained and
    that padding has nowhere to push into. The rail then draws straight over
@@ -149,6 +149,7 @@ body.mats-done .btn.go{background:#F0EDE2;color:#1E241A;animation:pulseGo 1.1s e
    is a full-screen step player and a title bar would eat the vertical
    space the steps need. The burger in the rail is the way out. */
 </style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
 <script src="grush-settings.js?v=11"></script>
