@@ -78,7 +78,16 @@
   D.addTier({
     id: 'staff', label: 'Staff', color: 'var(--tier-staff)', locked: true,
     items: [
-      { label: 'Field tool',   icon: '\u{1F9F0}', href: 'app.html' },
+      /* These five live inside app.html as sections, not as separate pages.
+         They used to be unreachable from here — the menu could only offer
+         "Field tool", so app.html had to keep its own hub as a second
+         launcher just to get to Log. app.html?s= makes each addressable,
+         so the desk can list the work rather than the container. */
+      { label: 'Log activity', icon: '\u{270E}',  href: 'app.html?s=log' },
+      { label: 'Tasks',        icon: '\u{2611}',  href: 'app.html?s=tasks' },
+      { label: 'Photos',       icon: '\u{1F4F7}', href: 'app.html?s=photos' },
+      { label: 'Inventory',    icon: '\u{1F4E6}', href: 'app.html?s=inventory' },
+      { label: 'Locations',    icon: '\u{1F4CD}', href: 'app.html?s=areas' },
       { label: 'How-to cards', icon: '\u{1F5C2}', href: 'howto.html' }
     ]
   });
@@ -86,6 +95,7 @@
   D.addTier({
     id: 'admin', label: 'Admin', color: 'var(--tier-admin)', locked: true,
     items: [
+      { label: 'Approvals',   icon: '\u{2705}',  href: 'app.html?s=approvals' },
       { label: 'Admin panel', icon: '\u{1F510}', href: 'admin.html' }
     ]
   });

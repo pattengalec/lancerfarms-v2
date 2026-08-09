@@ -1962,6 +1962,10 @@ window.GRUSH_NAV = {
 
   groups: [
     { items: [
+      /* The desk is the front door now; every other page's rail points at
+         it. This tool needs a way back, or arriving here is a one-way trip
+         and the two launchers compete again. */
+      { label:'Desk', icon:'\u{1F5C3}', href:'desk.html' },
       { label:'Home', icon:'\u{1F3E0}', run:function(){ goHero(); } },
       { label:'Hub',  icon:'\u25A0',    run:function(){ go('hub'); } }
     ]},
