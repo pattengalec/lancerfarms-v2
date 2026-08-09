@@ -1774,7 +1774,7 @@ function buildAlbumFilters(){
     g[z].forEach(function(a){ ao+='<option value="'+a.id+'">'+esc(a.name)+' \u00b7 '+cnt[a.id]+'</option>'; });
     ao+='</optgroup>';
   });
-  fb.innerHTML='<select id="pf-area" onchange="applyAlbumFilter()">'+ao+'</select><select id="pf-type" onchange="applyAlbumFilter()"><option value="">All types</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select>';
+  fb.innerHTML='<select id="pf-area" onchange="applyAlbumFilter()">'+ao+'</select><select id="pf-type" onchange="applyAlbumFilter()"><option value="">All types</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option></select>';
 }
 function applyAlbumFilter(){
   const fa=(document.getElementById('pf-area')||{}).value||'', ft=(document.getElementById('pf-type')||{}).value||'';
@@ -2132,15 +2132,9 @@ async function openPhotoEdit(id){
   document.getElementById('pe-type').innerHTML=typeOptionsHTML(p.subject_type||'');
   await ensurePlants();
   document.getElementById('pe-plant').innerHTML=plantOptionsHTML(p.plant_id||'');
-  /* Consent has to be withdrawable, or it is not consent. Unticking here
-     drops the row out of the public read policy on the next query — no
-     deletion, no re-approval, immediate. */
-  var _cw=document.getElementById('pe-consent-wrap');
-  var _cb=document.getElementById('pe-consent');
-  if(_cw && _cb){
-    _cw.style.display = (p.subject_type==='selfie') ? 'flex' : 'none';
-    _cb.checked = !!p.consent_public;
-  }
+  /* The per-photo consent control was removed with the selfie pipeline.
+     Consent is now acknowledged once per upload session and recorded in
+     lfg_photo_acks. */
   document.getElementById('pe-plant').onchange=function(){ plantSelChange(this, p.plant_id||''); };
   document.getElementById('pe-status').value=(p.approval_status==='approved')?'approved':'pending';
   document.getElementById('photo-edit').style.display='flex';
@@ -2153,10 +2147,6 @@ async function savePhotoEdit(){
     area_id: (function(v){return (v&&v!=='__addnew')?v:null;})(document.getElementById('pe-area').value),
     subject_type: document.getElementById('pe-type').value||null,
     plant_id: (function(v){return (v&&v!=='__newplant')?v:null;})(document.getElementById('pe-plant').value),
-    consent_public: (function(){
-      var b=document.getElementById('pe-consent');
-      return !!(b && b.checked && document.getElementById('pe-type').value==='selfie');
-    })(),
     approval_status: document.getElementById('pe-status').value
   };
   const {error}= await sb.from('lfg_photos').update(upd).eq('id',peId);
@@ -2181,8 +2171,15 @@ function typeOptionsHTML(sel){
   return '<option value=""'+_selA('',sel)+'>Type…</option>'+
     '<option value="plant"'+_selA('plant',sel)+'>Plant</option>'+
     '<option value="creature"'+_selA('creature',sel)+'>Creature</option>'+
-    '<option value="feature"'+_selA('feature',sel)+'>Feature (nonliving)</option>'+
-    '<option value="selfie"'+_selA('selfie',sel)+'>Selfie</option>';
+    /* Selfie was removed Aug 2026. It meant photographs of identifiable
+       people on a public site, governed by one uploader's checkbox on
+       behalf of everyone in frame — real consent, but unverifiable, and
+       deleting the row never removed the image from Cloudinary, so a
+       withdrawal did not actually withdraw anything.
+
+       Replaced by an acknowledgement that covers EVERY upload rather
+       than one category. See ackGate(). */
+    '<option value="feature"'+_selA('feature',sel)+'>Feature (nonliving)</option>';
 }
 async function reviewPhotos(input){
   const files=input.files; if(!files||!files.length) return;
@@ -2210,13 +2207,6 @@ async function reviewPhotos(input){
       /* Hidden until Type is Plant. A creature or a bench does not need a
          species, and four permanent selects on a phone card is a wall. */
       '<select class="pr-plant" data-i="'+i+'" style="display:none">'+plantOpts+'</select>'+
-      /* Selfies only. A photograph of an identifiable person on a public
-         university site needs someone to say, on the record, that the
-         person agreed. Unticked means the photo is still stored and still
-         visible to the crew — it simply is not served to the public. */
-      '<label class="pr-consent" data-i="'+i+'" style="display:none">'+
-        '<input type="checkbox" class="pr-consent-box" data-i="'+i+'">'+
-        '<span>Everyone shown agreed to appear on the public site</span></label>'+
       '<input class="pr-cap" data-i="'+i+'" placeholder="Caption (optional)" autocomplete="off"></div></div>';
   });
   document.getElementById('pr-list').innerHTML=html;
@@ -2244,12 +2234,6 @@ function prTypeChange(sel){
   const on = sel.value==='plant';
   if(pl){ pl.style.display = on ? '' : 'none'; if(!on) pl.value=''; }
 
-  const cs=card.querySelector('.pr-consent');
-  if(cs){
-    const isSelfie = sel.value==='selfie';
-    cs.style.display = isSelfie ? '' : 'none';
-    if(!isSelfie){ const b=cs.querySelector('.pr-consent-box'); if(b) b.checked=false; }
-  }
   if(!pl) return;
   /* The bulk plant select appears once any card is asking for a plant. */
   const bulk=document.getElementById('pr-all-plant');
@@ -2265,13 +2249,111 @@ function closeReview(){
   reviewURLs.forEach(function(u){ URL.revokeObjectURL(u); }); reviewURLs=[]; reviewFiles=[];
   const inp=document.getElementById('photo-file'); if(inp) inp.value='';
 }
+
+/* ── the photo acknowledgement ──────────────────────────────────────────
+   Every upload, not one category. The selfie flow asked one person to
+   tick a box on behalf of everyone in frame, which is the wrong shape:
+   the risk is not confined to photos labelled selfie, and a plant photo
+   with a student in the background carries it too.
+
+   ONCE PER SESSION. Asking on every photo trains people to dismiss it,
+   which is worse than not asking. sessionStorage, not localStorage —
+   ephemeral by the tool contract, and an acknowledgement that outlives
+   the visit is an acknowledgement nobody made today.
+
+   RECORDED IN FULL. lfg_photo_acks stores the policy TEXT, not a version
+   number pointing at wording that may since have changed. An
+   acknowledgement is only worth having if you can show exactly what was
+   agreed to. */
+const PHOTO_POLICY_VERSION = '2026-08-1';
+const PHOTO_POLICY_TEXT = [
+  'I took these photographs at Lancer Farms, or have the right to upload them.',
+  'If anyone is identifiable in them, I have their permission to publish the photograph on a public website.',
+  'They contain nothing that identifies a person who did not agree to be photographed \u2014 including in the background.',
+  'I understand these photographs may be published publicly and may be difficult to remove once shared.'
+].join('\n');
+
+function ackKey(){ return 'lfg_photo_ack_' + PHOTO_POLICY_VERSION; }
+
+function ackDone(){
+  try { return sessionStorage.getItem(ackKey()) === '1'; } catch(e){ return false; }
+}
+
+/* Resolves true if the person acknowledged, false if they backed out.
+   Nothing uploads until this resolves true. */
+function ackGate(count){
+  return new Promise(function(resolve){
+    if(ackDone()){ resolve(true); return; }
+
+    var scrim = document.createElement('div');
+    scrim.className = 'pr-overlay';
+    scrim.style.display = 'flex';
+    scrim.innerHTML =
+      '<div class="pr-sheet"><div class="pr-head">'+
+        '<span class="pr-title">Before you upload</span></div>'+
+      '<div style="padding:16px 18px;overflow-y:auto">'+
+        '<p style="margin:0 0 14px;font-size:.92rem;line-height:1.5;color:var(--ink-soft)">'+
+          'These photographs will be published on lancerfarms.com once approved. '+
+          'Read this once \u2014 it will not be asked again until you close the tool.</p>'+
+        '<ul style="margin:0 0 16px;padding-left:20px;font-size:.96rem;line-height:1.55">'+
+          PHOTO_POLICY_TEXT.split('\n').map(function(l){
+            return '<li style="margin-bottom:9px">'+_escA(l)+'</li>'; }).join('')+
+        '</ul>'+
+        '<label style="display:flex;align-items:flex-start;gap:11px;padding:12px 13px;'+
+          'border-radius:11px;background:rgba(201,151,63,.10);'+
+          'border:1px solid rgba(201,151,63,.45);font-size:.95rem;line-height:1.4">'+
+          '<input type="checkbox" id="ack-box" style="margin-top:2px;width:22px;height:22px;flex:none">'+
+          '<span>I have read this and it is true of the photographs I am uploading.</span></label>'+
+      '</div>'+
+      '<div class="pr-actions">'+
+        '<button class="pr-btn cancel" id="ack-no">Cancel</button>'+
+        '<button class="pr-btn go" id="ack-yes" disabled style="opacity:.45">Continue</button>'+
+      '</div></div>';
+    document.body.appendChild(scrim);
+
+    var box = scrim.querySelector('#ack-box');
+    var yes = scrim.querySelector('#ack-yes');
+    /* Continue stays dead until the box is ticked. A dialog you can dismiss
+       without reading is decoration. */
+    box.addEventListener('change', function(){
+      yes.disabled = !box.checked;
+      yes.style.opacity = box.checked ? '1' : '.45';
+    });
+
+    var close = function(ok){ scrim.remove(); resolve(ok); };
+    scrim.querySelector('#ack-no').addEventListener('click', function(){ close(false); });
+    yes.addEventListener('click', async function(){
+      if(!box.checked) return;
+      try { sessionStorage.setItem(ackKey(), '1'); } catch(e){}
+      /* Recorded before the upload runs. If the record fails we do not
+         block the upload — but we do say so, because an unrecorded
+         acknowledgement is the thing this whole change exists to have. */
+      try {
+        var who = 'Staff';
+        try { var w = GRUSH.who(); if(w && w.display_name) who = w.display_name; } catch(e){}
+        var r = await sb.from('lfg_photo_acks').insert({
+          acknowledged_by: who,
+          policy_version: PHOTO_POLICY_VERSION,
+          policy_text: PHOTO_POLICY_TEXT,
+          photo_count: count || 0
+        });
+        if(r.error) toast('Acknowledgement not recorded: ' + (r.error.message||'refused'));
+      } catch(e){ toast('Acknowledgement not recorded'); }
+      if(window.GrushFeel) GrushFeel.confirm();
+      close(true);
+    });
+  });
+}
+
 async function uploadReviewed(){
   if(!reviewFiles.length) return;
+  /* Nothing leaves the phone until this is acknowledged. */
+  var _acked = await ackGate(reviewFiles.length);
+  if(!_acked) return;
   const areas=document.querySelectorAll('#pr-list .pr-area');
   const types=document.querySelectorAll('#pr-list .pr-type');
   const caps=document.querySelectorAll('#pr-list .pr-cap');
   const plants=document.querySelectorAll('#pr-list .pr-plant');
-  const cons=document.querySelectorAll('#pr-list .pr-consent-box');
   const btn=document.getElementById('pr-upload'); btn.disabled=true;
   const rows=[]; let ok=0, fail=0;
   for(let i=0;i<reviewFiles.length;i++){
@@ -2286,16 +2368,11 @@ async function uploadReviewed(){
          approval queue uses for "not in the list yet"; it is not an id and
          must never reach the column. */
       const _pv = (types[i].value==='plant' && plants[i]) ? plants[i].value : '';
-      const _selfie = types[i].value==='selfie';
-      const _ok = _selfie && cons[i] && cons[i].checked;
       rows.push({cloudinary_url:url, thumbnail_url:thumb,
         caption:(caps[i].value.trim()||null),
         area_id:(areas[i].value||null),
         subject_type:(types[i].value||null),
         plant_id:((_pv && _pv!=='__newplant') ? _pv : null),
-        consent_public: _ok,
-        consent_recorded_by: _ok ? (GRUSH.who() ? GRUSH.who().display_name : 'staff') : null,
-        consent_recorded_at: _ok ? new Date().toISOString() : null,
         uploaded_by:'staff', approval_status:'pending', submitted_by:'staff'});
       ok++;
     }catch(e){ fail++; }
@@ -2340,7 +2417,7 @@ async function uploadReviewed(){
   </div>
 </div>
 
-<div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select><select id="pr-all-plant" onchange="applyAllPlant(this.value)" style="display:none"></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
+<div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option></select><select id="pr-all-plant" onchange="applyAllPlant(this.value)" style="display:none"></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
 
 <div id="howto-create" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">New how-to card</span><button class="pr-x" onclick="closeHowtoCreate()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><input id="hc-title" placeholder="Title, e.g. Trellis vine crops off the ground" autocomplete="off" style="width:100%;margin-bottom:10px"><textarea id="hc-steps" rows="7" placeholder="Steps — one per line" style="width:100%;margin-bottom:10px"></textarea><div id="hc-mat-list" style="margin-bottom:8px"></div><select id="hc-mat-add" style="width:100%;margin-bottom:10px" onchange="addMatToCard()"><option value="">Add item from inventory&hellip;</option></select><input id="hc-materials" placeholder="Other materials (free text, optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><input id="hc-safety" placeholder="Safety note (optional)" autocomplete="off" style="width:100%"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeHowtoCreate()">Cancel</button><button class="pr-btn go" onclick="saveHowtoCard()">Save card</button></div></div></div>
 <div id="howto-view" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="hv-title">How-to</span><button class="pr-x" onclick="closeHowtoView()">&times;</button></div><div id="hv-body" style="padding:14px 16px;overflow-y:auto;font-size:1.05rem;line-height:1.6"></div><div class="pr-actions" id="hv-actions"><button class="pr-btn cancel" onclick="closeHowtoView()">Close</button></div></div></div>
