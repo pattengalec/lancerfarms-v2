@@ -352,7 +352,7 @@
     <h1 class="title" id="bar-title">Lancer Farms</h1>
   </div>
 
-  <main class="shell-scroll">
+  <main class="shell-scroll" data-grush-seat>
     <!-- HUB -->
     <section class="screen active" id="screen-hub">
       <div class="pad">
@@ -845,6 +845,11 @@ function go(scr, silent){
   if(scr==='log'){ ab.style.display='block'; document.getElementById('primary-action').textContent='Log it'; document.getElementById('primary-action').onclick=submitLog; }
   else ab.style.display='none';
 
+  /* Re-seat on each screen change. go() swaps sections rather than loading
+     a page, so without this the signature would only ever play once, on
+     first arrival — and app.html is a tool people move around inside. */
+  if(window.GrushFeel) GrushFeel.seat();
+
   if(!silent){
     try{
       const u=new URL(location.href);
@@ -1156,7 +1161,12 @@ async function submitLog(){
   if(state.loggedAt) row.logged_at = state.loggedAt;
   const {error}= await sb.from('lfg_log').insert(row);
   btn.disabled=false; btn.textContent='Log it';
-  if(error){ toast('Save failed \u2014 try again'); return; }
+  if(error){
+    /* Three hard beats. A failed save is the one thing on this screen
+       worth looking up from the bed for. */
+    if(window.GrushFeel) GrushFeel.warn();
+    toast('Save failed \u2014 try again'); return;
+  }
 
   /* The record, alongside the story. Written second on purpose: if this
      fails the log line already survives, and a missing event is easier to
@@ -1206,6 +1216,14 @@ async function submitLog(){
   document.getElementById('when-label').textContent='Now';
   document.querySelectorAll('#what-grid .chip').forEach(c=>c.classList.remove('on'));
   refreshApproveBadge();
+  /* Two beats: written down. The toast says it, but a toast is a thing you
+     have to be looking at, and the person logging this is usually looking
+     at a plant. */
+  if(window.GrushFeel){
+    var _card = document.querySelector('#screen-log .pad');
+    if(_card) GrushFeel.settle(_card); else GrushFeel.confirm();
+  }
+
   /* Stay on the log. Logging is repetitive — someone walking the beds
      enters several things in a row — and bouncing to the hub after each
      save charged a tap to get back, which is why it felt like being dumped
@@ -2268,6 +2286,9 @@ window.GRUSH_NAV = {
 };
 </script>
 <script src="grush-nav.js?v=3"></script>
+<!-- The feel layer: arrival animation, write confirmation, haptics.
+     Grush overlay, removable with the rest. -->
+<script src="grush-feel.js?v=1"></script>
 <script>
 /* Two drawer items carry state that grush-nav does not model: the approval
    count badge and the current language name. Re-attach the ids the existing
