@@ -591,14 +591,20 @@ html, body {
     </div>
   </div>
 
-  <!-- The written procedures live in lfg_howto_cards and were previously
-       unreachable from here. They are listed rather than folded into the
-       topics because no topic column exists, and inventing one would be
-       guessing at where each belongs. -->
+  <!-- The procedures used to be listed here because howto.html had no
+       index and could only play a card you already had the id of. It has
+       one now, so the list lives in the tool named after it and this is a
+       door rather than a second copy. Two lists of the same rows in two
+       files is how they drift. -->
   <div class="howto-wrap">
     <div class="howto-head">Field how-tos</div>
     <div class="howto-sub">Step-by-step procedures written up on the farm.</div>
-    <div id="howto-list"><div class="howto-empty">Loading&hellip;</div></div>
+    <a class="howto-row" href="howto.html" style="text-decoration:none">
+      <div style="flex:1">
+        <div class="ht">Open the how-to cards &rsaquo;</div>
+        <div class="hs">Every written procedure, in one place.</div>
+      </div>
+    </a>
   </div>
 </div>
 
@@ -1384,38 +1390,12 @@ document.addEventListener('change', function(e) {
 const SUPA_URL = window.LFG_CONFIG.SUPABASE_URL;
 const SUPA_KEY = window.LFG_CONFIG.SUPABASE_ANON_KEY;
 
-/* Lists the how-to cards on the home screen. Each links into howto.html,
-   which already renders a single card from ?id= — so this adds a way in,
-   not a second renderer that could drift from the first. */
-async function loadHowtos() {
-  const box = document.getElementById('howto-list');
-  if (!box) return;
-  try {
-    const rows = await supaFetch(
-      'lfg_howto_cards?archived_at=is.null&select=id,title,summary,steps&order=title.asc');
-    if (!rows || !rows.length) {
-      box.innerHTML = '<div class="howto-empty">No procedures written up yet.</div>';
-      return;
-    }
-    box.innerHTML = rows.map(function (c) {
-      const esc = function (x) {
-        return String(x == null ? '' : x).replace(/[&<>"']/g, function (m) {
-          return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
-      };
-      const steps = Array.isArray(c.steps) ? c.steps.length : 0;
-      /* Summary is genuinely null on some cards. An empty line is honest;
-         a generated one would not be. */
-      const sub = c.summary ? '<div class="hs">' + esc(c.summary) + '</div>' : '';
-      const cnt = steps ? '<span class="hn">' + steps + ' steps</span>' : '';
-      return '<a class="howto-row" href="howto.html?id=' + encodeURIComponent(c.id) + '">'
-           + '<span><span class="ht">' + esc(c.title) + '</span>' + sub + '</span>'
-           + cnt + '</a>';
-    }).join('');
-  } catch (e) {
-    box.innerHTML = '<div class="howto-empty">The how-to list could not be loaded. '
-                  + 'Pull down to reload.</div>';
-  }
-}
+/* loadHowtos() lived here. It fetched lfg_howto_cards and rendered a list,
+   which was correct while howto.html could only play a card you already had
+   the id of. That page has an index now, so this was a second renderer of
+   the same rows in a second file — the setup that drifts. The manual links
+   out instead. */
+
 
 async function supaFetch(path, options = {}) {
   // GRUSH.headers() is awaited per request, so the bearer token is the
@@ -1912,7 +1892,7 @@ function showToast(msg) {
      staff tool; that session is shared, so the edit controls still appear
      here for an operator and stay hidden for everyone else. */
   updateAdminUI();
-  loadHowtos();
+  /* loadHowtos() retired: the list moved to howto.html. */
 
   // Asks the database whether this session is an operator, then repaints.
   // Deliberately last: it resolves operator status, then repaints the edit

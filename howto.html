@@ -79,6 +79,22 @@ body.mats-done .btn.go{background:#F0EDE2;color:#1E241A;animation:pulseGo 1.1s e
 .row{display:flex;gap:10px;margin-top:10px;}
 .row .btn{margin-top:0;}
 .err{margin:auto;text-align:center;color:var(--ink-soft);padding:30px;line-height:1.6;}
+/* Index rows. Sized to the same glove floor the rest of the site uses —
+   these get tapped outdoors with dirt on your hands. */
+.ix-sub{color:var(--ink-soft);font-size:.92rem;line-height:1.5;margin:0 0 20px;}
+.ix-row{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+  background:var(--card);border:1.5px solid var(--line);border-radius:14px;
+  padding:14px 16px;min-height:74px;margin-bottom:10px;font-family:inherit;
+  color:var(--ink);cursor:pointer;transition:transform .1s,border-color .2s;}
+.ix-row:active{transform:scale(.99);}
+.ix-row:hover{border-color:var(--line-strong);}
+.ix-row:focus-visible{outline:3px solid var(--leaf);outline-offset:3px;}
+.ix-n{flex:0 0 auto;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:rgba(126,154,110,.16);border:1.5px solid rgba(126,154,110,.4);
+  color:var(--leaf);font-weight:600;font-size:.9rem;}
+.ix-t{font-size:1rem;font-weight:600;line-height:1.3;}
+.ix-s{font-size:.82rem;color:var(--ink-soft);line-height:1.4;margin-top:3px;}
+.ix-go{margin-left:auto;color:var(--ink-soft);font-size:1.15rem;}
 .archive-link{margin-top:14px;text-align:center;font-size:.85rem;color:var(--ink-soft);text-decoration:underline;cursor:pointer;}
 
 /* .lfback — a hand-rolled fixed bottom bar — is gone; grush-nav renders
@@ -124,6 +140,19 @@ body.mats-done .btn.go{background:#F0EDE2;color:#1E241A;animation:pulseGo 1.1s e
   <button class="btn ghost" onclick="showView('v-cover'); idx=-1;">Review from the start</button>
 </div>
 
+<!-- The index. This page was written as a PLAYER — it needed ?id= or
+     ?task= and said "No how-to specified." to anyone who opened it bare,
+     which is exactly what the How-to cards menu item did. manual.html grew
+     its own list of the cards to work around that, so the procedures were
+     reachable from the manual and not from the tool named after them.
+     The list belongs here. -->
+<div class="view" id="v-index">
+  <div class="kicker">Lancer Farms &middot; How-to</div>
+  <h1>Field how-tos</h1>
+  <p class="ix-sub">Step-by-step procedures written up on the farm. Pick one to walk through it.</p>
+  <div id="ix-list"><div class="err">Loading&hellip;</div></div>
+</div>
+
 <div class="view" id="v-err"><div class="err" id="err-msg">Couldn&rsquo;t load this how-to.</div></div>
 
 <script>
@@ -165,6 +194,43 @@ function updateMatsState(){
   document.body.classList.toggle('mats-done', all.length>0 && done.length===all.length);
 }
 
+/* ── the index ─────────────────────────────────────────────────────────
+   Archived cards are excluded, and the order matches what manual.html was
+   using, so moving the list here does not silently reorder it. */
+async function showIndex(){
+  const box=document.getElementById('ix-list');
+  showView('v-index');
+  try{
+    const {data,error}= await sb.from('lfg_howto_cards')
+      .select('id,title,summary,steps')
+      .is('archived_at',null)
+      .order('title',{ascending:true});
+    if(error) throw error;
+    const cs=data||[];
+    if(!cs.length){
+      box.innerHTML='<div class="err">No how-to cards yet. Crew can add them from the staff tool.</div>';
+      return;
+    }
+    box.innerHTML=cs.map(function(c){
+      const n=(c.steps&&c.steps.length)?c.steps.length:0;
+      const sub=c.summary ? esc(c.summary)
+              : (n? n+' step'+(n===1?'':'s') : 'Procedure');
+      return '<button class="ix-row" data-id="'+esc(c.id)+'">'
+        + '<span class="ix-n">'+(n||'\u2022')+'</span>'
+        + '<span><span class="ix-t">'+esc(c.title||'Untitled')+'</span>'
+        + '<span class="ix-s">'+sub+'</span></span>'
+        + '<span class="ix-go" aria-hidden="true">&rsaquo;</span></button>';
+    }).join('');
+    box.querySelectorAll('.ix-row').forEach(function(el){
+      el.addEventListener('click', function(){
+        location.search='?id='+encodeURIComponent(el.dataset.id);
+      });
+    });
+  }catch(e){
+    box.innerHTML='<div class="err">Could not load the how-to list.</div>';
+  }
+}
+
 async function load(){
   const qp=new URLSearchParams(location.search);
   const taskId=qp.get('task'), cardId=qp.get('id');
@@ -183,7 +249,10 @@ async function load(){
       if(error||!data) throw 0;
       cards=[data]; coverTitle=data.title; singleCard=data;
     } else {
-      document.getElementById('err-msg').textContent='No how-to specified.'; showView('v-err'); return;
+      /* No card asked for: show the list rather than an error. Opening the
+         tool named "How-to cards" and being told none was specified is the
+         tool blaming the person for its own missing front page. */
+      await showIndex(); return;
     }
   }catch(e){ showView('v-err'); return; }
   const mids=[];
