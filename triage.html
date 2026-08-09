@@ -528,8 +528,21 @@ function rewalk(){
    with something to compare against.
    ═══════════════════════════════════════════════════════════════════════ */
 
-const OD=[{n:'Light',c:0xEDA100},{n:'Water',c:0x2A78D6},{n:'Excretion',c:0x8B7BD8},
- {n:'Nutrition',c:0x4FA83C},{n:'Parasitic',c:0xEB6834},{n:'Immune',c:0xE87BA4},{n:'Respiration',c:0x1BAF7A}];
+/* DEEP PALETTE, chosen against the label colour rather than in isolation.
+
+   The old colours were picked to look right as lit 3D surfaces, and they
+   did — but labels drift across their own spheres, and cream text on
+   #4FA83C green scored 2.56 while #EDA100 amber scored 1.85. Unreadable
+   exactly when it mattered, because a sphere GROWS as belief rises.
+
+   Every hue below is dark enough that one cream (#F0EDE2) clears 4.5:1 on
+   all seven, measured at peak emissive, while staying 20-90 degrees apart
+   in hue so they remain seven distinguishable systems. Worst case 4.82.
+
+   If you retune these, check the lit state, not the swatch. */
+const OD=[{n:'Light',c:0x5E4308},{n:'Water',c:0x1B4478},{n:'Excretion',c:0x4C3F7E},
+ {n:'Nutrition',c:0x275A1E},{n:'Parasitic',c:0x7C3113},{n:'Immune',c:0x7A2C49},
+ {n:'Respiration',c:0x0F5540}];
 const OSTR=[[0,3,1,2,1,2,3],[3,0,3,3,3,3,3],[1,3,0,3,0,1,2],[2,3,3,0,3,3,3],
  [1,3,0,3,0,3,2],[2,3,1,3,3,0,3],[3,3,2,3,2,3,0]];
 let bel=[.35,.35,.35,.35,.35,.35,.35], belHist=[];
@@ -565,12 +578,6 @@ function owob(m,t,amp){const g=m.geometry,p=g.attributes.position,b=g.userData.b
   const n=1+amp*(Math.sin(2.4*x+t*0.55+ph)*0.5+Math.sin(3.0*y-t*0.4+ph)*0.34+Math.sin(2.7*z+t*0.66+ph)*0.28);
   p.array[k]=x*n;p.array[k+1]=y*n;p.array[k+2]=z*n;}
  p.needsUpdate=true;g.computeVertexNormals();}
-/* Lighten a node colour toward the page cream, for use as text. */
-function otint(c){
-  const k=0.58, m=function(v){ return Math.round(v+(237-v)*k); };
-  return '#'+[m((c>>16)&255),m((c>>8)&255),m(c&255)]
-    .map(function(v){ return v.toString(16).padStart(2,'0'); }).join('');
-}
 const onodes=[],olabels=[];
 OD.forEach(function(d,i){
  const m=new THREE.Mesh(ogeo(),new THREE.MeshStandardMaterial({color:d.c,emissive:d.c,
@@ -578,11 +585,12 @@ OD.forEach(function(d,i){
  m.position.copy(OP7[i]); m.userData={i:i,ph:i*1.31,amp:0.06}; m.scale.setScalar(0.34);
  grp.add(m); onodes.push(m);
  const el=document.createElement('div'); el.className='olbl';
- /* Tint toward cream. The saturated node colour is chosen to look right
-    as a lit 3D surface; the same value as 11px text on near-black fails
-    badly — Respiration's green scored worst. Mixing 58% toward #EDE7DA
-    keeps each organ identifiable and lifts every label to readable. */
- el.style.color=otint(d.c); el.textContent=d.n;
+ /* ONE colour for every label. Tinting each label toward its own organ
+    was readable on the panel and failed on the spheres, because a label
+    tracks its sphere and ends up ON it. Colour identity is carried by the
+    sphere; the label only has to be legible, and legible everywhere beats
+    colour-coded and sometimes invisible. */
+ el.style.color='#F0EDE2'; el.textContent=d.n;
  org.appendChild(el); olabels.push(el);});
 function otend(a,b,r){
  const mid=a.clone().add(b).multiplyScalar(0.5); let ctrl;
@@ -592,9 +600,17 @@ function otend(a,b,r){
 const oedges=[];
 for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
  const st=OSTR[i][j];
- const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.010+st*0.003),
-  new THREE.MeshStandardMaterial({color:0xB99A62,emissive:0xC9973F,emissiveIntensity:.25,
-   roughness:.7,transparent:true,opacity:0.04}));
+ /* LINE WEIGHT. Was 0.010 + strength*0.003 — a range of 0.010 to 0.019,
+    under two-to-one, so the strong links read the same as the weak ones
+    and the whole lattice looked like uniform hairlines. Now 0.008 to
+    0.030, near four-to-one: a strong coupling is visibly a heavier line,
+    and a weak one recedes instead of adding noise.
+
+    Colour warmed and lightened so the lattice reads against the darker
+    spheres this palette introduced. */
+ const m=new THREE.Mesh(otend(OP7[i],OP7[j],0.008+st*0.0073),
+  new THREE.MeshStandardMaterial({color:0xD8C08A,emissive:0xC9973F,emissiveIntensity:.30,
+   roughness:.7,transparent:true,opacity:0.06}));
  m.userData={i:i,j:j}; grp.add(m); oedges.push(m);}
 const leadEl=document.createElement('div'); leadEl.className='lead'; org.appendChild(leadEl);
 const tq=new THREE.Quaternion(), zAx=new THREE.Vector3(0,0,1), pvv=new THREE.Vector3();
@@ -620,7 +636,10 @@ function oframe(){
  grp.position.y=Math.sin(ot*0.3)*0.06;
  onodes.forEach(function(m,i){
   const b=bel[i];
-  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.85, ta=0.02+b*0.16;
+  /* te capped at 0.32, was 0.87. Emissive lifts a surface toward its own
+     hue, which is what pushed the bright old palette past the point where
+     a label could sit on it. The contrast figures above assume this cap. */
+  const ts=0.20+b*0.46, to=0.10+b*0.85, te=0.02+b*0.30, ta=0.02+b*0.16;
   m.scale.setScalar(m.scale.x+(ts-m.scale.x)*0.030);
   m.material.opacity+=(to-m.material.opacity)*0.030;
   m.material.emissiveIntensity+=(te-m.material.emissiveIntensity)*0.030;
@@ -628,7 +647,12 @@ function oframe(){
   owob(m,ot,m.userData.amp);});
  oedges.forEach(function(e){
   const b=Math.min(bel[e.userData.i],bel[e.userData.j]);
-  const to=b>0.62?(b-0.62)*2.1:0.03;
+  /* Floor 0.09, was 0.03. At 0.03 the lattice was invisible until two
+     organs both passed 0.62, so for most of a session the diagram showed
+     seven unconnected spheres and the relationships — the actual content
+     — were not there. Threshold dropped to 0.50 so a link appears while
+     it is still forming, rather than only once it is settled. */
+  const to = b>0.50 ? 0.09+(b-0.50)*1.5 : 0.09;
   e.material.opacity+=(to-e.material.opacity)*0.025;});
  /* Which organ is leading? The label for it gets emphasis, so the
     answer is legible from the picture and not only from the caption. */
