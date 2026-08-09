@@ -688,6 +688,11 @@ function oframe(){
  let oLead=0; for(let i=1;i<7;i++) if(bel[i]>bel[oLead]) oLead=i;
  const oSpread=bel[oLead]-Math.min.apply(null,bel);
 
+ /* Placed positions, so overlapping labels can be separated after all
+    seven are known. Collision is resolved by belief: the organ you care
+    about least is the one that moves. */
+ const oplace=[];
+
  onodes.forEach(function(m,i){
   pvv.copy(m.position).applyMatrix4(grp.matrixWorld).project(cam);
   const el=olabels[i];
@@ -702,9 +707,6 @@ function oframe(){
      H * 0.181. Plus a 13px gap so the text is not touching the edge. */
   const rpx = m.scale.x * org.clientHeight * 0.181 + 13;
 
-  el.style.left=((pvv.x*0.5+0.5)*org.clientWidth)+'px';
-  el.style.top=((-pvv.y*0.5+0.5)*org.clientHeight - rpx)+'px';
-
   /* Floor raised from 0.12 to 0.38. At 0.12 a low-belief organ was
      effectively invisible, so the diagram silently lost labels — but the
      organ is still on screen, and an unlabelled sphere is worse than a
@@ -714,6 +716,40 @@ function oframe(){
 
   /* Only mark a leader once one has actually separated from the pack. */
   el.classList.toggle('olead', front && i===oLead && oSpread>0.08);
+
+  oplace.push({ el:el, i:i,
+    x:(pvv.x*0.5+0.5)*org.clientWidth,
+    y:(-pvv.y*0.5+0.5)*org.clientHeight - rpx,
+    front:front, w:el.offsetWidth||60, h:el.offsetHeight||14, dy:0 });
+ });
+
+ /* ── label collision ────────────────────────────────────────────────
+    Pushing a label clear of its OWN sphere does nothing about the
+    sphere next to it. Two organs that land near each other in
+    projection produce two labels in the same place — Water and Light
+    overlapped so badly they read as one word.
+
+    Resolve by belief: sort strongest first, and let a weaker label step
+    aside for a stronger one. The organ the model favours keeps the
+    position it earned. Vertical only, because horizontal movement
+    breaks the association between a label and the sphere under it. */
+ const ord = oplace.filter(function(a){ return a.front; })
+                   .sort(function(a,b){ return bel[b.i]-bel[a.i]; });
+ for(let a=1;a<ord.length;a++){
+   for(let b=0;b<a;b++){
+     const A=ord[a], B=ord[b];
+     const dx=Math.abs(A.x-B.x), dy=Math.abs((A.y+A.dy)-(B.y+B.dy));
+     const needX=(A.w+B.w)/2 + 6, needY=(A.h+B.h)/2 + 3;
+     if(dx<needX && dy<needY){
+       /* step above or below B, whichever is closer to where A wanted */
+       const up = (A.y+A.dy) <= (B.y+B.dy);
+       A.dy += (up ? -1 : 1) * (needY-dy);
+     }
+   }
+ }
+ oplace.forEach(function(a){
+   a.el.style.left = a.x+'px';
+   a.el.style.top  = (a.y+a.dy)+'px';
  });
  rend.render(sc,cam);}
 osize(); oframe();
