@@ -182,6 +182,8 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 .pl-what{flex:1;min-width:0;}
 .pl-where{display:block;font-size:.76rem;opacity:.65;margin-top:2px;}
 .pl-who{flex:0 0 86px;text-align:right;font-size:.8rem;opacity:.7;}
+.pa-text{padding:10px 14px 14px 96px;font-size:.86rem;line-height:1.5;opacity:.85;
+  border-bottom:1px solid rgba(128,128,128,.14);}
 .pl-foot{margin-top:18px;padding-top:8px;border-top:1px solid rgba(128,128,128,.3);
   font-size:.7rem;letter-spacing:.06em;opacity:.6;}
 
@@ -196,6 +198,9 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
   .pl-sheet{background:#fff !important;color:#000 !important;padding:0;margin:0;border-radius:0;}
   .pl-sheet *{color:#000 !important;}
   .pl-row{break-inside:avoid;border-bottom:1px solid #ccc !important;}
+  /* On paper every acknowledgement shows its wording. A printed consent
+     report that hides what was agreed to proves nothing. */
+  .pa-text{display:block !important;}
   .pl-day{break-after:avoid;border-bottom:1px solid #999 !important;}
   .pl-head{border-bottom:2px solid #000 !important;}
   @page{margin:15mm;}
@@ -696,6 +701,42 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
       <div id="pl-out"></div>
     </div>
 
+    <!-- ══ PHOTO ACKNOWLEDGEMENTS ══
+         Every photo upload requires the person to acknowledge the photo
+         policy once per session, and each acknowledgement is recorded in
+         full — the wording agreed to, not a version number pointing at
+         wording that may since have changed.
+
+         This is the report over that. It is read-only on purpose: an
+         acknowledgement record that can be edited is not a record. -->
+    <div class="tab-panel" id="tab-photoacks">
+      <div class="card no-print">
+        <h3>Photo policy acknowledgements</h3>
+        <p class="note" style="margin:0 0 12px;font-size:.86rem;opacity:.75;line-height:1.5">
+          One row per upload session. Tap a row to see the exact wording that was agreed to.
+        </p>
+        <div class="form-row">
+          <div class="form-group">
+            <label>From</label>
+            <input type="date" id="pa-from">
+          </div>
+          <div class="form-group">
+            <label>To</label>
+            <input type="date" id="pa-to">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <button class="btn btn-primary" style="width:100%" onclick="loadPhotoAcks()">Refresh</button>
+          </div>
+          <div class="form-group">
+            <button class="btn" style="width:100%" onclick="window.print()">Print</button>
+          </div>
+        </div>
+      </div>
+      <div id="pa-out"></div>
+    </div>
+
     <!-- ══ COMMENTS ══ -->
     <div class="tab-panel" id="tab-comments">
       <div class="section-label">All Comments</div>
@@ -963,6 +1004,99 @@ function prettyDay(d){
      The same rollover that dated the first planting wrong. */
   const dt = new Date(+parts[0], +parts[1]-1, +parts[2]);
   return dt.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric', year:'numeric'});
+}
+
+
+/* ══ PHOTO ACKNOWLEDGEMENTS ══════════════════════════════════════════════
+   A read-only report over lfg_photo_acks. Every photo upload requires the
+   uploader to acknowledge the photo policy once per session; this is where
+   those acknowledgements can be reviewed and printed.
+
+   Read-only on purpose. An acknowledgement record that can be edited from
+   the interface is not a record, and the whole reason it stores the policy
+   TEXT rather than a version number is so it can be shown later exactly as
+   it was agreed to.
+   ═════════════════════════════════════════════════════════════════════ */
+let paInited = false;
+
+async function initPhotoAcks(){
+  if(paInited) return;
+  paInited = true;
+  const now = new Date();
+  const p = n => String(n).padStart(2,'0');
+  /* Ninety days back by default. Long enough to cover a term's worth of
+     uploads without asking anyone to pick dates first. */
+  const back = new Date(now.getTime() - 90*24*60*60*1000);
+  document.getElementById('pa-from').value =
+    back.getFullYear()+'-'+p(back.getMonth()+1)+'-'+p(back.getDate());
+  document.getElementById('pa-to').value =
+    now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate());
+  loadPhotoAcks();
+}
+
+async function loadPhotoAcks(){
+  const out  = document.getElementById('pa-out');
+  const from = document.getElementById('pa-from').value;
+  const to   = document.getElementById('pa-to').value;
+  out.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading\u2026</div>';
+
+  let q = 'select=*&order=acknowledged_at.desc';
+  if(from) q += '&acknowledged_at=gte.'+from+'T00:00:00';
+  if(to)   q += '&acknowledged_at=lte.'+to+'T23:59:59';
+
+  let rows;
+  try { rows = await sbGet('lfg_photo_acks', q); }
+  catch(e){
+    /* The table is operator-only. A failure here is almost always a lapsed
+       session rather than a missing table, and saying so beats "error". */
+    out.innerHTML = '<div class="empty-state">Could not load. '+
+      'This report is operator-only \u2014 check you are still signed in.<br><small>'+
+      esc(e.message||e)+'</small></div>';
+    return;
+  }
+
+  if(!rows.length){
+    out.innerHTML = '<div class="pl-sheet"><div class="pl-head">'+
+      '<div class="pl-brand">Lancer Farms &amp; Gardens</div>'+
+      '<h2 class="pl-title">Photo policy acknowledgements</h2>'+
+      '<div class="pl-meta">'+esc(from||'\u2026')+' to '+esc(to||'\u2026')+'</div></div>'+
+      '<p class="empty-state">No acknowledgements recorded in this range.</p></div>';
+    return;
+  }
+
+  const photos = rows.reduce(function(n,r){ return n + (r.photo_count||0); }, 0);
+
+  let html = '<div class="pl-sheet"><div class="pl-head">'+
+    '<div class="pl-brand">Lancer Farms &amp; Gardens</div>'+
+    '<h2 class="pl-title">Photo policy acknowledgements</h2>'+
+    '<div class="pl-meta">'+esc(from||'\u2026')+' to '+esc(to||'\u2026')+
+      ' \u00b7 '+rows.length+' session'+(rows.length===1?'':'s')+
+      ' \u00b7 '+photos+' photo'+(photos===1?'':'s')+'</div></div>';
+
+  rows.forEach(function(r, i){
+    const when = new Date(r.acknowledged_at);
+    html += '<div class="pl-row" style="cursor:pointer" onclick="paToggle('+i+')">'+
+      '<div class="pl-kind">'+esc(r.policy_version||'')+'</div>'+
+      '<div class="pl-what">'+esc(r.acknowledged_by||'Unknown')+
+        '<span class="pl-where">'+esc(when.toLocaleString())+
+        ' \u00b7 '+(r.photo_count||0)+' photo'+((r.photo_count||0)===1?'':'s')+'</span></div>'+
+      '<div class="pl-who">view</div></div>'+
+      /* The wording, collapsed. Printed reports expand every one, because
+         a printout that hides what was agreed to is worth nothing. */
+      '<div class="pa-text" id="pa-t'+i+'" style="display:none">'+
+        esc(r.policy_text||'').split('\n').map(function(l){
+          return '<div style="margin-bottom:6px">\u2022 '+esc(l)+'</div>'; }).join('')+
+      '</div>';
+  });
+
+  html += '<div class="pl-foot">lancerfarms.com \u00b7 printed '+
+    new Date().toLocaleDateString()+' \u00b7 powered by grush</div></div>';
+  out.innerHTML = html;
+}
+
+function paToggle(i){
+  const el = document.getElementById('pa-t'+i);
+  if(el) el.style.display = (el.style.display === 'none') ? 'block' : 'none';
 }
 
 async function sbGet(table, params) {
@@ -2232,6 +2366,7 @@ document.addEventListener('grush:auth', (e) => {
     { key:'records', label:'Records', tabs:[
       { name:'log',         label:'Field log' },
       { name:'printlogs',   label:'Print logs', run:'initPrintLogs' },
+      { name:'photoacks',   label:'Photo consent', run:'initPhotoAcks' },
       { name:'comments',    label:'Comments' },
       { name:'financials',  label:'Financials' } ] },
     { key:'people',  label:'People',  tabs:[
