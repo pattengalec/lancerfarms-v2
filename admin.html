@@ -166,6 +166,40 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
 .rv-selects{display:flex;gap:6px;}
 .rv-card input,.rv-card select{width:100%;min-width:0;padding:7px;border:1px solid var(--line,#ccc);border-radius:6px;font-size:13px;background:var(--bg,#fff);color:var(--ink,#111);font-family:inherit;}
 .rv-actions{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;}
+
+/* ── printable log ────────────────────────────────────────────────────── */
+.pl-sheet{background:var(--card,#fff);border-radius:12px;padding:20px;margin-top:14px;}
+.pl-head{border-bottom:2px solid currentColor;padding-bottom:10px;margin-bottom:14px;}
+.pl-brand{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.65;}
+.pl-title{margin:5px 0 0;font-size:1.35rem;line-height:1.2;}
+.pl-meta{font-size:.8rem;opacity:.7;margin-top:5px;}
+.pl-day{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;opacity:.75;
+  margin:16px 0 6px;padding-bottom:3px;border-bottom:1px solid rgba(128,128,128,.35);}
+.pl-row{display:flex;gap:12px;padding:6px 0;font-size:.9rem;line-height:1.45;
+  border-bottom:1px solid rgba(128,128,128,.14);}
+.pl-kind{flex:0 0 84px;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  opacity:.7;padding-top:3px;}
+.pl-what{flex:1;min-width:0;}
+.pl-where{display:block;font-size:.76rem;opacity:.65;margin-top:2px;}
+.pl-who{flex:0 0 86px;text-align:right;font-size:.8rem;opacity:.7;}
+.pl-foot{margin-top:18px;padding-top:8px;border-top:1px solid rgba(128,128,128,.3);
+  font-size:.7rem;letter-spacing:.06em;opacity:.6;}
+
+@media print{
+  /* Only the report goes on paper. Everything that builds it is chrome. */
+  body > *:not(#tab-printlogs){display:none !important;}
+  .tab-panel:not(#tab-printlogs){display:none !important;}
+  #tab-printlogs{display:block !important;}
+  .no-print, .group-bar, .subtab-bar, #group-bar, #subtab-bar,
+  header, nav, footer, .btn{display:none !important;}
+  html,body{background:#fff !important;color:#000 !important;}
+  .pl-sheet{background:#fff !important;color:#000 !important;padding:0;margin:0;border-radius:0;}
+  .pl-sheet *{color:#000 !important;}
+  .pl-row{break-inside:avoid;border-bottom:1px solid #ccc !important;}
+  .pl-day{break-after:avoid;border-bottom:1px solid #999 !important;}
+  .pl-head{border-bottom:2px solid #000 !important;}
+  @page{margin:15mm;}
+}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
 <!-- Identity stack. Order is load-bearing: supabase-js defines
@@ -601,6 +635,67 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
       <div class="data-list" id="log-list"><div class="empty-state"><span class="spinner"></span> Loading…</div></div>
     </div>
 
+    <!-- ══ PRINTABLE LOGS ══
+         A report builder, not another list. The Field log tab shows recent
+         entries on screen; this one answers "what happened in Zone 2 last
+         month" and puts it on paper — for a supervisor, a grant report, or
+         the binder in the shed.
+
+         It reads three tables that record what was done: lfg_log for the
+         narrative, lfg_area_events for plantings and harvests, and
+         lfg_task_completions for scheduled work. Any of the three can be
+         switched off, because a planting report and an activity report are
+         different documents. -->
+    <div class="tab-panel" id="tab-printlogs">
+      <div class="card no-print">
+        <h3>Build a printable log</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>From</label>
+            <input type="date" id="pl-from">
+          </div>
+          <div class="form-group">
+            <label>To</label>
+            <input type="date" id="pl-to">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Area</label>
+            <select id="pl-area"><option value="">All areas</option></select>
+          </div>
+          <div class="form-group">
+            <label>Person</label>
+            <select id="pl-who"><option value="">Anyone</option></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Include</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 0">
+            <label style="display:flex;align-items:center;gap:7px;font-weight:400">
+              <input type="checkbox" id="pl-inc-log" checked> Field log</label>
+            <label style="display:flex;align-items:center;gap:7px;font-weight:400">
+              <input type="checkbox" id="pl-inc-events" checked> Plantings &amp; harvests</label>
+            <label style="display:flex;align-items:center;gap:7px;font-weight:400">
+              <input type="checkbox" id="pl-inc-tasks"> Completed tasks</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Title on the printout</label>
+          <input type="text" id="pl-title" placeholder="Field log — August 2026">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <button class="btn btn-primary" style="width:100%" onclick="buildPrintLog()">Build</button>
+          </div>
+          <div class="form-group">
+            <button class="btn" style="width:100%" onclick="window.print()">Print</button>
+          </div>
+        </div>
+      </div>
+      <div id="pl-out"></div>
+    </div>
+
     <!-- ══ COMMENTS ══ -->
     <div class="tab-panel" id="tab-comments">
       <div class="section-label">All Comments</div>
@@ -702,6 +797,173 @@ async function syncDbAuth() {
   DB_HEADERS.Authorization = `Bearer ${await GRUSH.token()}`;
 }
 document.addEventListener('grush:auth', syncDbAuth);
+
+
+/* ══ PRINTABLE LOGS ══════════════════════════════════════════════════════
+   Three tables record what was done on the farm and none of them agree on
+   shape: lfg_log is prose with a location label, lfg_area_events is a
+   structured planting or harvest, lfg_task_completions is a scheduled job
+   ticked off. This normalises the three into one dated list so a month's
+   work reads as one document instead of three exports.
+
+   Nothing here writes. It is a view over records that already exist.
+   ═════════════════════════════════════════════════════════════════════ */
+let plInited = false;
+
+async function initPrintLogs(){
+  if(plInited) return;
+  plInited = true;
+
+  /* Default to the current month — the range someone almost always wants,
+     and a date pair left blank on a phone is a report of everything. */
+  const now = new Date();
+  const p = n => String(n).padStart(2,'0');
+  const first = now.getFullYear()+'-'+p(now.getMonth()+1)+'-01';
+  const today = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate());
+  document.getElementById('pl-from').value = first;
+  document.getElementById('pl-to').value   = today;
+  document.getElementById('pl-title').value =
+    'Field log \u2014 ' + now.toLocaleString('en-US',{month:'long', year:'numeric'});
+
+  try{
+    const areas = await sbGet('lfg_growing_areas','select=id,code,name,zone&archived_at=is.null&order=zone.asc,name.asc');
+    document.getElementById('pl-area').innerHTML =
+      '<option value="">All areas</option>' +
+      areas.map(a => '<option value="'+a.id+'">'+esc((a.code? a.code+' \u00b7 ':'')+a.name)+'</option>').join('');
+  }catch(e){}
+
+  try{
+    const crew = await sbGet('grush_people','select=display_name&site=eq.lfg&active=is.true&order=display_name.asc');
+    document.getElementById('pl-who').innerHTML =
+      '<option value="">Anyone</option>' +
+      crew.map(c => '<option value="'+esc(c.display_name)+'">'+esc(c.display_name)+'</option>').join('');
+  }catch(e){}
+
+  buildPrintLog();
+}
+
+async function buildPrintLog(){
+  const out  = document.getElementById('pl-out');
+  const from = document.getElementById('pl-from').value;
+  const to   = document.getElementById('pl-to').value;
+  const area = document.getElementById('pl-area').value;
+  const who  = document.getElementById('pl-who').value;
+  const wantLog    = document.getElementById('pl-inc-log').checked;
+  const wantEvents = document.getElementById('pl-inc-events').checked;
+  const wantTasks  = document.getElementById('pl-inc-tasks').checked;
+
+  out.innerHTML = '<div class="empty-state"><span class="spinner"></span> Building\u2026</div>';
+
+  /* One shape for three sources, so they can be sorted together. */
+  const rows = [];
+  const areaName = {};
+  try{
+    const areas = await sbGet('lfg_growing_areas','select=id,code,name');
+    areas.forEach(a => { areaName[a.id] = (a.code? a.code+' \u00b7 ':'') + a.name; });
+  }catch(e){}
+
+  try{
+    if(wantLog){
+      let q = 'select=note,logged_by,logged_at,area_id,location_label&order=logged_at.asc';
+      if(from) q += '&logged_at=gte.'+from+'T00:00:00';
+      if(to)   q += '&logged_at=lte.'+to+'T23:59:59';
+      if(area) q += '&area_id=eq.'+area;
+      (await sbGet('lfg_log', q)).forEach(function(r){
+        rows.push({ date:(r.logged_at||'').slice(0,10), kind:'Log',
+          where: r.location_label || areaName[r.area_id] || '',
+          who: r.logged_by || '', what: r.note || '' });
+      });
+    }
+
+    if(wantEvents){
+      let q = 'select=event_type,plant_name,quantity,notes,event_date,performed_by,area_id&order=event_date.asc';
+      if(from) q += '&event_date=gte.'+from;
+      if(to)   q += '&event_date=lte.'+to;
+      if(area) q += '&area_id=eq.'+area;
+      (await sbGet('lfg_area_events', q)).forEach(function(r){
+        const bits = [r.plant_name || ''];
+        if(r.quantity) bits.push(r.quantity);
+        if(r.notes)    bits.push(r.notes);
+        rows.push({ date:r.event_date, kind: cap(r.event_type),
+          where: areaName[r.area_id] || '',
+          who: r.performed_by || '', what: bits.filter(Boolean).join(' \u00b7 ') });
+      });
+    }
+
+    if(wantTasks){
+      let q = 'select=task_id,visit_date,completed_by&order=visit_date.asc';
+      if(from) q += '&visit_date=gte.'+from;
+      if(to)   q += '&visit_date=lte.'+to;
+      const comps = await sbGet('lfg_task_completions', q);
+      const titles = {};
+      try{
+        (await sbGet('lfg_tasks','select=id,title')).forEach(t => { titles[t.id]=t.title; });
+      }catch(e){}
+      comps.forEach(function(r){
+        rows.push({ date:r.visit_date, kind:'Task done', where:'',
+          who: r.completed_by || '', what: titles[r.task_id] || 'Task' });
+      });
+    }
+  }catch(e){
+    out.innerHTML = '<div class="empty-state">Could not build the report: '+esc(e.message||e)+'</div>';
+    return;
+  }
+
+  /* The person filter runs here rather than in each query: lfg_log calls
+     the column logged_by, area events call it performed_by, completions
+     call it completed_by. One filter over the normalised rows beats three
+     nearly-identical query fragments. */
+  let list = who ? rows.filter(r => (r.who||'') === who) : rows;
+  list.sort((a,b) => String(a.date).localeCompare(String(b.date)));
+
+  const title = document.getElementById('pl-title').value || 'Field log';
+  const range = (from||'\u2026') + ' to ' + (to||'\u2026');
+  const areaLabel = area ? (document.getElementById('pl-area').selectedOptions[0].text) : 'All areas';
+  const whoLabel  = who || 'Anyone';
+
+  if(!list.length){
+    out.innerHTML = '<div class="pl-sheet"><div class="pl-head"><div class="pl-brand">Lancer Farms &amp; Gardens</div>'
+      + '<h2 class="pl-title">'+esc(title)+'</h2><div class="pl-meta">'+esc(range)+' \u00b7 '+esc(areaLabel)+' \u00b7 '+esc(whoLabel)+'</div></div>'
+      + '<p class="empty-state">Nothing recorded in this range.</p></div>';
+    return;
+  }
+
+  /* Grouped by day. A log read as a wall of rows tells you how much
+     happened; grouped by date it tells you what a day looked like. */
+  let html = '<div class="pl-sheet"><div class="pl-head">'
+    + '<div class="pl-brand">Lancer Farms &amp; Gardens</div>'
+    + '<h2 class="pl-title">'+esc(title)+'</h2>'
+    + '<div class="pl-meta">'+esc(range)+' \u00b7 '+esc(areaLabel)+' \u00b7 '+esc(whoLabel)
+    + ' \u00b7 '+list.length+' entr'+(list.length===1?'y':'ies')+'</div></div>';
+
+  let lastDate = null;
+  list.forEach(function(r){
+    if(r.date !== lastDate){
+      lastDate = r.date;
+      html += '<div class="pl-day">'+esc(prettyDay(r.date))+'</div>';
+    }
+    html += '<div class="pl-row"><div class="pl-kind">'+esc(r.kind)+'</div>'
+          + '<div class="pl-what">'+esc(r.what)
+          + (r.where ? '<span class="pl-where">'+esc(r.where)+'</span>' : '')
+          + '</div><div class="pl-who">'+esc(r.who)+'</div></div>';
+  });
+
+  html += '<div class="pl-foot">lancerfarms.com \u00b7 printed '
+        + new Date().toLocaleDateString() + ' \u00b7 powered by grush</div></div>';
+  out.innerHTML = html;
+}
+
+function cap(x){ x=String(x||''); return x ? x.charAt(0).toUpperCase()+x.slice(1) : ''; }
+function prettyDay(d){
+  if(!d) return '';
+  const parts = String(d).split('-');
+  if(parts.length !== 3) return d;
+  /* Build from parts, not new Date(d) — parsing a bare YYYY-MM-DD gives
+     UTC midnight, which renders as the previous day west of Greenwich.
+     The same rollover that dated the first planting wrong. */
+  const dt = new Date(+parts[0], +parts[1]-1, +parts[2]);
+  return dt.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric', year:'numeric'});
+}
 
 async function sbGet(table, params) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params ? '?' + params : ''}`, { headers: DB_HEADERS });
@@ -1969,6 +2231,7 @@ document.addEventListener('grush:auth', (e) => {
       { name:'inventory',   label:'Inventory' } ] },
     { key:'records', label:'Records', tabs:[
       { name:'log',         label:'Field log' },
+      { name:'printlogs',   label:'Print logs', run:'initPrintLogs' },
       { name:'comments',    label:'Comments' },
       { name:'financials',  label:'Financials' } ] },
     { key:'people',  label:'People',  tabs:[
