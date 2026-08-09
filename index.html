@@ -184,10 +184,15 @@ window.addEventListener('load', function(){
    menu, what a visitor cannot reach is greyed with a way in, and the tier
    comes from the database rather than from a button press. One door. */
 
-/* Clear the stale preference from anyone who chose a role under the old
-   page. Harmless if absent; leaving it would strand a value nothing
-   reads. */
-try{ localStorage.removeItem('lfg_role'); }catch(e){}
+/* This used to clear localStorage.lfg_role as cleanup after the old role
+   fork was removed. It was not harmless: app.html read the SAME key to
+   decide whether to show its own Staff / Visitor picker, so wiping it here
+   meant every deep link from the desk landed on that picker instead of the
+   screen it asked for.
+
+   app.html no longer consults the key at all, and nothing else does, so
+   there is nothing left to clean up. Removing a value another page depends
+   on is only safe once you have checked who else reads it. */
 
 /* ── access request ──
    Writes to lfg_access_requests. RLS lets anyone insert but only as
