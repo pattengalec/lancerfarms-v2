@@ -137,6 +137,11 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 }
 .row .go:active::before,
 .row .go:focus-visible::before{ transform:scaleY(1); }
+/* NOTE: on a row that NAVIGATES this never gets seen. The browser starts
+   painting the next page before the first frame lands. It is kept because
+   it costs nothing and reads on a slow connection, but the pin's real job
+   moved to controls that do not replace the screen — see .add and .chip
+   below, and grush-feel.js. */
 .row .go:active{
   background:var(--desk-active);
   border-color:var(--desk-active-line);
@@ -295,4 +300,71 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 @media (prefers-reduced-motion:reduce){
   .row .go::before, .grush-sig-block img, .slot, .row .go, .row .add{ transition:none; }
   .row .go::before{ transform:scaleY(1); opacity:.4; }
+}
+
+
+/* ═══ SIGNATURES ═════════════════════════════════════════════════════════
+   Three, and each one is placed where it can actually be seen.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── the seat: arrival ────────────────────────────────────────────────────
+   Content settles down and in as a page loads, the way a container seats
+   onto a docking port. This is the signature now, because a page that has
+   just arrived is not racing anything.
+
+   Applied by a class that grush-feel.js adds. If that script fails, the
+   class never appears and the page renders normally — a decoration must
+   never be able to hide the thing it decorates. */
+@keyframes grush-seat-in{
+  from{ opacity:0; transform:translate3d(0,7px,0); }
+  to  { opacity:1; transform:translate3d(0,0,0); }
+}
+.grush-seat{ animation:grush-seat-in 190ms var(--grush-ease) both; }
+
+/* Rows arrive a beat behind their container, and each one a little after
+   the last. Four steps only — past that it stops reading as settling and
+   starts reading as a list loading slowly. */
+.grush-seat .row:nth-child(1){ animation:grush-seat-in 190ms var(--grush-ease) 40ms both; }
+.grush-seat .row:nth-child(2){ animation:grush-seat-in 190ms var(--grush-ease) 70ms both; }
+.grush-seat .row:nth-child(3){ animation:grush-seat-in 190ms var(--grush-ease) 100ms both; }
+.grush-seat .row:nth-child(n+4){ animation:grush-seat-in 190ms var(--grush-ease) 125ms both; }
+
+/* ── the settle: a thing became a record ────────────────────────────────
+   A spore line sweeps across the row that was just written, then goes.
+   Fires after a save, on the thing saved — never on the button that saved
+   it. This is what the pin was always for; it just needed a screen that
+   stays put long enough to show it. */
+@keyframes grush-settle-sweep{
+  0%  { transform:scaleX(0); opacity:1; }
+  55% { transform:scaleX(1); opacity:1; }
+  100%{ transform:scaleX(1); opacity:0; }
+}
+.grush-settle{ position:relative; }
+.grush-settle::after{
+  content:''; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:var(--desk-accent); transform-origin:left;
+  animation:grush-settle-sweep 820ms var(--grush-ease) both;
+  pointer-events:none;
+}
+
+/* ── the pin, reassigned ────────────────────────────────────────────────
+   Same gesture, moved to controls where the screen survives the press:
+   the + that adds to the desk, and the chips on the log form. Here it has
+   the time it never had on a navigating row. */
+.add, .chip{ position:relative; overflow:hidden; }
+.add::before, .chip::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:var(--desk-accent);
+  transform:scaleY(0); transform-origin:top;
+  transition:transform var(--grush-slow) var(--grush-ease);
+}
+.add:active::before, .chip:active::before,
+.add:focus-visible::before, .chip:focus-visible::before{ transform:scaleY(1); }
+
+/* Everything above is decoration. Someone who asked the OS to reduce
+   motion asked once, for all of it. */
+@media (prefers-reduced-motion: reduce){
+  .grush-seat, .grush-seat .row{ animation:none !important; }
+  .grush-settle::after{ animation:none; opacity:0; }
+  .row .go::before, .add::before, .chip::before{ transition:none; }
 }
