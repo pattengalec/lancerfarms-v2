@@ -556,7 +556,32 @@ function undoEvidence(){ if(belHist.length) bel=belHist.pop(); }
 /* The reset the redeclaration used to perform implicitly. */
 function resetBelief(){ bel=[.35,.35,.35,.35,.35,.35,.35]; belHist=[]; }
 
+/* ═══ TEARDOWN ═══════════════════════════════════════════════════════
+   bootOrgan() rebuilds the whole scene on every restart, which is fine
+   in itself — but the previous scene was never taken down. Each call was
+   leaking FIVE things at once:
+
+     1. an animation loop. oframe() re-queues itself unconditionally, so
+        every restart added a permanent second loop. Three restarts meant
+        four loops all animating the same beliefs.
+     2. a WebGLRenderer. Browsers cap live WebGL contexts around 16; past
+        that the oldest is dropped and the canvas goes blank.
+     3. a resize listener, added and never removed.
+     4. seven label divs, appended and never removed — so 7 per restart,
+        all of them being positioned every frame by all those loops.
+     5. the "leaning" caption div, same story.
+
+   The fix is a generation number and an explicit teardown. Stale loops
+   see that they are stale and return instead of re-queueing; everything
+   else is disposed by hand, because Three.js does not free GPU memory
+   when a JS reference goes away.
+   ═══════════════════════════════════════════════════════════════════ */
+let organGen = 0;
+let organTeardown = null;
+
 function bootOrgan(){
+if(organTeardown){ organTeardown(); organTeardown = null; }
+const gen = ++organGen;
 const org=document.getElementById('organ');
 const rend=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true,alpha:true});
 rend.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -619,6 +644,10 @@ function osize(){const w=org.clientWidth,h=org.clientHeight;
 window.addEventListener('resize',osize);
 let ot=0;
 function oframe(){
+ /* A loop from a previous bootOrgan() is stale. Returning without
+    re-queueing is what actually ends it — there is no way to cancel a
+    requestAnimationFrame chain from outside. */
+ if(gen !== organGen) return;
  requestAnimationFrame(oframe);
  ot=performance.now()*0.001;
  let lead=0; for(let i=1;i<7;i++) if(bel[i]>bel[lead]) lead=i;
@@ -688,6 +717,19 @@ function oframe(){
  });
  rend.render(sc,cam);}
 osize(); oframe();
+
+/* Everything this call created, in the reverse order it was made.
+   Three.js holds GPU buffers that outlive their JS references, so
+   geometries and materials have to be disposed explicitly. */
+organTeardown = function(){
+  window.removeEventListener('resize', osize);
+  olabels.forEach(function(el){ if(el.parentNode) el.parentNode.removeChild(el); });
+  if(leadEl.parentNode) leadEl.parentNode.removeChild(leadEl);
+  onodes.forEach(function(m){ m.geometry.dispose(); m.material.dispose(); grp.remove(m); });
+  oedges.forEach(function(e){ e.geometry.dispose(); e.material.dispose(); grp.remove(e); });
+  sc.remove(grp);
+  rend.dispose();
+};
 }
 
 bootOrgan();
