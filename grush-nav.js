@@ -43,7 +43,9 @@
   'use strict';
 
   var CFG = window.GRUSH_NAV || {};
-  if (document.getElementById('grush-rail')) return;   // already mounted
+  /* Guard against a double include. It used to look for #grush-rail,
+     which is no longer built — so the guard silently stopped guarding. */
+  if (document.getElementById('grush-header')) return;   // already mounted
 
   /* ── styles ─────────────────────────────────────────────────────── */
   var css = `
@@ -86,6 +88,15 @@
      app.html already owns the bottom of the screen with .actionbar, its
      bottom sheets and a splash overlay, so a rail there would collide
      with all three. Sized as a glove-friendly 44px target. */
+  /* Pinned bottom-left when the page has no header to host it. Matches
+     the rail burger's corner so the control never moves between pages. */
+  .grush-burger-float{
+    position:fixed; left:14px; bottom:calc(14px + env(safe-area-inset-bottom));
+    z-index:998; width:56px; height:56px; border-radius:16px;
+    background:var(--nav-accent, #2E3A2A); color:var(--nav-ink, #F0EDE2);
+    box-shadow:0 4px 16px rgba(0,0,0,.34);
+  }
+  .grush-burger-float svg{ width:26px; height:26px; }
   .grush-burger-hosted{
     flex:0 0 auto; width:44px; height:44px; padding:0; border:0;
     display:flex; align-items:center; justify-content:center;
@@ -162,6 +173,54 @@
     #grush-drawer, #grush-scrim{ transition:none; }
   }`;
 
+  css += `
+  /* ══ SHARED HEADER ══════════════════════════════════════════════════
+     Modelled on the .sitebar four pages already carried — logo, eyebrow,
+     title — because it was the best header on the site and the other
+     fourteen pages had none. Rendered here so there is one definition
+     rather than five lookalikes drifting apart.
+
+     The burger sits on the RIGHT. It used to be bottom-left in a rail,
+     bottom-left floating, or top-left in a header, depending on the page;
+     and on learn.html it printed in the document flow, landing on top of
+     the footer text. One corner, every page. */
+  #grush-header{
+    position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:11px;
+    padding:9px 12px; background:var(--nav-bar, #221E19);
+    border-bottom:1px solid var(--nav-line, #45423A);
+    box-shadow:inset 0 -4px 0 -3px var(--nav-accent, #7E9A6E);
+  }
+  #grush-header img{ width:34px; height:34px; border-radius:9px; flex:0 0 auto; display:block; }
+  #grush-header .gh-wrap{ min-width:0; flex:1; }
+  #grush-header .gh-eb{
+    font-family:ui-monospace,monospace; font-size:.58rem; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--nav-accent, #7E9A6E);
+    margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #grush-header .gh-ttl{
+    font-family:'Fraunces',Georgia,serif; font-size:1.02rem; font-weight:600;
+    line-height:1.15; color:var(--nav-ink, #F0EDE2);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  /* 48px: the glove floor. The glyph is 26px; the target is not. */
+  #grush-header .grush-burger-hosted{ width:48px; height:48px; margin-left:auto; }
+
+  /* A page that carried its own header keeps the markup and loses the
+     display, rather than being edited in eighteen places. */
+  .grush-has-header .sitebar, .grush-has-header .topbar{ display:none !important; }
+
+  /* ══ SHARED FOOTER ═════════════════════════════════════════════════ */
+  #grush-footer{
+    margin-top:34px; padding:15px 14px calc(15px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--nav-line, #45423A);
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    font-size:.74rem; color:var(--nav-dim, #B0A99C);
+  }
+  #grush-footer a{ color:inherit; text-decoration:none; }
+  #grush-footer a:hover{ text-decoration:underline; }
+  #grush-footer .gf-mark{ opacity:.8; }
+`;
+
   var st = document.createElement('style');
   st.id = 'grush-nav-style';
   st.textContent = css;
@@ -223,7 +282,6 @@
      already owns the bottom of the screen — a fixed action bar, bottom
      sheets, a full-screen splash. Set GRUSH_NAV.burgerHost to a selector
      for where the burger should live; it defaults to the sitebar. */
-  var RAILLESS = CFG.rail === false;
 
   var burger = document.createElement('button');
   burger.id = 'grush-burger';
@@ -233,18 +291,10 @@
   burger.setAttribute('aria-controls', 'grush-drawer');
   burger.innerHTML = BURGER;
 
-  var rail = null;
-  if (!RAILLESS) {
-    rail = document.createElement('nav');
-    rail.id = 'grush-rail';
-    rail.setAttribute('aria-label', 'Primary');
-    rail.appendChild(burger);
-    (CFG.rail || []).slice(0, 2).forEach(function (it) {
-      rail.appendChild(makeItem(it, ''));
-    });
-  } else {
-    burger.className = 'grush-burger-hosted';
-  }
+  /* No rail is built any more. CFG.rail is still read by nothing, and the
+     one or two shortcuts it carried — Desk, Farm — are in the drawer,
+     which is now the same drawer on every page. */
+  burger.className = 'grush-burger-hosted';
 
   /* Three lines by default, everywhere.
 
@@ -438,22 +488,52 @@
     document.body.appendChild(scrim);
     document.body.appendChild(drawer);
 
-    if (rail) {
-      document.body.appendChild(rail);
-      /* Reserve space so the rail never covers page content. */
-      var h = rail.offsetHeight || 78;
-      var prev = getComputedStyle(document.body).paddingBottom;
-      document.body.style.paddingBottom =
-        'calc(' + (parseInt(prev, 10) || 0) + 'px + ' + h + 'px)';
-    } else {
-      /* No rail: hand the burger to the page's header. No body padding,
-         because nothing is covering the bottom. */
-      var host = document.querySelector(
-        CFG.burgerHost || '.sitebar, .topbar, .admin-header .header-controls, .header-controls'
-      );
-      if (host) host.insertBefore(burger, host.firstChild);
-      else document.body.appendChild(burger);   // never leave it unreachable
+    /* ── the shared header ─────────────────────────────────────────────
+       Built on every page, ahead of everything else in <body>, and it
+       hosts the burger on its right. CFG.rail is now ignored: a bottom
+       rail on some pages and a header on others is exactly the
+       inconsistency this replaces. */
+    var hdr = document.createElement('header');
+    hdr.id = 'grush-header';
+
+    var logo = document.createElement('img');
+    logo.src = CFG.logo || 'lfg-logo-192.webp';
+    logo.alt = '';
+    hdr.appendChild(logo);
+
+    var hw = document.createElement('div');
+    hw.className = 'gh-wrap';
+    /* The eyebrow says WHERE you are; the title says where you are on the
+       whole site. Without the eyebrow the header repeats itself on every
+       page and stops carrying information. */
+    hw.innerHTML =
+      '<div class="gh-eb">' + (CFG.eyebrow || 'Lancer Farms &middot; Zone 9b') + '</div>' +
+      '<div class="gh-ttl">' + (CFG.title || 'Lancer Farms &amp; Gardens') + '</div>';
+    hdr.appendChild(hw);
+
+    burger.className = 'grush-burger-hosted';
+    hdr.appendChild(burger);
+
+    document.body.insertBefore(hdr, document.body.firstChild);
+    document.body.classList.add('grush-has-header');
+
+    /* ── the shared footer ─────────────────────────────────────────────
+       Appended last. A page that already had its own keeps it and gets
+       this underneath, so nothing is silently deleted — pass
+       GRUSH_NAV.footer:false on a page that should not have one. */
+    if (CFG.footer !== false) {
+      var ft = document.createElement('footer');
+      ft.id = 'grush-footer';
+      ft.innerHTML =
+        '<span>lancerfarms.com</span>' +
+        '<a class="gf-mark" href="https://getgrush.com" translate="no">powered by grush</a>';
+      document.body.appendChild(ft);
     }
+
+/* The rail and the floating burger are gone. Both were attempts to put
+       the menu somewhere sensible on a page with no header; the header
+       above is the answer, and two fallbacks for a case that no longer
+       exists is how a file starts lying about itself. */
     syncStaff();
   }
   if (document.readyState === 'loading') {
