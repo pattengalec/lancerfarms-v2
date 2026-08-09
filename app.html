@@ -196,6 +196,16 @@
   .stepper{display:flex; align-items:center; gap:2px;}
   .step-btn{width:40px; height:40px; border-radius:11px; border:1.5px solid var(--line-strong);
     background:var(--card); font-size:22px; color:var(--ink); display:flex; align-items:center; justify-content:center;}
+/* The approve control does two jobs at once: it saves whatever was set in
+   the card's dropdowns AND approves the item, in a single write. A bare
+   checkmark read as a tickbox rather than a finalise, so it says what it
+   does. Sized to the glove floor like everything else outdoors. */
+.ap-go{
+  width:auto; min-height:52px; padding:0 16px; flex:none;
+  color:var(--green); border-color:var(--green);
+  font-size:.82rem; font-weight:700; letter-spacing:.04em; white-space:nowrap;
+}
+.ap-go:active{ background:var(--green); color:var(--paper); }
   .step-btn:active{background:var(--paper);}
   .qty{min-width:46px; text-align:center; font-size:17px; font-weight:700;}
   .qty small{font-weight:400; font-size:12px; color:var(--ink-soft); display:block;}
@@ -1485,14 +1495,14 @@ async function loadApprovals(){
     html+='<div class="approve-group">Field logs</div>';
     html+=logs.map(r=>(
       '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(r.location_label||'\u2014')+'</div><div class="inv-cat">'+_escA(r.note)+' &middot; '+_escA(r.submitted_by||'?')+'</div></div>'+
-      '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'log\',\''+r.id+'\')">&#10003;</button></div>'
+      '<button class="step-btn ap-go" onclick="approveItem(\'log\',\''+r.id+'\')">&#10003; Approve</button></div>'
     )).join('');
   }
   if(comments.length){
     html+='<div class="approve-group">Visitor notes</div>';
     html+=comments.map(c=>(
       '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(c.commenter_name||'Visitor')+'</div><div class="inv-cat">'+_escA(c.message)+'</div></div>'+
-      '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'comment\',\''+c.id+'\')">&#10003;</button></div>'
+      '<button class="step-btn ap-go" onclick="approveItem(\'comment\',\''+c.id+'\')">&#10003; Approve</button></div>'
     )).join('');
   }
   if(photos.length){
@@ -1505,7 +1515,7 @@ async function loadApprovals(){
         '<select class="ap-type" data-id="'+p.id+'" style="'+_apSel+'">'+typeOptionsHTML(p.subject_type)+'</select>'+
         '<select class="ap-plant" data-id="'+p.id+'" style="'+_apSel+'">'+plantOptionsHTML(p.plant_id)+'</select></div>'+
       '</div>'+
-      '<button class="step-btn" style="width:auto;padding:0 14px;color:var(--green);border-color:var(--green)" onclick="approveItem(\'photo\',\''+p.id+'\')">&#10003;</button></div>'
+      '<button class="step-btn ap-go" onclick="approveItem(\'photo\',\''+p.id+'\')">&#10003; Approve</button></div>'
     )).join('');
   }
   if(stubs.length){
