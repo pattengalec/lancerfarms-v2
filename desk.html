@@ -146,15 +146,10 @@ body{
    label with a rule under it, which separates it from the menu proper. */
 .row-emergency{margin-top:12px; margin-bottom:16px; padding-bottom:16px;
   border-bottom:1px solid var(--desk-line);}
-.row-emergency .go{
-  background:var(--tier-emergency); border-color:var(--tier-emergency);
-  color:#FFF; font-weight:700; letter-spacing:.01em;
-}
-.row-emergency .go:active{ background:#9E2B25; border-color:#9E2B25; }
-.row-emergency .go .ic{ opacity:1; }
-/* No + button: a desk slot for the emergency page would be a slot someone
-   fills with something else on the day it matters. */
-.row-emergency .add{ display:none; }
+/* The colour rules for this row live in grush-theme.css, which loads after
+   this <style> block and therefore wins every same-specificity tie against
+   it. Keeping a duplicate here would look like it worked and do nothing.
+   Only the spacing stays, because nothing downstream sets it. */
 
 .row .go:focus-visible, .row .add:focus-visible, .slot:focus-visible,
 .burger:focus-visible, .menu-close:focus-visible, .tier-cta:focus-visible{
@@ -596,7 +591,7 @@ window.GrushDesk = (function(){
      visitor screen in the farm's own styling. Nothing above this comment
      refers to them.
      ══════════════════════════════════════════════════════════════════ -->
-<link rel="stylesheet" href="grush-theme.css?v=2">
+<link rel="stylesheet" href="grush-theme.css?v=3">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
 <script src="grush-auth.js?v=2"></script>
