@@ -139,6 +139,10 @@ body{
 }
 .row .add:active{background:var(--desk-active); border-style:solid;}
 .row.locked .go, .row.locked .add{opacity:.38; pointer-events:none; filter:grayscale(1);}
+/* The footer row: separated, quieter, and full width since it has no +. */
+.row-footer{margin-top:22px; padding-top:18px; border-top:1px solid var(--desk-line);}
+.row-footer .go{opacity:.72;}
+.row-footer .go:active{opacity:1;}
 
 /* ── the emergency row ──────────────────────────────────────────────────
    Filled rather than outlined, so it reads as a different KIND of thing
@@ -328,15 +332,25 @@ window.GrushDesk = (function(){
       { label:'Learn',        icon:'\u{1F4D6}', href:'learn.html'   },
       { label:'Do',           icon:'\u{1F9E4}', href:'do.html'      },
       { label:'See',          icon:'\u{1F33B}', href:'see.html'     },
-      { label:'Share',        icon:'\u{1F4AC}', href:'share.html'   },
-      { label:'Almanac',      icon:'\u{1F326}', href:'almanac.html' },
-      { label:'Bed lookup',   icon:'\u{1F4CD}', href:'bed.html'     },
-      /* features.html is an index of everything the site does. It existed
-         with no link from anywhere and no way to find it but the URL —
-         the discoverability page nobody could discover. */
-      { label:'Everything here', icon:'\u{1F5C3}', href:'features.html' }
+      /* Almanac and Bed lookup moved to Tools. They answer a question with
+         a computed result — what to plant this month, what is in this bed —
+         which is what that tier is for. Learn / Do / See / Share are places
+         to go; those two are things to work out. */
+      { label:'Share',        icon:'\u{1F4AC}', href:'share.html'   }
     ]
   }];
+
+  /* ── the drawer footer ────────────────────────────────────────────────
+     features.html is an index of everything the site does — a reference,
+     not a destination. It belongs after every tier rather than inside one,
+     because it describes the whole menu above it.
+
+     Rendered separately rather than added as a last tier: tiers defined
+     here are drawn BEFORE any the overlay adds, so a tier could never sit
+     below Admin. A footer can. */
+  var FOOTER = [
+    { label:'Everything here', icon:'\u{1F5C3}', href:'features.html' }
+  ];
 
   var SLOTS = 4, KEY = 'grush_lfg_desk_v1';
   var gate = function(){ return true; };   /* overlay may replace this */
@@ -455,6 +469,24 @@ window.GrushDesk = (function(){
         cta.addEventListener('click', function(){ tier.cta.onClick && tier.cta.onClick(tier.id); });
         menuScroll.appendChild(cta);
       }
+    });
+
+    /* ── footer ─────────────────────────────────────────────────────────
+       After every tier, including any the overlay added. Quieter than the
+       menu above it and separated by a rule: this is a reference to the
+       whole drawer rather than another destination in it. No + button —
+       an index of everything does not belong in a four-slot desk. */
+    FOOTER.forEach(function(it){
+      var row = document.createElement('div');
+      row.className = 'row row-footer';
+
+      var go = document.createElement('a');
+      go.className = 'go';
+      go.href = it.href;
+      go.innerHTML = '<span class="ic">' + it.icon + '</span><span>' + it.label + '</span>';
+
+      row.appendChild(go);
+      menuScroll.appendChild(row);
     });
   }
 
@@ -605,7 +637,7 @@ window.GrushDesk = (function(){
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
 <script src="grush-auth.js?v=2"></script>
-<script src="grush-desk-staff.js?v=8"></script>
+<script src="grush-desk-staff.js?v=9"></script>
 <script src="grush-track.js?v=1"></script>
 <script src="grush-feel.js?v=1"></script>
 <!-- ═════════════════════ END GRUSH STAFF OVERLAY ══════════════════════ -->
