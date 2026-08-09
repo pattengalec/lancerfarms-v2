@@ -38,29 +38,55 @@
   var D = window.GrushDesk;
   if (!D) { console.warn('[grush-desk] GrushDesk not found; overlay idle.'); return; }
 
-  var RANK = { visitor: 0, staff: 1, admin: 2 };
+  /* tools shares visitor's rank: open to everyone. Keeping it a separate
+     tier is a labelling choice, not an access one — it says "this is the
+     working set" without pretending to lock it. */
+  var RANK = { visitor: 0, tools: 0, staff: 1, admin: 2 };
   var role = 'visitor';
 
   /* ── the tiers this overlay owns ─────────────────────────────────────
      Retier freely. `id` must stay one of staff | admin, because RANK is
      what decides visibility. */
+  /* ── TOOLS ───────────────────────────────────────────────────────────
+     Open to everyone, deliberately. These are the compute-and-print tools
+     defined by GRUSH-TOOL-CONTRACT.md: static tables and arithmetic over
+     numbers the person types in. Nothing to protect, nothing that saves.
+
+     A visitor using one and printing the result IS the demonstration —
+     locking them would protect nothing and show nothing. Three of them
+     (triage, mixbench, irrigation) were already reachable by URL anyway,
+     so listing them as locked was advertising a door that was open.
+
+     The staff difference here is persistence, not access, and no tier
+     persists anything yet. */
+  D.addTier({
+    id: 'tools', label: 'Tools', color: 'var(--tier-visitor)', locked: false,
+    items: [
+      { label: 'Plant triage', icon: '\u{1FA7A}', href: 'triage.html' },
+      { label: 'Mix bench',    icon: '\u{2697}',  href: 'mixbench.html' },
+      { label: 'Irrigation',   icon: '\u{1F4A7}', href: 'irrigation-bom.html' },
+      { label: 'Farm manual',  icon: '\u{1F4D3}', href: 'manual.html' },
+      { label: 'Farm data',    icon: '\u{1F4CA}', href: 'data.html' }
+    ]
+  });
+
+  /* ── STAFF ───────────────────────────────────────────────────────────
+     Recording tools. These write to lfg_* tables — app.html alone carries
+     11 inserts, 15 updates and a delete. A visitor "logging activity"
+     against a farm that is not theirs produces nothing worth printing,
+     which is why recording tools get no visitor mode. */
   D.addTier({
     id: 'staff', label: 'Staff', color: 'var(--tier-staff)', locked: true,
     items: [
       { label: 'Field tool',   icon: '\u{1F9F0}', href: 'app.html' },
-      { label: 'Manual',       icon: '\u{1F4D3}', href: 'manual.html' },
-      { label: 'Plant triage', icon: '\u{1FA7A}', href: 'triage.html' },
-      { label: 'Mix bench',    icon: '\u{2697}',  href: 'mixbench.html' },
-      { label: 'How-to cards', icon: '\u{1F5C2}', href: 'howto.html' },
-      { label: 'Irrigation',   icon: '\u{1F4A7}', href: 'irrigation-bom.html' }
+      { label: 'How-to cards', icon: '\u{1F5C2}', href: 'howto.html' }
     ]
   });
 
   D.addTier({
     id: 'admin', label: 'Admin', color: 'var(--tier-admin)', locked: true,
     items: [
-      { label: 'Admin panel', icon: '\u{1F510}', href: 'admin.html' },
-      { label: 'Farm data',   icon: '\u{1F4CA}', href: 'data.html' }
+      { label: 'Admin panel', icon: '\u{1F510}', href: 'admin.html' }
     ]
   });
 
@@ -174,7 +200,7 @@
       ? 'Four things you reach for most. Sign in for crew tools.'
       : 'Four things you reach for most. Tap + in the menu to fill a slot.');
 
-    ['staff', 'admin'].forEach(function (id) {
+    ['staff', 'admin'].forEach(function (id) {   /* tools is never locked */
       var locked = RANK[id] > RANK[role];
       D.setLock(id, {
         locked: locked,
