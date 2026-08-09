@@ -94,10 +94,10 @@
 <body>
 
 <div class="wrap">
-  <a class="back" href="visitor.html">&larr; Back to the farm</a>
+  <a class="back" href="visitor.html" data-i18n="back.farm">&larr; Back to the farm</a>
 
-  <h1>Share</h1>
-  <p class="lede">Leave a note for the crew, or pass the farm along to someone else.</p>
+  <h1 data-i18n="share.title">Share</h1>
+  <p class="lede" data-i18n="share.intro">Leave a note for the crew, or pass the farm along to someone else.</p>
 
   <div class="counter">
     <div class="n pending" id="views">&mdash;</div>
@@ -105,19 +105,19 @@
   </div>
 
   <button class="btn btn-go" id="share-btn">
-    <span>&#128279;</span><span>Share the farm</span>
+    <span>&#128279;</span><span data-i18n="share.share_h">Share the farm</span>
   </button>
 
-  <h2>Leave a note</h2>
+  <h2 data-i18n="share.note_h">Leave a note</h2>
   <p class="note">Notes are read by the caretaker team before they appear here, so yours
     will not show up straight away.</p>
 
   <input class="in" id="c-name" type="text" maxlength="60" placeholder="Your name" autocomplete="name">
   <textarea class="in" id="c-msg" maxlength="1000" placeholder="What did you see? What did you think?"></textarea>
   <div class="msg" id="c-out"></div>
-  <button class="btn" id="c-send">Send note</button>
+  <button class="btn" id="c-send" data-i18n="share.send">Send note</button>
 
-  <h2>Notes from visitors</h2>
+  <h2 data-i18n="share.notes_h">Notes from visitors</h2>
   <div id="cmts"><p class="empty">Loading notes&hellip;</p></div>
 
   <section id="ops">
@@ -129,7 +129,7 @@
     </table>
   </section>
 
-  <footer><a href="https://getgrush.com">managed by grush</a></footer>
+  <footer><a href="https://getgrush.com" translate="no">managed by grush</a></footer>
 </div>
 
 <script>
@@ -268,5 +268,8 @@ loadOps();
 </script>
 <script src="grush-nav.js"></script>
 
+<!-- Spanish chrome + the language switch. Every other language is
+     the browser's job; see i18n.js. -->
+<script src="i18n.js?v=2"></script>
 </body>
 </html>

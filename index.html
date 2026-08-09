@@ -107,7 +107,7 @@
   .req-cancel{width:100%;min-height:46px;border:none;background:transparent;
     color:var(--ink-soft);font-size:15px;font-family:inherit;margin-top:4px;}
 </style>
-<script src="i18n.js"></script>
+<script src="i18n.js?v=2"></script>
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
 <script src="grush-settings.js?v=11"></script>
@@ -116,19 +116,19 @@
 
 <div id="splash">
   <div class="mark" style="background:none;box-shadow:none;border:none"><img src="lfg-logo-512.webp" alt="Lancer Farms" style="height:100%;width:auto;border-radius:50%"></div>
-  <div class="wm">Lancer Farms<span class="mbg">managed by <a href="about-grush.html" class="grush-sig">grush</a></span></div>
+  <div class="wm">Lancer Farms<span class="mbg">managed by <a href="about-grush.html" class="grush-sig" translate="no">grush</a></span></div>
 </div>
 
 <div id="hero">
   <div class="mark" style="background:none;box-shadow:none;border:none"><img src="lfg-logo-512.webp" alt="Lancer Farms" style="height:100%;width:auto;border-radius:50%"></div>
   <h1>Lancer Farms</h1>
-  <div class="sub"><span class="mbg" style="margin-top:2px">managed by <a href="about-grush.html" class="grush-sig">grush</a></span></div>
+  <div class="sub"><span class="mbg" style="margin-top:2px">managed by <a href="about-grush.html" class="grush-sig" translate="no">grush</a></span></div>
   <a class="role-btn role-staff" href="desk.html">
     <span class="ic">&#127793;</span>
     <span><span data-i18n="role.enter">Enter the farm</span><small data-i18n="role.enter_sub">Tools, records and what grows here</small></span>
   </a>
   <div class="langrow"><span data-lang-switch></span></div>
-  <button class="req-link" onclick="openRequest()">Work here? Request access</button>
+  <button class="req-link" onclick="openRequest()" data-i18n="req.link">Work here? Request access</button>
 </div>
 
 <!-- ── ACCESS REQUEST ──
