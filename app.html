@@ -657,7 +657,7 @@ const ACTIONS = {
   report:['End of day','Weekly update','Incident','Visitor feedback','Yield count','Weather note','Other']
 };
 
-let state = { type:'activity', areaId:null, areaIds:[], areaLabel:null, who:null, what:null, areas:[], loggedAt:null };
+let state = { type:'activity', areaId:null, areaIds:[], areaLabel:null, who:null, what:null, areas:[], loggedAt:null, plantEvent:null };
 
 /* ---------- boot ---------- */
 /* No dev console on a phone. Surface uncaught errors as a toast so a
@@ -956,6 +956,57 @@ function pickWhat(el,a){
   const wasOn=el.classList.contains('on');
   el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
   if(!wasOn){ el.classList.add('on'); state.what=a; } else { state.what=null; }
+
+  /* Planted and Harvested carry data the log line cannot hold — which
+     plant, how much. Ask while the person is standing in the bed. */
+  if(state.what==='Planted' || state.what==='Harvested') openPlantEvent(state.what);
+  else state.plantEvent=null;
+}
+
+/* ── planting and harvest detail ───────────────────────────────────────── */
+async function openPlantEvent(kind){
+  const planting = kind==='Planted';
+  document.getElementById('pe-ev-title').textContent =
+    planting ? 'What was planted?' : 'What was harvested?';
+  document.getElementById('pe-ev-help').textContent = planting
+    ? 'This becomes the bed\u2019s planting record, so the farm can work out a harvest date without anyone typing one.'
+    : 'This becomes the yield record for the bed.';
+  document.getElementById('pe-ev-qty-label').textContent =
+    planting ? 'How many' : 'How much';
+  document.getElementById('pe-ev-qty').placeholder =
+    planting ? 'e.g. 12 starts, one flat, 30 seeds' : 'e.g. 3 lb, two baskets';
+  document.getElementById('pe-ev-qty').value   = state.plantEvent ? (state.plantEvent.quantity||'') : '';
+  document.getElementById('pe-ev-notes').value = state.plantEvent ? (state.plantEvent.notes||'')    : '';
+
+  await ensurePlants();
+  const sel=document.getElementById('pe-ev-plant');
+  sel.innerHTML=plantOptionsHTML(state.plantEvent ? state.plantEvent.plant_id : '');
+  /* stubPlant() is the one place a plant gets created. Reusing it means a
+     plant added from here behaves exactly like one added from the approval
+     queue — pending, and completed in the same place. */
+  sel.onchange=function(){ plantSelChange(sel, state.plantEvent ? state.plantEvent.plant_id : ''); };
+
+  document.getElementById('plant-event').style.display='flex';
+}
+
+function closePlantEvent(){
+  document.getElementById('plant-event').style.display='none';
+}
+
+function savePlantEvent(){
+  const sel=document.getElementById('pe-ev-plant');
+  const id=(sel.value && sel.value!=='__newplant') ? sel.value : null;
+  const label=id ? (sel.options[sel.selectedIndex].text || '').replace(/\s*\(pending\)$/,'') : null;
+  if(!id){ toast('Pick a plant, or add a new one'); return; }
+  state.plantEvent={
+    kind: state.what,
+    plant_id: id,
+    plant_name: label,
+    quantity: document.getElementById('pe-ev-qty').value.trim() || null,
+    notes: document.getElementById('pe-ev-notes').value.trim() || null
+  };
+  closePlantEvent();
+  toast(state.what+': '+label);
 }
 function toggleWhenPicker(){
   const box=document.getElementById('when-picker');
@@ -1008,22 +1059,61 @@ async function submitLog(){
   noteParts.push('['+state.type.toUpperCase()+'] '+state.what);
   const extra=document.getElementById('log-note').value.trim();
   if(extra) noteParts.push(extra);
+  /* An operator's log goes straight in. The RLS policy enforces the same
+     rule — an approved row requires is_operator(), anyone else may only
+     write pending — so this is the UI agreeing with the database rather
+     than deciding on its own. */
+  let isOp=false;
+  try{ isOp = await GRUSH.isOperator(); }catch(e){}
+
+  const pe = state.plantEvent;
+  if(pe && pe.plant_name){
+    noteParts.push(pe.plant_name + (pe.quantity ? ' \u00b7 ' + pe.quantity : ''));
+  }
+
   const row={
     area_id: state.areaId,
     location_label: state.areaLabel,
     note: noteParts.join(' \u2014 '),
     logged_by: state.who || 'Staff',
-    approval_status: 'pending',
+    approval_status: isOp ? 'approved' : 'pending',
     submitted_by: state.who || 'Staff'
   };
   if(state.loggedAt) row.logged_at = state.loggedAt;
   const {error}= await sb.from('lfg_log').insert(row);
   btn.disabled=false; btn.textContent='Log it';
   if(error){ toast('Save failed \u2014 try again'); return; }
-  toast('Logged \u2014 pending review');
+
+  /* The record, alongside the story. Written second on purpose: if this
+     fails the log line already survives, and a missing event is easier to
+     notice and re-enter than a missing narrative. */
+  let evOk=true;
+  if(pe && pe.plant_id){
+    const when = state.loggedAt ? new Date(state.loggedAt) : new Date();
+    const ev = {
+      area_id: state.areaId,
+      event_type: pe.kind === 'Harvested' ? 'harvest' : 'planting',
+      plant_id: pe.plant_id,
+      plant_name: pe.plant_name,
+      quantity: pe.quantity,
+      notes: pe.notes,
+      event_date: when.toISOString().slice(0,10),
+      performed_by: state.who || 'Staff',
+      approval_status: isOp ? 'approved' : 'pending',
+      submitted_by: state.who || 'Staff'
+    };
+    const r2 = await sb.from('lfg_area_events').insert(ev);
+    if(r2.error){ evOk=false; }
+  }
+
+  toast(pe && pe.plant_id
+    ? (evOk ? 'Logged \u2014 ' + pe.kind.toLowerCase() + ' recorded'
+            : 'Logged, but the ' + pe.kind.toLowerCase() + ' record failed')
+    : (isOp ? 'Logged' : 'Logged \u2014 pending review'));
   // reset lightly
   document.getElementById('log-note').value='';
   state.what=null; state.loggedAt=null; state.areaIds=[]; state.areaId=null; state.areaLabel=null;
+  state.plantEvent=null;
   document.querySelectorAll('[data-area]').forEach(c=>c.classList.remove('on'));
   document.getElementById('when-picker').style.display='none';
   document.getElementById('when-label').textContent='Now';
@@ -1975,6 +2065,37 @@ async function uploadReviewed(){
   toast(msg); loadPhotos();
 }
 </script>
+<!-- ═══ PLANTING / HARVEST DETAIL ═══════════════════════════════════════
+     Opened when the action is Planted or Harvested. Those two are not
+     narrative — they are the farm's record of what is in a bed and what
+     came out of it. lfg_area_events has held that shape since it was
+     built and had zero rows, because nothing ever wrote to it: bed.html
+     shows a planting history nobody was recording, and do.html asks for a
+     planting date the farm should already know.
+
+     A log line still gets written as well. The line is the story; the
+     event is the record. -->
+<div id="plant-event" class="pr-overlay" style="display:none">
+  <div class="pr-sheet">
+    <div class="pr-head">
+      <span class="pr-title" id="pe-ev-title">What was planted?</span>
+      <button class="pr-x" onclick="closePlantEvent()">&times;</button>
+    </div>
+    <div style="padding:14px 16px;overflow-y:auto">
+      <div style="font-size:.86rem;color:var(--ink-soft);line-height:1.45;margin-bottom:12px" id="pe-ev-help"></div>
+      <label style="display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-bottom:5px">Plant</label>
+      <select id="pe-ev-plant" style="width:100%;margin-bottom:12px"></select>
+      <label style="display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-bottom:5px" id="pe-ev-qty-label">How many</label>
+      <input id="pe-ev-qty" placeholder="e.g. 12 starts, 3 lb, one flat" autocomplete="off" style="width:100%;margin-bottom:12px">
+      <input id="pe-ev-notes" placeholder="Note about this planting (optional)" autocomplete="off" style="width:100%">
+    </div>
+    <div class="pr-actions">
+      <button class="pr-btn cancel" onclick="closePlantEvent()">Skip</button>
+      <button class="pr-btn go" onclick="savePlantEvent()">Use this</button>
+    </div>
+  </div>
+</div>
+
 <div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select><select id="pr-all-plant" onchange="applyAllPlant(this.value)" style="display:none"></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
 
 <div id="howto-create" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">New how-to card</span><button class="pr-x" onclick="closeHowtoCreate()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><input id="hc-title" placeholder="Title, e.g. Trellis vine crops off the ground" autocomplete="off" style="width:100%;margin-bottom:10px"><textarea id="hc-steps" rows="7" placeholder="Steps — one per line" style="width:100%;margin-bottom:10px"></textarea><div id="hc-mat-list" style="margin-bottom:8px"></div><select id="hc-mat-add" style="width:100%;margin-bottom:10px" onchange="addMatToCard()"><option value="">Add item from inventory&hellip;</option></select><input id="hc-materials" placeholder="Other materials (free text, optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><input id="hc-safety" placeholder="Safety note (optional)" autocomplete="off" style="width:100%"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeHowtoCreate()">Cancel</button><button class="pr-btn go" onclick="saveHowtoCard()">Save card</button></div></div></div>
