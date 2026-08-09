@@ -60,6 +60,9 @@
   --desk-active-line:#7E9A6E;
   --desk-slot:#2B2822;
   --desk-dim:#6E685D;
+  /* Used on exactly one row. A colour that appears twice stops meaning
+     anything, so nothing else on this site is allowed to be this red. */
+  --tier-emergency:#C4362F;
   --tier-visitor:#5FA0A8;
   --tier-staff:#7E9A6E;
   --tier-admin:#C9973F;
@@ -136,6 +139,22 @@ body{
 }
 .row .add:active{background:var(--desk-active); border-style:solid;}
 .row.locked .go, .row.locked .add{opacity:.38; pointer-events:none; filter:grayscale(1);}
+
+/* ── the emergency row ──────────────────────────────────────────────────
+   Filled rather than outlined, so it reads as a different KIND of thing
+   rather than a more important one. It also sits before the first tier
+   label with a rule under it, which separates it from the menu proper. */
+.row-emergency{margin-top:12px; margin-bottom:16px; padding-bottom:16px;
+  border-bottom:1px solid var(--desk-line);}
+.row-emergency .go{
+  background:var(--tier-emergency); border-color:var(--tier-emergency);
+  color:#FFF; font-weight:700; letter-spacing:.01em;
+}
+.row-emergency .go:active{ background:#9E2B25; border-color:#9E2B25; }
+.row-emergency .go .ic{ opacity:1; }
+/* No + button: a desk slot for the emergency page would be a slot someone
+   fills with something else on the day it matters. */
+.row-emergency .add{ display:none; }
 
 .row .go:focus-visible, .row .add:focus-visible, .slot:focus-visible,
 .burger:focus-visible, .menu-close:focus-visible, .tier-cta:focus-visible{
@@ -281,6 +300,21 @@ window.GrushDesk = (function(){
 
   /* The visitor menu. Everything the public may open, and nothing else. */
   var TIERS = [{
+    /* ── EMERGENCY ────────────────────────────────────────────────────
+       Above everything, in its own tier, in a colour used nowhere else.
+
+       It is not in the visitor tier — not because a visitor should not
+       reach it (they must, and no tier locks it), but because a person
+       looking for this is not browsing. They are holding a phone next to
+       someone who is hurt, and a row that reads like the other rows is a
+       row they will scroll past.
+
+       No tier label. A heading above one item is furniture. */
+    id:'emergency', label:'', color:'var(--tier-emergency)', locked:false,
+    items:[
+      { label:'Emergency', icon:'\u{1F6A8}', href:'emergency.html' }
+    ]
+  },{
     id:'visitor', label:'Visitor', color:'var(--tier-visitor)', locked:false,
     items:[
       { label:'Home',         icon:'\u{1F3E1}', href:'index.html'   },
@@ -363,16 +397,20 @@ window.GrushDesk = (function(){
     TIERS.forEach(function(tier){
       var locked = tier.locked || !gate(tier.id);
 
-      var lb = document.createElement('div');
-      lb.className = 'tier-label';
-      lb.innerHTML = '<span class="dot" style="background:' + tier.color + '"></span>' +
-                     '<span>' + tier.label + '</span>' +
-                     (locked ? '<span class="lock">\u{1F512} Locked</span>' : '');
-      menuScroll.appendChild(lb);
+      /* A tier may declare no label. One item under a heading is furniture,
+         and the emergency row has to be the first thing in the drawer. */
+      if(tier.label){
+        var lb = document.createElement('div');
+        lb.className = 'tier-label';
+        lb.innerHTML = '<span class="dot" style="background:' + tier.color + '"></span>' +
+                       '<span>' + tier.label + '</span>' +
+                       (locked ? '<span class="lock">\u{1F512} Locked</span>' : '');
+        menuScroll.appendChild(lb);
+      }
 
       tier.items.forEach(function(it){
         var row = document.createElement('div');
-        row.className = 'row' + (locked ? ' locked' : '');
+        row.className = 'row row-' + tier.id + (locked ? ' locked' : '');
 
         var go = document.createElement('a');
         go.className = 'go';
@@ -384,8 +422,11 @@ window.GrushDesk = (function(){
         add.className = 'add'; add.type = 'button'; add.textContent = '+';
         add.setAttribute('aria-label','Add ' + it.label + ' to your desk');
         if (locked) add.disabled = true;
+        /* The emergency row has no + at all — a desk slot holding it is a
+           slot someone fills with something else on the day it matters. */
+        if (tier.id === 'emergency'){ add.disabled = true; add.tabIndex = -1; }
         add.addEventListener('click', function(){ addToDesk(it.href); });
-        if (!locked) attachDrag(add, it);
+        if (!locked && tier.id !== 'emergency') attachDrag(add, it);
 
         row.appendChild(go); row.appendChild(add);
         menuScroll.appendChild(row);

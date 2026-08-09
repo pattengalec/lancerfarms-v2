@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+<title>Emergency — Lancer Farms &amp; Gardens</title>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     emergency.html
+
+     DESIGN RULES, and they are different from every other page here.
+
+     1. NO SIGN-IN. Nobody authenticates during an emergency, and the
+        person holding the phone may be a visitor, a volunteer, or someone
+        who has never opened this site before. This page is public and
+        stays public.
+
+     2. NO DATABASE ON THE CRITICAL PATH. Every number and every word of
+        the script is in this file. If Supabase is down, if the anon key
+        has rotated, if there is no signal past the first byte — the page
+        still shows what to dial and what to say. Only the report form
+        touches the network, and it is below the fold on purpose.
+
+     3. BIGGEST TARGET AT THE TOP. 911 first, at a size someone can hit
+        while shaking. Everything else is smaller.
+
+     4. THE SCRIPT IS THE POINT. People know to call 911. What they lose
+        under stress is the ability to describe where they are — and this
+        farm is behind an apartment complex, off the street, on a campus
+        with one mailing address for 160 acres. The script exists so the
+        answer is read, not recalled.
+
+     VERIFIED Aug 2026 against calbaptist.edu/about/directory, which is the
+     authoritative list:
+       Safety Services (951) 343-4311, or 4311 from a campus phone
+       Facilities & Maintenance (951) 343-4360
+       Counseling Center (951) 343-5050
+       Campus operator 1-800-782-3382
+       24-hour crisis line (951) 686-4357  [from the emergency-information page]
+       Campus address 8432 Magnolia Avenue, Riverside, CA 92504
+
+     An earlier draft carried (951) 689-5771 as the main number, taken from
+     a third-party directory listing. It is not on CBU's own directory. Use
+     the university's page as the source, never an aggregator.
+     Re-check these annually. A wrong number here is worse than no page.
+     ═══════════════════════════════════════════════════════════════════ -->
+
+<link rel="icon" href="lfg-emblem.svg">
+<style>
+:root{
+  --ink:#161310; --paper:#F5F2EA; --card:#FFFFFF; --line:#D8D2C4;
+  --red:#B4231F; --red-ink:#FFFFFF;
+  --amber:#8A5A00; --amber-bg:#FFF3D6;
+  --dim:#5E574B;
+  --f-head:'Fraunces',Georgia,serif;
+  --f-body:'Source Sans 3',system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --ink:#F0EDE2; --paper:#1A1713; --card:#241F1A; --line:#3D372E;
+         --amber:#E8B45C; --amber-bg:#2E2413; --dim:#A79E90; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);
+  line-height:1.5;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:560px;margin:0 auto;padding:18px 16px calc(40px + env(safe-area-inset-bottom));}
+
+h1{font-family:var(--f-head);font-size:1.5rem;margin:0 0 2px;letter-spacing:-.01em;}
+.sub{color:var(--dim);font-size:.9rem;margin:0 0 18px;}
+
+/* 911 — the only thing on this page that is this size. */
+.call911{display:flex;align-items:center;justify-content:center;gap:14px;
+  width:100%;min-height:96px;border-radius:18px;text-decoration:none;
+  background:var(--red);color:var(--red-ink);font-size:1.9rem;font-weight:700;
+  letter-spacing:.02em;box-shadow:0 4px 18px rgba(180,35,31,.35);margin-bottom:8px;}
+.call911:active{filter:brightness(.92);}
+.call911 small{display:block;font-size:.8rem;font-weight:400;letter-spacing:.08em;
+  text-transform:uppercase;opacity:.9;margin-top:2px;}
+
+.callrow{display:flex;align-items:center;gap:13px;width:100%;min-height:72px;
+  padding:12px 16px;margin-bottom:9px;border-radius:14px;text-decoration:none;
+  background:var(--card);border:1.5px solid var(--line);color:var(--ink);}
+.callrow:active{background:var(--amber-bg);}
+.callrow .n{font-weight:700;font-size:1.02rem;}
+.callrow .d{font-size:.84rem;color:var(--dim);margin-top:1px;}
+.callrow .num{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600;
+  font-size:.98rem;white-space:nowrap;}
+
+h2{font-family:var(--f-head);font-size:1.12rem;margin:26px 0 8px;}
+
+/* The script. Deliberately styled as something to READ ALOUD, not skim. */
+.script{background:var(--card);border:1.5px solid var(--line);border-left:4px solid var(--red);
+  border-radius:14px;padding:16px 18px;}
+.script p{margin:0 0 12px;font-size:1.06rem;line-height:1.55;}
+.script p:last-child{margin-bottom:0;}
+.say{font-weight:600;}
+.fill{background:var(--amber-bg);color:var(--amber);border-radius:5px;
+  padding:1px 7px;font-weight:700;font-size:.94em;white-space:nowrap;}
+.note{font-size:.86rem;color:var(--dim);margin:10px 0 0;line-height:1.45;}
+
+.coords{font-family:ui-monospace,monospace;font-size:1.04rem;font-weight:600;
+  letter-spacing:.02em;}
+.copybtn{margin-top:10px;min-height:52px;width:100%;border-radius:11px;cursor:pointer;
+  background:transparent;border:1.5px solid var(--line);color:var(--ink);
+  font-family:inherit;font-size:.86rem;font-weight:600;}
+.copybtn:active{background:var(--amber-bg);}
+
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:14px;
+  padding:16px;margin-bottom:12px;}
+label{display:block;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dim);font-weight:600;margin:0 0 5px;}
+input,select,textarea{width:100%;min-height:52px;padding:11px 13px;font-size:1rem;
+  font-family:inherit;color:var(--ink);background:var(--paper);
+  border:1.5px solid var(--line);border-radius:11px;margin-bottom:13px;}
+textarea{min-height:120px;resize:vertical;}
+.btn{width:100%;min-height:58px;border-radius:12px;cursor:pointer;font-family:inherit;
+  font-size:1rem;font-weight:700;border:1.5px solid var(--line);background:transparent;color:var(--ink);}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.msg{margin-top:11px;font-size:.92rem;min-height:1.2em;}
+.msg.ok{color:#2E6B24;} .msg.bad{color:var(--red);}
+.foot{margin-top:26px;font-size:.78rem;color:var(--dim);line-height:1.5;}
+.foot a{color:inherit;}
+
+@media print{
+  /* Printed and pinned in the shed is a legitimate way to use this page. */
+  .card form, .copybtn, .btn, .foot{display:none !important;}
+  body{background:#fff;color:#000;}
+  .call911{background:#fff !important;color:#000 !important;border:3px solid #000;
+    box-shadow:none;}
+  .callrow{border:1px solid #999 !important;}
+  .script{border:1px solid #000;border-left:4px solid #000;}
+  @page{margin:14mm;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Emergency</h1>
+  <p class="sub">Lancer Farms &amp; Gardens · California Baptist University</p>
+
+  <!-- tel: links open the dialer with the number filled in. iOS shows a
+       Call / Cancel sheet first; Android drops straight into the dialer.
+       Either way it is one more tap, and NEITHER dials on its own — which
+       is correct. A page that auto-dialled 911 on load would be a menace.
+
+       Numbers are in E.164 (+1...) so they resolve on a phone roaming or
+       set to another region, which a visiting student's may well be. -->
+  <a class="call911" href="tel:911">
+    <span>911<small>Fire · Medical · Police</small></span>
+  </a>
+
+  <a class="callrow" href="tel:+19513434311">
+    <span><span class="n">CBU Safety Services</span>
+      <span class="d">On campus, 24 hours. They open gates and guide responders in.</span></span>
+    <span class="num">(951) 343-4311</span>
+  </a>
+
+  <a class="callrow" href="tel:+19516864357">
+    <span><span class="n">Crisis line</span>
+      <span class="d">24-hour mental health crisis and suicide prevention</span></span>
+    <span class="num">(951) 686-4357</span>
+  </a>
+
+  <a class="callrow" href="tel:+19513435050">
+    <span><span class="n">CBU Counseling Center</span>
+      <span class="d">Business hours · 3626 Monroe Ave</span></span>
+    <span class="num">(951) 343-5050</span>
+  </a>
+
+  <a class="callrow" href="tel:+18002221222">
+    <span><span class="n">Poison Control</span>
+      <span class="d">Chemical exposure, ingestion, eye contact</span></span>
+    <span class="num">(800) 222-1222</span>
+  </a>
+
+  <!-- Facilities owns the irrigation controller, the backflow, mains water
+       and campus power. Three of the how-to cards say so and none of them
+       gave anyone a number. A burst main is not a 911 call, but it is not
+       something the farm fixes either. -->
+  <a class="callrow" href="tel:+19513434360">
+    <span><span class="n">CBU Facilities &amp; Maintenance</span>
+      <span class="d">Irrigation controller, backflow, mains water, campus power</span></span>
+    <span class="num">(951) 343-4360</span>
+  </a>
+
+  <!-- Last, because it is the slowest route to help. An operator during
+       business hours is the right number for a question and the wrong one
+       for an emergency. -->
+  <a class="callrow" href="tel:+18007823382">
+    <span><span class="n">CBU campus operator</span>
+      <span class="d">Business hours. Not for emergencies — use 911 or Safety Services.</span></span>
+    <span class="num">1-800-782-3382</span>
+  </a>
+
+  <p class="note" style="margin:2px 0 0">
+    Each button opens your phone’s dialer with the number already entered —
+    you still press call. Nothing here dials by itself.
+  </p>
+
+  <h2>What to tell the 911 operator</h2>
+  <div class="script">
+    <p><span class="say">"I'm at California Baptist University, 8432 Magnolia Avenue, Riverside."</span></p>
+    <p><span class="say">"I'm at the Lancer Farms garden, behind the Colony apartments, next to the Hawthorne House."</span></p>
+    <p><span class="say">"The nearest vehicle access is</span> <span class="fill">FILL IN</span><span class="say">."</span></p>
+    <p><span class="say">"Someone will meet you at</span> <span class="fill">FILL IN</span><span class="say">."</span></p>
+    <p><span class="say">"GPS coordinates are</span> <span class="coords">33.9281, −117.4301</span><span class="say">."</span></p>
+
+    <p class="note"><b>Then stay on the line.</b> Give what happened, how many people, and whether anyone is
+      unconscious, bleeding heavily, or not breathing. Do not hang up until they say you can.</p>
+    <p class="note"><b>Send someone to meet the ambulance</b> if there is anyone else with you.
+      This garden is not visible from the street and the address is shared by the whole campus —
+      an unmet responder can lose several minutes finding a 160-acre site's back corner.</p>
+    <p class="note"><b>Call Safety Services after 911</b>, not before. They can open gates and
+      guide the engine in, but they are not a substitute for dispatch.</p>
+
+    <button class="copybtn" onclick="copyLoc(this)">Copy the location text</button>
+  </div>
+
+  <p class="note" style="margin-top:10px">
+    The two <span class="fill">FILL IN</span> lines above are blanks on purpose. Nobody should
+    invent a meeting point for an ambulance — put the real gate and the real corner in, then
+    print this page and pin it in the shed.
+  </p>
+
+  <h2>Incident report</h2>
+  <div class="card">
+    <p class="note" style="margin:0 0 14px">
+      For an injury, a near miss, or anything involving a person. Fill this out the same day —
+      detail decays fast. It goes to the farm's records, not to emergency services.
+    </p>
+    <form onsubmit="return false">
+      <label for="r-type">What kind</label>
+      <select id="r-type">
+        <option value="injury">Injury</option>
+        <option value="near_miss">Near miss</option>
+        <option value="property">Property or equipment</option>
+        <option value="other">Other</option>
+      </select>
+
+      <label for="r-who">Your name</label>
+      <input id="r-who" autocomplete="name" placeholder="Who is filling this in">
+
+      <label for="r-where">Where on the farm</label>
+      <input id="r-where" placeholder="Bed, zone, or landmark">
+
+      <label for="r-what">What happened</label>
+      <textarea id="r-what" placeholder="What happened, when, who was present, and what was done. Facts only — this is not the place to assign fault."></textarea>
+
+      <button class="btn primary" onclick="sendReport()">Submit report</button>
+      <button class="btn" style="margin-top:9px" onclick="window.print()">Print this page</button>
+      <p class="msg" id="r-msg"></p>
+    </form>
+  </div>
+
+  <p class="foot">
+    Numbers verified from calbaptist.edu, August 2026. If any of them is wrong, that is the most
+    urgent bug on this site — report it immediately.<br>
+    <a href="desk.html">Back to the farm</a>
+  </p>
+</div>
+
+<script>
+/* The location text, in one place, so the button and the script cannot
+   disagree. Kept in this file rather than the database: this page has to
+   work when nothing else does. */
+var LOCATION_TEXT =
+  'California Baptist University, 8432 Magnolia Avenue, Riverside CA 92504. ' +
+  'Lancer Farms garden, behind the Colony apartments, next to the Hawthorne House. ' +
+  'GPS 33.9281, -117.4301';
+
+function copyLoc(btn){
+  var done = function(ok){
+    btn.textContent = ok ? 'Copied' : 'Press and hold the text above to copy';
+    setTimeout(function(){ btn.textContent = 'Copy the location text'; }, 2600);
+  };
+  try{
+    navigator.clipboard.writeText(LOCATION_TEXT).then(function(){ done(true); },
+                                                      function(){ done(false); });
+  }catch(e){ done(false); }
+}
+</script>
+
+<!-- GRUSH OVERLAY — the report form only. Everything above works without it:
+     the numbers, the script and the print layout are all in this file. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="lfg-db.js?v=1"></script>
+<script>
+async function sendReport(){
+  var msg  = document.getElementById('r-msg');
+  var what = document.getElementById('r-what').value.trim();
+  if(!what){ msg.className='msg bad'; msg.textContent='Say what happened before submitting.'; return; }
+
+  var where = document.getElementById('r-where').value.trim();
+  var who   = document.getElementById('r-who').value.trim();
+  var kind  = document.getElementById('r-type').value;
+
+  msg.className='msg'; msg.textContent='Sending\u2026';
+  try{
+    var res = await LFG.sb.from('lfg_reports').insert({
+      report_type: kind,
+      description: what + (where ? '\n\nWhere: ' + where : ''),
+      reporter_name: who || null,
+      status: 'open'
+    });
+    if(res.error) throw res.error;
+    msg.className='msg ok';
+    msg.textContent='Sent. Print this page as well if it is serious \u2014 a paper copy outlasts an outage.';
+  }catch(e){
+    /* Never leave someone believing a report was filed when it was not. */
+    msg.className='msg bad';
+    msg.textContent='Could not send: ' + (e.message || 'no connection') +
+      '. Print this page or write it down \u2014 do not rely on this form.';
+  }
+}
+</script>
+</body>
+</html>
