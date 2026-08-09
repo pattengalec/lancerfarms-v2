@@ -312,13 +312,23 @@ window.GrushDesk = (function(){
   },{
     id:'visitor', label:'Visitor', color:'var(--tier-visitor)', locked:false,
     items:[
-      { label:'Home',         icon:'\u{1F3E1}', href:'index.html'   },
-      { label:'Plan a visit', icon:'\u{1F5FA}', href:'visitor.html' },
+      /* Home, Plan a visit and Films came out Aug 2026.
+
+         Home pointed at index.html, which now does nothing but open this
+         desk — a menu item that returns you to the door you came through.
+
+         Plan a visit pointed at visitor.html, the old four-tile hub. Learn,
+         Do, See and Share are listed individually here, so it was a second
+         route to the same four pages.
+
+         Films still exists at watch.html and is still worth sharing by
+         link; it just was not earning a permanent slot in the menu.
+
+         None of the three pages were deleted. */
       { label:'Learn',        icon:'\u{1F4D6}', href:'learn.html'   },
       { label:'Do',           icon:'\u{1F9E4}', href:'do.html'      },
       { label:'See',          icon:'\u{1F33B}', href:'see.html'     },
       { label:'Share',        icon:'\u{1F4AC}', href:'share.html'   },
-      { label:'Films',        icon:'\u{1F3AC}', href:'watch.html'   },
       { label:'Almanac',      icon:'\u{1F326}', href:'almanac.html' },
       { label:'Bed lookup',   icon:'\u{1F4CD}', href:'bed.html'     },
       /* features.html is an index of everything the site does. It existed
