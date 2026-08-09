@@ -77,7 +77,13 @@
       { label: 'Mix bench',    icon: '\u{2697}',  href: 'mixbench.html' },
       { label: 'Irrigation',   icon: '\u{1F4A7}', href: 'irrigation-bom.html' },
       { label: 'Farm manual',  icon: '\u{1F4D3}', href: 'manual.html' },
-      { label: 'Farm data',    icon: '\u{1F4CA}', href: 'data.html' }
+      { label: 'Farm data',    icon: '\u{1F4CA}', href: 'data.html' },
+      /* Moved here from the Visitor tier Aug 2026. Both answer a question
+         with a computed result — what to plant this month, what is in this
+         bed — which is what this tier is for. Open to everyone, like the
+         rest of Tools. */
+      { label: 'Almanac',      icon: '\u{1F326}', href: 'almanac.html' },
+      { label: 'Bed lookup',   icon: '\u{1F4CD}', href: 'bed.html' }
     ]
   });
 
