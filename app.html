@@ -1789,23 +1789,62 @@ async function reviewPhotos(input){
   if(!state.areas || !state.areas.length){
     try{ const r=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null).order('zone').order('sort_order', {nullsFirst:false}).order('name'); state.areas=r.data||[]; }catch(e){ state.areas=state.areas||[]; }
   }
-  const areaOpts=areaOptionsHTML(), typeOpts=typeOptionsHTML();
+  /* The plant list is needed here as well as in the approval queue. Tagging
+     a photo to a plant used to happen only AFTER upload — in approvals or
+     the edit sheet — which is why 9 of 42 plant photos were never tagged at
+     all. The person holding the camera knows what they photographed; an
+     approver a week later is guessing. Ask at the moment of knowing. */
+  /* plantOptionsHTML reads staffPlants, which ensurePlants() fills and
+     caches. Call it rather than fetching separately, or the upload sheet
+     and the approval queue drift apart on what counts as a plant. */
+  await ensurePlants();
+  const areaOpts=areaOptionsHTML(), typeOpts=typeOptionsHTML(), plantOpts=plantOptionsHTML('');
   reviewURLs.forEach(function(u){ URL.revokeObjectURL(u); }); reviewURLs=[];
   let html='';
   reviewFiles.forEach(function(f,i){
     const u=URL.createObjectURL(f); reviewURLs.push(u);
     html+='<div class="pr-card"><img src="'+u+'"><div class="pr-fields">'+
       '<select class="pr-area" data-i="'+i+'">'+areaOpts+'</select>'+
-      '<select class="pr-type" data-i="'+i+'">'+typeOpts+'</select>'+
+      '<select class="pr-type" data-i="'+i+'" onchange="prTypeChange(this)">'+typeOpts+'</select>'+
+      /* Hidden until Type is Plant. A creature or a bench does not need a
+         species, and four permanent selects on a phone card is a wall. */
+      '<select class="pr-plant" data-i="'+i+'" style="display:none">'+plantOpts+'</select>'+
       '<input class="pr-cap" data-i="'+i+'" placeholder="Caption (optional)" autocomplete="off"></div></div>';
   });
   document.getElementById('pr-list').innerHTML=html;
   document.getElementById('pr-all-area').innerHTML=areaOpts;
+  document.getElementById('pr-all-plant').innerHTML=plantOpts;
+  document.getElementById('pr-all-plant').style.display='none';
   document.getElementById('pr-title').textContent='Categorize '+reviewFiles.length+' photo'+(reviewFiles.length===1?'':'s');
   document.getElementById('photo-review').style.display='flex';
 }
 function applyAllArea(v){ document.querySelectorAll('#pr-list .pr-area').forEach(function(sel){ sel.value=v; }); }
-function applyAllType(v){ if(!v) return; document.querySelectorAll('#pr-list .pr-type').forEach(function(sel){ sel.value=v; }); }
+function applyAllType(v){
+  if(!v) return;
+  document.querySelectorAll('#pr-list .pr-type').forEach(function(sel){ sel.value=v; prTypeChange(sel); });
+}
+function applyAllPlant(v){
+  document.querySelectorAll('#pr-list .pr-plant').forEach(function(sel){
+    if(sel.style.display!=='none') sel.value=v;
+  });
+}
+/* Show the plant select only where it means something. Several shots of the
+   same tomato in one batch is the common case, so it is worth being quick. */
+function prTypeChange(sel){
+  const card=sel.closest('.pr-card'); if(!card) return;
+  const pl=card.querySelector('.pr-plant'); if(!pl) return;
+  const on = sel.value==='plant';
+  pl.style.display = on ? '' : 'none';
+  if(!on) pl.value='';
+  /* The bulk plant select appears once any card is asking for a plant. */
+  const bulk=document.getElementById('pr-all-plant');
+  if(bulk){
+    let any=false;
+    document.querySelectorAll('#pr-list .pr-type').forEach(function(t){ if(t.value==='plant') any=true; });
+    bulk.style.display = any ? '' : 'none';
+    if(!any) bulk.value='';
+  }
+}
 function closeReview(){
   document.getElementById('photo-review').style.display='none';
   reviewURLs.forEach(function(u){ URL.revokeObjectURL(u); }); reviewURLs=[]; reviewFiles=[];
@@ -1816,6 +1855,7 @@ async function uploadReviewed(){
   const areas=document.querySelectorAll('#pr-list .pr-area');
   const types=document.querySelectorAll('#pr-list .pr-type');
   const caps=document.querySelectorAll('#pr-list .pr-cap');
+  const plants=document.querySelectorAll('#pr-list .pr-plant');
   const btn=document.getElementById('pr-upload'); btn.disabled=true;
   const rows=[]; let ok=0, fail=0;
   for(let i=0;i<reviewFiles.length;i++){
@@ -1826,10 +1866,15 @@ async function uploadReviewed(){
       const j=await res.json();
       if(!j.secure_url) throw new Error('no url');
       const url=j.secure_url, thumb=url.replace('/upload/','/upload/w_400,h_400,c_fill/');
+      /* plant_id only where Type is Plant. "__newplant" is the sentinel the
+         approval queue uses for "not in the list yet"; it is not an id and
+         must never reach the column. */
+      const _pv = (types[i].value==='plant' && plants[i]) ? plants[i].value : '';
       rows.push({cloudinary_url:url, thumbnail_url:thumb,
         caption:(caps[i].value.trim()||null),
         area_id:(areas[i].value||null),
         subject_type:(types[i].value||null),
+        plant_id:((_pv && _pv!=='__newplant') ? _pv : null),
         uploaded_by:'staff', approval_status:'pending', submitted_by:'staff'});
       ok++;
     }catch(e){ fail++; }
@@ -1843,7 +1888,7 @@ async function uploadReviewed(){
   toast(msg); loadPhotos();
 }
 </script>
-<div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
+<div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option><option value="selfie">Selfie</option></select><select id="pr-all-plant" onchange="applyAllPlant(this.value)" style="display:none"></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
 
 <div id="howto-create" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">New how-to card</span><button class="pr-x" onclick="closeHowtoCreate()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><input id="hc-title" placeholder="Title, e.g. Trellis vine crops off the ground" autocomplete="off" style="width:100%;margin-bottom:10px"><textarea id="hc-steps" rows="7" placeholder="Steps — one per line" style="width:100%;margin-bottom:10px"></textarea><div id="hc-mat-list" style="margin-bottom:8px"></div><select id="hc-mat-add" style="width:100%;margin-bottom:10px" onchange="addMatToCard()"><option value="">Add item from inventory&hellip;</option></select><input id="hc-materials" placeholder="Other materials (free text, optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><input id="hc-safety" placeholder="Safety note (optional)" autocomplete="off" style="width:100%"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeHowtoCreate()">Cancel</button><button class="pr-btn go" onclick="saveHowtoCard()">Save card</button></div></div></div>
 <div id="howto-view" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="hv-title">How-to</span><button class="pr-x" onclick="closeHowtoView()">&times;</button></div><div id="hv-body" style="padding:14px 16px;overflow-y:auto;font-size:1.05rem;line-height:1.6"></div><div class="pr-actions" id="hv-actions"><button class="pr-btn cancel" onclick="closeHowtoView()">Close</button></div></div></div>

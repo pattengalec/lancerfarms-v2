@@ -158,10 +158,19 @@ function buildFilters(){
   });
   zones.sort();
 
+  /* Selfies form their own album rather than mixing into the zone chips.
+     They are not photographs OF a place; they are photographs of the
+     people who worked it, and burying them under a bed code loses that.
+
+     A row only reaches this page at all if consent_public is true — the
+     read policy on lfg_photos enforces it, so there is nothing to filter
+     out here. The chip only appears once such photos exist. */
+  const selfies = PHOTOS.filter(function(p){ return p.subject_type === 'selfie'; }).length;
+
   const box = document.getElementById('filters');
-  const defs = [{ k:'all', label:'All ' + PHOTOS.length }].concat(
-    zones.map(z => ({ k:z, label:z }))
-  );
+  const defs = [{ k:'all', label:'All ' + PHOTOS.length }]
+    .concat(selfies ? [{ k:'__crew', label:'The crew ' + selfies }] : [])
+    .concat(zones.map(z => ({ k:z, label:z })));
   box.innerHTML = '';
   defs.forEach(function(d, i){
     const b = document.createElement('button');
@@ -180,7 +189,9 @@ function buildFilters(){
 }
 
 function apply(key){
-  VIEW = (key === 'all') ? PHOTOS.slice() : PHOTOS.filter(p => zoneOf(p) === key);
+  VIEW = (key === 'all')  ? PHOTOS.slice()
+       : (key === '__crew') ? PHOTOS.filter(p => p.subject_type === 'selfie')
+       : PHOTOS.filter(p => zoneOf(p) === key && p.subject_type !== 'selfie');
   const grid = document.getElementById('grid');
   grid.innerHTML = VIEW.map(function(p, i){
     const a = p.lfg_growing_areas;
