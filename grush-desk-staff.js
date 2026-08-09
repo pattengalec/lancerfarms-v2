@@ -41,7 +41,18 @@
   /* tools shares visitor's rank: open to everyone. Keeping it a separate
      tier is a labelling choice, not an access one — it says "this is the
      working set" without pretending to lock it. */
-  var RANK = { visitor: 0, tools: 0, staff: 1, admin: 2 };
+  /* emergency ranks with visitor: open to everyone, always.
+
+     It has to be listed here even though desk.html owns that tier. The
+     gate below reads RANK[tierId], and a tier the overlay has never heard
+     of yields undefined — which fails every comparison and renders the row
+     LOCKED. That is exactly what happened when the emergency tier was
+     added: an emergency button greyed out and unclickable, which is the
+     worst possible failure for that particular row.
+
+     Any tier defined in desk.html needs a rank here, or the gate denies
+     it silently. */
+  var RANK = { emergency: 0, visitor: 0, tools: 0, staff: 1, admin: 2 };
   var role = 'visitor';
 
   /* ── the tiers this overlay owns ─────────────────────────────────────
