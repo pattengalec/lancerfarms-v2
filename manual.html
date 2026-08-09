@@ -1913,24 +1913,16 @@ function showToast(msg) {
 window.GRUSH_NAV = {
   title: 'Farm manual',
   rail: [ { label:'Desk', icon:'\u{1F5C3}', href:'desk.html' } ],
-  groups: [
-    { label:'Explore', items:[
-      { label:'Home',           icon:'\u{1F3E0}', href:'index.html'   },
-      { label:'Visit the farm', icon:'\u{1F6B6}', href:'visitor.html' },
-      { label:'Farm data',      icon:'\u{1F4CA}', href:'data.html'    },
-      { label:'Almanac',        icon:'\u{1F326}', href:'almanac.html' },
-      { label:'How-to cards',   icon:'\u{1F4D6}', href:'howto.html'   },
-      { label:'Plant triage',   icon:'\u{1FA7A}', href:'triage.html'  },
-      { label:'Mix bench',      icon:'\u{1F9EA}', href:'mixbench.html' },
-      { label:'Irrigation BOM', icon:'\u{1F4A7}', href:'irrigation-bom.html' }
-    ]}
-  ],
-  staff: { label:'Staff', items:[
-    { label:'Desk',       icon:'\u{1F5C3}', href:'desk.html' },
-    { label:'Admin',      icon:'\u2699\uFE0F', href:'admin.html' }
-  ]}
+
+  /* groups: removed Aug 2026 — grush-menu.js is the single list now.
+     Eleven pages each carried their own, and six had drifted apart. */
+
 };
 </script>
-<script src="grush-nav.js?v=3"></script>
+<!-- The menu, defined once in grush-menu.js and extended by the Grush
+     overlay. Both load before grush-nav, which reads the result. -->
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
 </body>
 </html>

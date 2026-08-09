@@ -77,7 +77,10 @@
   #grush-rail #grush-burger{ flex:0 0 76px; background:var(--nav-accent);
     border-color:var(--nav-accent); padding:0; }
   #grush-rail #grush-burger:active{ filter:brightness(.9); background:var(--nav-accent); }
-  #grush-rail #grush-burger svg{ width:40px; height:40px; display:block; }
+  /* 26px, not 40. The sandwich was an illustration and needed the room;
+     three strokes at that size read as a fence. The BUTTON keeps its 76px
+     width — the target does not shrink with the glyph. */
+  #grush-rail #grush-burger svg{ width:26px; height:26px; display:block; }
 
   /* Rail-less mode: the burger is hosted by the page's own header.
      app.html already owns the bottom of the screen with .actionbar, its
@@ -243,13 +246,21 @@
     burger.className = 'grush-burger-hosted';
   }
 
-  /* icon choice: explicit config wins, otherwise rail keeps the sandwich
-     and a hosted burger gets the glyph. */
+  /* Three lines by default, everywhere.
+
+     The illustrated sandwich — bun, seeds, lettuce, patty — was a joke on
+     the word, and it was charming in the rail. But it is the only control
+     on the site drawn in a different visual language from everything
+     around it, and the drawer behind it is now the SAME drawer on every
+     page. A shared control that changes appearance by page undoes the
+     point of sharing it.
+
+     BURGER is kept, not deleted: a page can still ask for it with
+     burgerIcon:'sandwich', and the getgrush showcase may want it. */
   var icon = CFG.burgerIcon;
-  if (icon === 'lines') burger.innerHTML = LINES;
-  else if (icon === 'sandwich') burger.innerHTML = BURGER;
+  if (icon === 'sandwich') burger.innerHTML = BURGER;
   else if (typeof icon === 'string' && icon.indexOf('<') === 0) burger.innerHTML = icon;
-  else if (RAILLESS) burger.innerHTML = LINES;
+  else burger.innerHTML = LINES;
 
   /* ── scrim + drawer ── */
   var scrim = document.createElement('div');

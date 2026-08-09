@@ -702,32 +702,16 @@ document.addEventListener('DOMContentLoaded', () => {
 window.GRUSH_NAV = {
   title: 'Farm data',
   rail: [ { label:'Farm', icon:'\u{1F6B6}', href:'visitor.html' } ],
-  groups: [
-    { label:'This page', items:[
-      { label:'Overview',  icon:'\u{1F4CA}', run:function(){ switchTab('overview'); } },
-      { label:'Beds',      icon:'\u{1F331}', run:function(){ switchTab('beds');     } },
-      { label:'Field Log', icon:'\u270E',    run:function(){ switchTab('log');      } },
-      { label:'Photos',    icon:'\u{1F4F7}', run:function(){ switchTab('photos');   } }
-    ]},
-    { label:'Explore', items:[
-      { label:'Home',         icon:'\u{1F3E0}', href:'index.html'   },
-      { label:'Visit the farm', icon:'\u{1F6B6}', href:'visitor.html' },
-      { label:'Almanac',      icon:'\u2600',    href:'almanac.html' },
-      { label:'How-to cards', icon:'\u{1F4D6}', href:'howto.html'        },
-      { label:'Farm manual',  icon:'\u{1F4D5}', href:'manual.html'       },
-      { label:'Mix Bench',    icon:'\u{1F9EA}', href:'mixbench.html'     },
-      { label:'Irrigation BOM', icon:'\u{1F4A7}', href:'irrigation-bom.html' }
-    ]},
-    { label:'Data', items:[
-      { label:'Refresh now', icon:'\u21BB', run:function(){ refreshAll(); } }
-    ]}
-  ],
-  staff: { label:'Staff', items:[
-    { label:'Desk',       icon:'\u{1F5C3}', href:'desk.html' },
-    { label:'Admin',      icon:'\u2699\uFE0F', href:'admin.html' }
-  ]}
+
+  /* groups: removed Aug 2026 — grush-menu.js is the single list now.
+     Eleven pages each carried their own, and six had drifted apart. */
+
 };
 </script>
-<script src="grush-nav.js?v=3"></script>
+<!-- The menu, defined once in grush-menu.js and extended by the Grush
+     overlay. Both load before grush-nav, which reads the result. -->
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
 </body>
 </html>
