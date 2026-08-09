@@ -48,8 +48,11 @@
 
   .list{display:flex; flex-direction:column; gap:10px;}
 
-  /* No plant photographs exist yet, so the card leads with the initial rather
-     than a grey rectangle pretending an image is coming. */
+  /* The card leads with a photograph of the plant AS IT GROWS HERE, taken by
+     the crew — not a stock image and not a botanical illustration. Where no
+     photo exists yet the initial stands in, which is honest: it says "not
+     photographed" rather than showing a grey rectangle pretending one is
+     coming, or borrowing someone else's picture of a different plant. */
   .row{display:flex; align-items:center; gap:14px; width:100%; text-align:left;
     background:var(--card); border:1.5px solid var(--line); border-radius:14px;
     padding:12px 14px; min-height:74px; font-family:inherit; color:var(--ink);
@@ -60,6 +63,14 @@
   .mono{flex:0 0 auto; width:46px; height:46px; border-radius:11px; display:grid;
     place-items:center; background:rgba(126,154,110,.16); border:1.5px solid rgba(126,154,110,.4);
     font-family:'Fraunces',Georgia,serif; font-size:20px; font-weight:600; color:var(--leaf);}
+  /* Same footprint as .mono, so a list of mixed photographed and
+     unphotographed plants does not jump around as images load. */
+  .thumb{flex:0 0 auto; width:46px; height:46px; border-radius:11px; object-fit:cover;
+    background:rgba(126,154,110,.16); border:1.5px solid rgba(126,154,110,.4); display:block;}
+  .d-photo{width:100%; border-radius:14px; display:block; margin:0 0 16px;
+    border:1.5px solid var(--line); background:var(--card);}
+  .d-credit{font-size:11.5px; color:var(--ink-soft); margin:-10px 0 18px;
+    font-family:'Courier Prime',ui-monospace,monospace; letter-spacing:.04em;}
   .row .nm{font-size:16px; font-weight:600; line-height:1.25;}
   .row .bo{font-size:12.5px; color:var(--ink-soft); font-style:italic; margin-top:2px;}
   .row .go{margin-left:auto; color:var(--ink-soft); font-size:18px;}
@@ -119,6 +130,11 @@
 const sb = LFG.sb;
 let PLANTS = [], VIEW = [], CAT = 'all';
 
+/* plant_id -> {thumb, full, caption, by}. Built once from the farm's own
+   approved photographs. Empty for a plant nobody has photographed yet, and
+   the card falls back to the initial. */
+let PHOTO = {};
+
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -132,9 +148,37 @@ async function load(){
       .eq('approval_status','approved');
     if(error) throw error;
 
-    /* Eight rows in the table carry a category and nothing else — no name, no
-       botanical name, no summary. They are placeholders, not plants, and a
-       nameless card would be a lie about what grows here. Drop them. */
+    /* ── photographs ─────────────────────────────────────────────────────
+       The farm photographs its own plants and those photos already carry a
+       plant_id and an approval status. That is a better source than any
+       stock library: it is the plant as it actually grows in this soil, in
+       this light, at this latitude — and there is no licence to track, no
+       attribution to record, and no chance of showing a cultivar that is
+       not the one in the bed.
+
+       Newest first, one per plant. A failure here must not take the page
+       down; the list is still useful without pictures. */
+    try{
+      const ph = await sb.from('lfg_photos')
+        .select('plant_id,thumbnail_url,cloudinary_url,caption,uploaded_by,uploaded_at')
+        .eq('approval_status','approved')
+        .not('plant_id','is',null)
+        .order('uploaded_at', { ascending: false });
+      if(!ph.error){
+        (ph.data || []).forEach(function(r){
+          if(!PHOTO[r.plant_id]){
+            PHOTO[r.plant_id] = { thumb: r.thumbnail_url || r.cloudinary_url,
+                                  full:  r.cloudinary_url || r.thumbnail_url,
+                                  caption: r.caption || '', by: r.uploaded_by || '' };
+          }
+        });
+      }
+    }catch(e){ /* pictures are an enhancement, not the content */ }
+
+    /* The eight placeholder rows this used to guard against were completed
+       on Aug 8 2026, and the duplicate California Poppy they were hiding was
+       merged away. The filter stays anyway: it costs nothing and it is the
+       reason a half-entered plant can never reach a visitor. */
     PLANTS = (data || []).filter(p => filled(p.common_name) && filled(p.summary));
     PLANTS.sort((a,b) => a.common_name.localeCompare(b.common_name));
 
@@ -196,8 +240,16 @@ function apply(){
        searchable against any reference. */
     const bot = filled(p.botanical_name)
       ? '<div class="bo" translate="no" lang="la">' + esc(p.botanical_name) + '</div>' : '';
+    /* stock_image_url wins if someone ever fills it, then the farm's own
+       photograph, then the initial. Three levels, degrading in that order. */
+    const src = filled(p.stock_image_url) ? p.stock_image_url
+              : (PHOTO[p.id] ? PHOTO[p.id].thumb : null);
+    const lead = src
+      ? '<img class="thumb" src="' + esc(src) + '" alt="" loading="lazy" decoding="async">'
+      : '<span class="mono" aria-hidden="true">' + esc(p.common_name.charAt(0)) + '</span>';
+
     return '<button class="row" data-i="' + i + '">'
-      + '<span class="mono" aria-hidden="true">' + esc(p.common_name.charAt(0)) + '</span>'
+      + lead
       + '<span><span class="nm">' + esc(p.common_name) + '</span>' + bot + '</span>'
       + '<span class="go" aria-hidden="true">&rsaquo;</span></button>';
   }).join('');
@@ -231,8 +283,22 @@ function open(i){
             + 'that lives from year to year. This one is measured in seasons.';
   }
 
+  /* The full photograph leads the sheet, credited. A picture of the farm's
+     own plant taken by a named person is a different claim from a stock
+     image, and the credit is what makes that visible. */
+  const ph = filled(p.stock_image_url) ? null : PHOTO[p.id];
+  const hero = ph
+    ? '<img class="d-photo" src="' + esc(ph.full) + '" alt="'
+        + esc(ph.caption || p.common_name) + '" loading="lazy" decoding="async">'
+      + '<p class="d-credit">' + esc(p.common_name) + ' at Lancer Farms'
+        + (filled(ph.by) ? ' \u00b7 photo by ' + esc(ph.by) : '') + '</p>'
+    : (filled(p.stock_image_url)
+        ? '<img class="d-photo" src="' + esc(p.stock_image_url) + '" alt="" loading="lazy">'
+        : '');
+
   document.getElementById('sheet-body').innerHTML =
-      '<div class="d-name">' + esc(p.common_name) + '</div>'
+      hero
+    + '<div class="d-name">' + esc(p.common_name) + '</div>'
     + (filled(p.botanical_name) ? '<div class="d-bot" translate="no" lang="la">' + esc(p.botanical_name) + '</div>' : '')
     + '<p class="d-sum">' + esc(p.summary) + '</p>'
     + (facts.length
