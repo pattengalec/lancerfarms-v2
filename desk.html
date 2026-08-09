@@ -395,7 +395,15 @@ window.GrushDesk = (function(){
   function renderMenu(){
     menuScroll.innerHTML = '';
     TIERS.forEach(function(tier){
-      var locked = tier.locked || !gate(tier.id);
+      /* An unknown tier used to fail closed, because gate() returns false
+         for anything the overlay has not ranked. That is the wrong default
+         for a MENU: the visible cost of a wrongly-open row is someone sees
+         a page they could have seen anyway, and the cost of a wrongly-shut
+         one is a greyed-out emergency button.
+
+         tier.locked is still absolute. Only the gate's ignorance is
+         treated as permission. */
+      var locked = tier.locked && !gate(tier.id);
 
       /* A tier may declare no label. One item under a heading is furniture,
          and the emergency row has to be the first thing in the drawer. */
@@ -592,7 +600,7 @@ window.GrushDesk = (function(){
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lfg-config.js"></script>
 <script src="grush-auth.js?v=2"></script>
-<script src="grush-desk-staff.js?v=7"></script>
+<script src="grush-desk-staff.js?v=8"></script>
 <script src="grush-track.js?v=1"></script>
 <!-- ═════════════════════ END GRUSH STAFF OVERLAY ══════════════════════ -->
 </body>
