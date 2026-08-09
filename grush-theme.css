@@ -157,6 +157,34 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 
 .row.locked .go, .row.locked .add{ opacity:.3; }
 
+/* ── the emergency row ──────────────────────────────────────────────────
+   This has to live HERE, not in desk.html. The page's inline <style> ends
+   before this file loads, so `.row .go` above wins every tie against a
+   same-specificity rule up there — which is why the emergency row kept
+   rendering in the ordinary cell colour no matter what desk.html said.
+
+   Filled, not outlined, so it reads as a different KIND of row rather
+   than a more important one. This red appears nowhere else on the site;
+   a colour used twice stops meaning anything.
+
+   The pin — the spore bar that grows down a row's leading edge on press —
+   is suppressed here. It is the Grush signature and this row is not the
+   place to perform it. */
+.row-emergency .go{
+  background:#D6342B;
+  border-color:#D6342B;
+  color:#FFFFFF;
+  font-weight:700;
+  letter-spacing:0;
+}
+.row-emergency .go .ic{ opacity:1; }
+.row-emergency .go::before{ display:none; }
+.row-emergency .go:active{ background:#A82720; border-color:#A82720; }
+@media (hover:hover){
+  .row-emergency .go:hover{ background:#E24A40; border-color:#E24A40; }
+}
+.row-emergency .add{ display:none; }
+
 /* ── the way out of a locked tier ── */
 .tier-cta{
   border:1px solid var(--desk-accent); border-radius:14px;
