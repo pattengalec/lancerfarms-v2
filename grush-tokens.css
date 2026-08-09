@@ -1,0 +1,168 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   grush-tokens.css — one palette, two surfaces.
+
+   HOW THIS WORKS, AND WHY IT NEEDS NO PAGE REWRITTEN.
+
+   Eighteen pages each declared their own :root. Most of them had already
+   converged on the same NAMES — --paper, --card, --line, --ink, --green —
+   and drifted only on the values. So this file redeclares those names and
+   is loaded AFTER each page's inline <style>. Same specificity, later in
+   the cascade, so it wins.
+
+   That is the whole mechanism. No page loses its component CSS, no
+   selectors are rewritten, and removing the one <link> puts a page back
+   exactly as it was. It is the same cascade fact that made the emergency
+   button stay black for three rounds — used deliberately this time.
+
+   ── TWO SURFACES ──────────────────────────────────────────────────────
+   FARM is the default: warm dark ground, green accent. It is where a
+   visitor reads about tomatoes.
+
+   GRUSH is opt-in with class="grush-surface" on <body>: deeper ground,
+   spore accent. It is where crew work.
+
+   The furniture is identical on both — same header, footer, drawer,
+   spacing, type. Only the ground changes. A visitor and a crew member are
+   doing different things and the surface can say so without anything
+   moving.
+
+   ── WHAT IS DELIBERATELY NOT HERE ─────────────────────────────────────
+   emergency.html. It has to work when the database is down, the session
+   is gone and the network dropped after the first byte, so it carries its
+   own styles and depends on nothing. A shared stylesheet is one more
+   thing that can fail to load on the day it matters.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ── FARM: the default ground ────────────────────────────────────── */
+  --paper:        #2A2620;
+  --card:         #34302A;
+  --line:         #45423A;
+  --line-strong:  #5A554A;
+  --ink:          #F0EDE2;
+  --ink-soft:     #B0A99C;
+
+  --green:        #7E9A6E;
+  --green-d:      #67805A;
+  --leaf:         #A8B89A;
+
+  /* Signals. Amber warns, red stops. Neither is ever decorative — a
+     colour that appears for emphasis stops meaning anything. */
+  --amber:        #C9973F;
+  --amber-bg:     rgba(201,151,63,.12);
+  --red:          #B4231F;
+  --red-bg:       rgba(180,35,31,.12);
+
+  --shadow:       0 2px 10px rgba(0,0,0,.28);
+  --tap:          rgba(255,255,255,.06);
+
+  /* ── type ────────────────────────────────────────────────────────────
+     Already near-universal before this file existed: Fraunces on fifteen
+     pages, Source Sans on seventeen. This makes it exact rather than
+     nearly. */
+  --font-head:    'Fraunces', Georgia, serif;
+  --font-body:    'Source Sans 3', system-ui, -apple-system, sans-serif;
+  --font-mono:    'Courier Prime', ui-monospace, monospace;
+
+  /* ── the shell ───────────────────────────────────────────────────────
+     Read by grush-nav.js for the header, footer and drawer. Kept as their
+     own names so the shell can be tuned without touching page content —
+     the bar is allowed to be darker than the page it sits on. */
+  --nav-bar:      #221E19;
+  --nav-line:     #45423A;
+  --nav-ink:      #F0EDE2;
+  --nav-dim:      #B0A99C;
+  --nav-accent:   #7E9A6E;
+
+  --bar-bg:       #221E19;
+  --bar-line:     #45423A;
+  --bar-ink:      #F0EDE2;
+  --bar-soft:     #B0A99C;
+  --bar-accent:   #7E9A6E;
+
+  /* ── shape ───────────────────────────────────────────────────────────
+     14px radius and 1px hairlines come from the Grush design language and
+     apply to both surfaces. The ground changes; the joinery does not. */
+  --radius:       14px;
+  --radius-sm:    10px;
+  --hair:         1px;
+
+  /* 68px is the glove floor — the size a row has to be to be hit reliably
+     outdoors, established when the desk was built. Nothing that can be
+     tapped in a bed goes below it. */
+  --tap-floor:    68px;
+  --tap-min:      52px;
+}
+
+/* ═══ GRUSH SURFACE ═══════════════════════════════════════════════════
+   class="grush-surface" on <body>. Tools, records, admin. */
+body.grush-surface{
+  --paper:        #14110F;
+  --card:         #1E1A17;
+  --line:         #2E2822;
+  --line-strong:  #443C33;
+  --ink:          #E8E1D4;
+  --ink-soft:     #8F8676;
+
+  /* Spore replaces green as the accent. It is the only saturated colour
+     in the Grush language, which is what lets it mean something. */
+  --green:        #C9A227;
+  --green-d:      #A6851F;
+  --leaf:         #D8BC5E;
+
+  --amber:        #C9A227;
+  --amber-bg:     rgba(201,162,39,.12);
+
+  --shadow:       0 2px 12px rgba(0,0,0,.45);
+  --tap:          rgba(255,255,255,.05);
+
+  --nav-bar:      #1A1614;
+  --nav-line:     #2E2822;
+  --nav-ink:      #E8E1D4;
+  --nav-dim:      #8F8676;
+  --nav-accent:   #C9A227;
+
+  --bar-bg:       #1A1614;
+  --bar-line:     #2E2822;
+  --bar-ink:      #E8E1D4;
+  --bar-soft:     #8F8676;
+  --bar-accent:   #C9A227;
+}
+
+/* data.html took a different vocabulary before this file existed — --bg,
+   --surface, --forest, --lime, --mist. Aliased rather than renamed: its
+   selectors keep working and it stops being a third palette. */
+:root{
+  --bg:           var(--paper);
+  --surface:      var(--card);
+  --card-border:  var(--line);
+  --forest:       var(--green);
+  --lime:         var(--leaf);
+  --lime-pale:    var(--amber-bg);
+  --mist:         var(--ink-soft);
+  --accent:       var(--green);
+}
+
+/* ═══ the pieces that are genuinely shared ════════════════════════════
+   Kept deliberately short. Cards, rows and buttons are stage 3; putting
+   them here now would fight eighteen pages of existing component CSS and
+   break things only a phone would show. */
+body{
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+/* One colour on the whole site, used once per page at most. */
+::selection{ background: var(--green); color: var(--paper); }
+
+/* Focus has to be visible on both surfaces. A farm is worked in gloves
+   and sometimes with a keyboard on the shed laptop. */
+:focus-visible{ outline: 2px solid var(--green); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; scroll-behavior:auto !important;
+  }
+}
