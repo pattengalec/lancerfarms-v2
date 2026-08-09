@@ -779,22 +779,21 @@ render('start');
 window.GRUSH_NAV = {
   title: 'Plant triage',
   rail: [ { label:'Desk', icon:'\u{1F5C3}', href:'desk.html' } ],
-  groups: [
-    { label:'Explore', items:[
-      { label:'Home',           icon:'\u{1F3E0}', href:'index.html'   },
-      { label:'Visit the farm', icon:'\u{1F6B6}', href:'visitor.html' },
-      { label:'Farm data',      icon:'\u{1F4CA}', href:'data.html'    },
-      { label:'Almanac',        icon:'\u{1F326}', href:'almanac.html' },
-      { label:'How-to cards',   icon:'\u{1F4D6}', href:'howto.html'   },
-      { label:'Farm manual',    icon:'\u{1F4D5}', href:'manual.html'  }
-    ]}
-  ],
-  staff: { label:'Staff', items:[
-    { label:'Desk',       icon:'\u{1F5C3}', href:'desk.html' },
-    { label:'Admin',      icon:'\u2699\uFE0F', href:'admin.html' }
-  ]}
+
+  /* groups: removed Aug 2026. This page used to carry its own list of
+     destinations, as ten others did, and six of them had drifted apart —
+     this one had no Mix Bench, data.html had no triage, howto.html had no
+     irrigation. grush-menu.js is the list now, and grush-nav reads it.
+
+     Anything left here would be ignored while looking authoritative,
+     which is worse than being absent. */
+
 };
 </script>
-<script src="grush-nav.js?v=3"></script>
+<!-- The menu, defined once in grush-menu.js and extended by the Grush
+     overlay. Both must load before grush-nav, which reads the result. -->
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
 </body>
 </html>

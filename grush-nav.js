@@ -137,6 +137,16 @@
     font:600 1.02rem/1.25 inherit; font-family:inherit; text-align:left;
     cursor:pointer; -webkit-tap-highlight-color:transparent;
   }
+/* A locked tier is shown, dimmed, and inert. Hiding it would mean a
+   visitor page and a staff page had different drawers, which is the thing
+   this file exists to stop. */
+.grush-locked{opacity:.42;filter:grayscale(.6);cursor:not-allowed;}
+.grush-locked-group{opacity:.55;}
+/* The footer sits below every tier, separated and quieter. */
+.grush-foot{margin-top:18px;padding-top:14px;border-top:1px solid rgba(128,128,128,.28);opacity:.72;}
+/* Emergency: the one colour used nowhere else on the site. */
+.grush-tier-emergency{background:#D6342B !important;color:#fff !important;
+  border-color:#D6342B !important;font-weight:700;margin-bottom:14px;}
   .grush-item:active{ background:var(--nav-active); border-color:var(--nav-active-line); }
   .grush-item .ic{ font-size:1.4rem; flex:none; width:28px; text-align:center; }
   .grush-item[aria-current="page"]{ border-color:var(--nav-accent); }
@@ -289,13 +299,91 @@
     if (g.top) drawer.insertBefore(target, drawer.firstChild);
   }
 
-  (CFG.groups || []).forEach(addGroup);
+  /* ── the shared menu ──────────────────────────────────────────────────
+     If grush-menu.js is present it IS the menu, and any per-page groups
+     are ignored. That is the whole point: eleven pages each carried a
+     hand-written list and six of them had drifted apart, so a page's own
+     opinion about the menu is exactly what had to stop mattering.
+
+     CFG.groups still works when grush-menu.js is absent, so a page that
+     has not been converted keeps its old drawer rather than losing
+     navigation entirely. */
+  var MENU = window.GRUSH_MENU;
+
+  function addMenuTier(t) {
+    if (!t || !t.items || !t.items.length) return;
+    var locked = MENU.locked(t);
+
+    if (t.label) {
+      var lb = document.createElement('div');
+      lb.className = 'grush-group' + (locked ? ' grush-locked-group' : '');
+      lb.textContent = t.label + (locked ? '  \u{1F512}' : '');
+      drawer.appendChild(lb);
+    }
+    t.items.forEach(function (it) {
+      var el = makeItem(it, 'grush-item' + (t.id ? ' grush-tier-' + t.id : ''));
+      if (locked) {
+        /* Shown, not hidden. Seeing a locked door is how you learn the
+           building exists — and it is the same drawer on every page, so
+           a visitor page shows exactly what a staff page shows. */
+        el.classList.add('grush-locked');
+        el.setAttribute('aria-disabled', 'true');
+        el.addEventListener('click', function (e) {
+          e.preventDefault(); e.stopPropagation();
+        }, true);
+      }
+      drawer.appendChild(el);
+    });
+  }
+
+  function buildMenu() {
+    MENU.tiers.forEach(addMenuTier);
+    (MENU.footer || []).forEach(function (it) {
+      var el = makeItem(it, 'grush-item grush-foot');
+      drawer.appendChild(el);
+    });
+  }
+
+  if (MENU) buildMenu();
+  else (CFG.groups || []).forEach(addGroup);
 
   /* Staff group is appended only if grush-auth reports an operator.
      If grush-auth is absent — which is what happens once the Grush
      side is extracted — nothing is added and the page is unaffected. */
+  /* Re-render once the role is known. isOperator() is asynchronous, so the
+     first paint is always as a visitor; without this a signed-in operator
+     would see their own tiers locked until they reloaded. */
+  function refreshMenuRole() {
+    if (!MENU) return;
+    /* grush-auth declares `const GRUSH`, a lexical binding that never
+       appears on window. Read the bare name inside a try. */
+    var G; try { G = GRUSH; } catch (e) { return; }
+    if (!G || !G.sb) return;
+
+    /* It exports no role(); the role comes from the grush_role() RPC,
+       which reads the operator allowlist without exposing it and returns
+       'visitor' for any signed-in stranger. */
+    G.session().then(function (sess) {
+      if (!sess) return;
+      return G.sb.rpc('grush_role').then(function (r) {
+        var role = (!r.error && r.data) ? r.data : 'visitor';
+        if (role === MENU.role) return;
+        MENU.role = role;
+        rebuildDrawer();
+      });
+    }).catch(function () { /* not signed in; the drawer stays as a visitor's */ });
+  }
+
+  function rebuildDrawer() {
+    /* Everything after the header. Rebuilding rather than toggling classes
+       because a tier can appear or disappear, not merely unlock. */
+    while (drawer.children.length > 1) drawer.removeChild(drawer.lastChild);
+    buildMenu();
+  }
+
   var staffMounted = false;
   function syncStaff() {
+    if (MENU) { refreshMenuRole(); return; }
     if (staffMounted || !CFG.staff) return;
     /* grush-auth.js declares `const GRUSH` — a global lexical binding that
        never appears on window. Read the bare name, guarded. */

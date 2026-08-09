@@ -35,8 +35,36 @@
 (function () {
   'use strict';
 
-  var D = window.GrushDesk;
-  if (!D) { console.warn('[grush-desk] GrushDesk not found; overlay idle.'); return; }
+  /* Two consumers now. desk.html supplies GrushDesk and draws the console;
+     grush-menu.js supplies GRUSH_MENU and is read by grush-nav on every
+     other page. The tiers below are registered with whichever is present,
+     so the same list appears everywhere and there is still only one place
+     it is written down.
+
+     Neither being present is not an error — it means the overlay was
+     loaded on a page that has no menu, and it should sit quiet. */
+  var D = window.GrushDesk || null;
+  var M = window.GRUSH_MENU || null;
+  if (!D && !M) { console.warn('[grush-desk] no menu host found; overlay idle.'); return; }
+
+  if (!D) {
+    /* Adapt the menu registry to the interface these tier definitions were
+       written against, rather than rewriting them for a second shape.
+
+       The rest of the desk API is stubbed. setGate, setLock, setViewer and
+       setSub all exist to drive the console's chrome — the tier dots, the
+       sign-in sheet, the "signed in as" line. A page that is not the desk
+       has none of that, and the drawer decides locking from GRUSH_MENU's
+       own rank table instead. Silent no-ops rather than missing methods,
+       so this file does not need to know which host it is running under. */
+    var noop = function () {};
+    D = { addTier: function (t) { M.addTier(t); },
+          setGate: noop, setLock: noop, setViewer: noop, setSub: noop,
+          render: noop };
+  } else if (M) {
+    var _add = D.addTier;
+    D = { addTier: function (t) { _add.call(window.GrushDesk, t); M.addTier(t); } };
+  }
 
   /* tools shares visitor's rank: open to everyone. Keeping it a separate
      tier is a labelling choice, not an access one — it says "this is the
