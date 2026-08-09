@@ -2455,9 +2455,14 @@ window.GRUSH_NAV = {
       /* The desk is the front door now; every other page's rail points at
          it. This tool needs a way back, or arriving here is a one-way trip
          and the two launchers compete again. */
-      { label:'Desk', icon:'\u{1F5C3}', href:'desk.html' },
-      { label:'Home', icon:'\u{1F3E0}', run:function(){ goHero(); } },
-      { label:'Hub',  icon:'\u25A0',    run:function(){ go('hub'); } }
+      { label:'Desk', icon:'\u{1F5C3}', href:'desk.html' }
+
+      /* Removed Aug 2026:
+         Home ran goHero(), which opened the Staff / Visitor picker. That
+         picker was disabled when desk.html became the front door, so the
+         item led to a screen that no longer decides anything.
+         Hub went to app.html's own hub — the second front door, retired
+         for the same reason. Desk is the way back now. */
     ]},
 
     { label:'Plan', items:[
@@ -2496,12 +2501,24 @@ window.GRUSH_NAV = {
     ]}
   ],
 
-  staff: { label:'Admin', items:[
+  /* top:true puts this group ABOVE everything else in the drawer rather
+     than at the bottom, which is where an appended group lands.
+
+     It stays a gated group rather than moving into the ungrouped list at
+     the top, because that list is not gated — a crew member who is not an
+     operator would see Approval queue and reach a screen they cannot act
+     on. RLS would refuse the writes, but showing someone a door that is
+     not theirs is its own kind of wrong.
+
+     Why the top at all: this is the only item in the drawer that means a
+     person is WAITING, and an email now arrives the moment something
+     lands in it. */
+  staff: { label:'Admin', top:true, items:[
     { label:'Approval queue', icon:'\u2705', run:function(){ go('approvals'); } }
   ]}
 };
 </script>
-<script src="grush-nav.js?v=3"></script>
+<script src="grush-nav.js?v=4"></script>
 <!-- The feel layer: arrival animation, write confirmation, haptics.
      Grush overlay, removable with the rest. -->
 <script src="grush-feel.js?v=1"></script>

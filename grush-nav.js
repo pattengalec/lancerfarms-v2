@@ -263,15 +263,30 @@
   head.appendChild(closeBtn);
   drawer.appendChild(head);
 
+  /* g.top === true places the group ABOVE everything already in the
+     drawer instead of after it.
+
+     This exists for the staff group. It mounts asynchronously — after
+     isOperator() resolves — so it can only ever be appended, which put
+     the approvals queue at the very bottom of the drawer. That is the one
+     item meaning a person is waiting.
+
+     Built into a fragment first and inserted once, so a group with a
+     label and five items does not walk backwards through five separate
+     insertBefore calls and end up reversed. */
   function addGroup(g) {
     if (!g || !g.items || !g.items.length) return;
+
+    var target = g.top ? document.createDocumentFragment() : drawer;
     if (g.label) {
       var lb = document.createElement('div');
       lb.className = 'grush-group';
       lb.textContent = g.label;
-      drawer.appendChild(lb);
+      target.appendChild(lb);
     }
-    g.items.forEach(function (it) { drawer.appendChild(makeItem(it, 'grush-item')); });
+    g.items.forEach(function (it) { target.appendChild(makeItem(it, 'grush-item')); });
+
+    if (g.top) drawer.insertBefore(target, drawer.firstChild);
   }
 
   (CFG.groups || []).forEach(addGroup);
