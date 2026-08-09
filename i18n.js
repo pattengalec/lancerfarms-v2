@@ -1,152 +1,220 @@
-/* Lancer Farms — public-facing translations (en-US, es-MX, fr-CA, pt-BR).
-   Brand terms (Lancer Farms, grush, California Baptist University) are left untranslated. */
+/* ═══════════════════════════════════════════════════════════════════════
+   i18n.js — Spanish translation of the visitor chrome.
+
+   WHAT CHANGED AND WHY.
+
+   The previous dictionary carried en, es, fr and pt across 38 keys — and
+   0 of 38 matched the live copy on learn.html, do.html or see.html. It
+   had been written against wording since rewritten, so wiring it up would
+   have changed the ENGLISH text too, not only the translations. It was
+   rebuilt rather than repaired.
+
+   ONE LANGUAGE, ON PURPOSE.
+   CBU has roughly 316 international students across more than 60
+   countries — five to fifteen people per language. Hand-maintaining
+   ~8,400 words of site copy in twenty languages for cohorts that size is
+   not sustainable, and the previous attempt demonstrates the failure
+   mode: dictionaries drift away from the pages they describe.
+
+   Riverside is a different matter. Latinos are about 53% of the city's
+   population, so Spanish has a large, local, permanent audience. That is
+   the one language worth carrying by hand.
+
+   EVERY OTHER LANGUAGE IS THE BROWSER'S JOB.
+   Chrome, Safari and Edge translate pages natively into ~100 languages,
+   and they translate EVERYTHING — including plant summaries and how-to
+   cards that live in Postgres and can never appear in a file like this.
+   It costs nothing to maintain and cannot drift. The job is to keep the
+   site translatable, not to translate it: real DOM text, correct lang
+   attributes, and translate="no" on the things that must not be touched.
+
+   SCOPE. Visitor chrome only — the tiles, headings and buttons a Spanish
+   speaker meets first. Plant records, the triage tree and the manual are
+   left to the browser deliberately: hand-translating a decision tree
+   about plant health and getting one branch wrong is worse than not
+   translating it at all.
+
+   REVIEW STATUS: unreviewed by a native speaker. These read correctly to
+   me, and "reads correctly to me" is not the standard for text a stranger
+   will act on. Have someone check them before you rely on it.
+   ═══════════════════════════════════════════════════════════════════════ */
 window.I18N = {
-  langs: ['en','es','fr','pt'],
+  langs: ['en', 'es'],
   dict: {
     en: {
-      'role.enter':'Enter the farm','role.enter_sub':'Tools, records and what grows here',
-      'role.staff':'Staff','role.staff_sub':'Log work, tasks & supplies',
-      'role.visitor':'Visitor','role.visitor_sub':'Explore the farm',
-      'role.tiny':'Tap to choose — we\u2019ll remember next time.',
-      'hub.intro':'Welcome. Wander the farm, learn what grows here, and plan your own.',
-      'tile.see':'See','tile.see_sub':'Photos from the farm',
-      'tile.learn':'Learn','tile.learn_sub':'About the plants',
-      'tile.do':'Do','tile.do_sub':'Plan your grow',
-      'tile.share':'Share','tile.share_sub':'Leave a note',
-      'about.title':'About Lancer Farms',
-      'about.body':'Lancer Farms is a working teaching garden located on the campus of California Baptist University in Riverside, California. This website and the tools within it are independently created and maintained — they are not an official product of, affiliated with, or endorsed by California Baptist University.',
-      'menu.title':'Menu','back':'Back','back.allplants':'All plants',
-      'see.intro':'Photos from around the farm.',
-      'learn.intro':'Every plant growing on the farm — what it is, and how it grows.',
-      'do.intro':'Pick a plant and get a grow plan — the numbers worked out for your space.',
-      'share.intro':'Leave a note for the farm. Comments appear after a quick review.',
-      'share.recent':'Recent notes',
-      'ph.search':'Search plants…','ph.name':'Your name (optional)','ph.msg':'Your message…',
-      'loading.photos':'Loading photos…','loading.plants':'Loading plants…',
-      'ag.kicker':'a management platform for growing spaces','ag.lead':'grush turns the daily work of running a growing space — a garden, a farm, a controlled-environment grow — into something simple enough to use with dirt on your hands.','ag.body':'Tasks, plantings, harvests, inventory, and records become a tap-not-type system anyone on the ground can run. Over time, that daily work turns into real data: what was planted, when, where, and how it did.','ag.deployments':'Deployments','ag.deploy_desc':'Every place that runs grush is a deployment — branded as its own, running on the same engine underneath.','ag.deploy_card':'Lancer Farms is a live deployment of grush — a working teaching garden in Riverside, California.','ag.back':'Back to Lancer Farms'
+      'role.enter'      : 'Enter the farm',
+      'role.enter_sub'  : 'Tools, records and what grows here',
+      'req.link'        : 'Work here? Request access',
+
+      'hub.place'       : 'Riverside, CA \u00b7 Zone 9b',
+      'tile.see'        : 'See',
+      'tile.see_sub'    : 'Photos from the beds and grounds',
+      'tile.learn'      : 'Learn',
+      'tile.learn_sub'  : 'What grows here, and what it needs',
+      'tile.do'         : 'Do',
+      'tile.do_sub'     : 'Work out spacing, water and timing',
+      'tile.share'      : 'Share',
+      'tile.share_sub'  : 'Leave a note for the farm',
+      'hub.staff'       : 'Staff login \u2192',
+
+      'learn.title'     : 'Learn',
+      'learn.intro'     : 'Every plant growing at the farm, what it is, and how long it takes.',
+
+      'do.soil_h'       : 'How much soil does a bed take?',
+      'do.ready_h'      : 'When will it be ready?',
+      'do.bed'          : 'Bed',
+      'do.depth'        : 'Fill depth (in)',
+      'do.bag'          : 'Bag size',
+      'do.plant'        : 'Plant',
+      'do.planted'      : 'Planted on',
+      'do.cuft'         : 'cubic feet',
+
+      'see.title'       : 'See',
+      'see.intro'       : 'Photographs from the beds and grounds, taken by the caretaker crew.',
+
+      'share.title'     : 'Share',
+      'share.intro'     : 'Leave a note for the crew, or pass the farm along to someone else.',
+      'share.share_h'   : 'Share the farm',
+      'share.note_h'    : 'Leave a note',
+      'share.send'      : 'Send note',
+      'share.notes_h'   : 'Notes from visitors',
+
+      'back'            : '\u2190 Back',
+      'back.farm'       : '\u2190 Back to the farm',
+      'loading'         : 'Loading\u2026',
+      'managed'         : 'managed by'
     },
+
     es: {
-      'role.enter':'Entrar a la granja','role.enter_sub':'Herramientas, registros y lo que crece aquí',
-      'role.staff':'Personal','role.staff_sub':'Registra trabajo, tareas e insumos',
-      'role.visitor':'Visitante','role.visitor_sub':'Explora la granja',
-      'role.tiny':'Toca para elegir — lo recordaremos la próxima vez.',
-      'hub.intro':'Bienvenido. Recorre la granja, conoce lo que crece aquí y planea tu propio cultivo.',
-      'tile.see':'Ver','tile.see_sub':'Fotos de la granja',
-      'tile.learn':'Aprender','tile.learn_sub':'Sobre las plantas',
-      'tile.do':'Hacer','tile.do_sub':'Planea tu cultivo',
-      'tile.share':'Compartir','tile.share_sub':'Deja una nota',
-      'about.title':'Acerca de Lancer Farms',
-      'about.body':'Lancer Farms es un jardín-huerto educativo ubicado en el campus de California Baptist University en Riverside, California. Este sitio web y sus herramientas se crean y se mantienen de forma independiente; no son un producto oficial de California Baptist University, ni están afiliados a ella ni cuentan con su respaldo.',
-      'menu.title':'Menú','back':'Volver','back.allplants':'Todas las plantas',
-      'see.intro':'Fotos de distintos rincones de la granja.',
-      'learn.intro':'Cada planta que crece en la granja: qué es y cómo se cultiva.',
-      'do.intro':'Elige una planta y obtén un plan de cultivo, con los números calculados para tu espacio.',
-      'share.intro':'Deja una nota para la granja. Los comentarios aparecen tras una revisión rápida.',
-      'share.recent':'Notas recientes',
-      'ph.search':'Buscar plantas…','ph.name':'Tu nombre (opcional)','ph.msg':'Tu mensaje…',
-      'loading.photos':'Cargando fotos…','loading.plants':'Cargando plantas…',
-      'ag.kicker':'una plataforma de gestión para espacios de cultivo','ag.lead':'grush convierte el trabajo diario de manejar un espacio de cultivo —un jardín, una granja, un cultivo en ambiente controlado— en algo lo bastante sencillo como para usarse con las manos en la tierra.','ag.body':'Tareas, siembras, cosechas, inventario y registros se vuelven un sistema de tocar, no escribir, que cualquiera puede usar en el campo. Con el tiempo, ese trabajo diario se convierte en datos reales: qué se sembró, cuándo, dónde y cómo resultó.','ag.deployments':'Implementaciones','ag.deploy_desc':'Cada lugar que usa grush es una implementación: con su propia marca, pero funcionando con el mismo motor por debajo.','ag.deploy_card':'Lancer Farms es una implementación activa de grush: un jardín-huerto educativo en Riverside, California.','ag.back':'Volver a Lancer Farms'
-    },
-    fr: {
-      'role.enter':'Entrer dans la ferme','role.enter_sub':'Outils, registres et ce qui pousse ici',
-      'role.staff':'Personnel','role.staff_sub':'Consigner travaux, tâches et fournitures',
-      'role.visitor':'Visiteur','role.visitor_sub':'Explorez la ferme',
-      'role.tiny':'Touchez pour choisir — nous nous en souviendrons la prochaine fois.',
-      'hub.intro':'Bienvenue. Parcourez la ferme, découvrez ce qui y pousse et planifiez votre propre culture.',
-      'tile.see':'Voir','tile.see_sub':'Photos de la ferme',
-      'tile.learn':'Apprendre','tile.learn_sub':'À propos des plantes',
-      'tile.do':'Faire','tile.do_sub':'Planifiez votre culture',
-      'tile.share':'Partager','tile.share_sub':'Laissez un mot',
-      'about.title':'À propos de Lancer Farms',
-      'about.body':'Lancer Farms est un jardin pédagogique en activité situé sur le campus de California Baptist University à Riverside, en Californie. Ce site Web et ses outils sont créés et maintenus de façon indépendante; ils ne constituent pas un produit officiel de California Baptist University, n\u2019y sont pas affiliés et ne sont pas approuvés par celle-ci.',
-      'menu.title':'Menu','back':'Retour','back.allplants':'Toutes les plantes',
-      'see.intro':'Photos des quatre coins de la ferme.',
-      'learn.intro':'Chaque plante qui pousse à la ferme : ce que c\u2019est et comment elle pousse.',
-      'do.intro':'Choisissez une plante et obtenez un plan de culture, avec les chiffres calculés pour votre espace.',
-      'share.intro':'Laissez un mot à la ferme. Les commentaires apparaissent après une brève vérification.',
-      'share.recent':'Mots récents',
-      'ph.search':'Rechercher des plantes…','ph.name':'Votre nom (facultatif)','ph.msg':'Votre message…',
-      'loading.photos':'Chargement des photos…','loading.plants':'Chargement des plantes…',
-      'ag.kicker':'une plateforme de gestion pour les espaces de culture','ag.lead':'grush transforme le travail quotidien de gestion d’un espace de culture — un jardin, une ferme, une culture en milieu contrôlé — en quelque chose d’assez simple pour s’utiliser les mains dans la terre.','ag.body':'Tâches, semis, récoltes, inventaire et registres deviennent un système où l’on touche plutôt que l’on tape, utilisable par n’importe qui sur le terrain. Avec le temps, ce travail quotidien se transforme en données réelles : ce qui a été planté, quand, où et comment ça a poussé.','ag.deployments':'Déploiements','ag.deploy_desc':'Chaque endroit qui utilise grush est un déploiement — avec sa propre image de marque, mais fonctionnant sur le même moteur en dessous.','ag.deploy_card':'Lancer Farms est un déploiement actif de grush — un jardin pédagogique à Riverside, en Californie.','ag.back':'Retour à Lancer Farms'
-    },
-    pt: {
-      'role.enter':'Entrar na fazenda','role.enter_sub':'Ferramentas, registros e o que cresce aqui',
-      'role.staff':'Equipe','role.staff_sub':'Registre trabalho, tarefas e insumos',
-      'role.visitor':'Visitante','role.visitor_sub':'Explore a fazenda',
-      'role.tiny':'Toque para escolher — vamos lembrar na próxima vez.',
-      'hub.intro':'Bem-vindo. Explore a fazenda, conheça o que cresce aqui e planeje o seu próprio cultivo.',
-      'tile.see':'Ver','tile.see_sub':'Fotos da fazenda',
-      'tile.learn':'Aprender','tile.learn_sub':'Sobre as plantas',
-      'tile.do':'Fazer','tile.do_sub':'Planeje seu cultivo',
-      'tile.share':'Compartilhar','tile.share_sub':'Deixe um recado',
-      'about.title':'Sobre a Lancer Farms',
-      'about.body':'A Lancer Farms é uma horta-escola em funcionamento localizada no campus da California Baptist University em Riverside, Califórnia. Este site e as ferramentas nele contidas são criados e mantidos de forma independente — não são um produto oficial da California Baptist University, nem têm afiliação ou endosso da universidade.',
-      'menu.title':'Menu','back':'Voltar','back.allplants':'Todas as plantas',
-      'see.intro':'Fotos de vários cantos da fazenda.',
-      'learn.intro':'Cada planta que cresce na fazenda — o que é e como se cultiva.',
-      'do.intro':'Escolha uma planta e receba um plano de cultivo, com os números calculados para o seu espaço.',
-      'share.intro':'Deixe um recado para a fazenda. Os comentários aparecem após uma revisão rápida.',
-      'share.recent':'Recados recentes',
-      'ph.search':'Buscar plantas…','ph.name':'Seu nome (opcional)','ph.msg':'Sua mensagem…',
-      'loading.photos':'Carregando fotos…','loading.plants':'Carregando plantas…',
-      'ag.kicker':'uma plataforma de gestão para espaços de cultivo','ag.lead':'o grush transforma o trabalho diário de administrar um espaço de cultivo — uma horta, uma fazenda, um cultivo em ambiente controlado — em algo simples o bastante para usar com as mãos na terra.','ag.body':'Tarefas, plantios, colheitas, estoque e registros viram um sistema de tocar, não digitar, que qualquer pessoa no campo consegue usar. Com o tempo, esse trabalho diário se transforma em dados reais: o que foi plantado, quando, onde e como se saiu.','ag.deployments':'Implantações','ag.deploy_desc':'Todo lugar que usa o grush é uma implantação — com marca própria, mas rodando no mesmo motor por baixo.','ag.deploy_card':'A Lancer Farms é uma implantação ativa do grush — uma horta-escola em Riverside, Califórnia.','ag.back':'Voltar para a Lancer Farms'
+      'role.enter'      : 'Entrar a la granja',
+      'role.enter_sub'  : 'Herramientas, registros y lo que crece aqu\u00ed',
+      'req.link'        : '\u00bfTrabajas aqu\u00ed? Solicita acceso',
+
+      'hub.place'       : 'Riverside, CA \u00b7 Zona 9b',
+      'tile.see'        : 'Ver',
+      'tile.see_sub'    : 'Fotos de los bancales y los jardines',
+      'tile.learn'      : 'Conocer',
+      'tile.learn_sub'  : 'Qu\u00e9 crece aqu\u00ed y qu\u00e9 necesita',
+      'tile.do'         : 'Hacer',
+      'tile.do_sub'     : 'Calcula espaciado, riego y tiempos',
+      'tile.share'      : 'Compartir',
+      'tile.share_sub'  : 'Deja un mensaje para la granja',
+      'hub.staff'       : 'Acceso del personal \u2192',
+
+      'learn.title'     : 'Conocer',
+      'learn.intro'     : 'Cada planta que crece en la granja, qu\u00e9 es y cu\u00e1nto tarda.',
+
+      'do.soil_h'       : '\u00bfCu\u00e1nta tierra necesita un bancal?',
+      'do.ready_h'      : '\u00bfCu\u00e1ndo estar\u00e1 listo?',
+      'do.bed'          : 'Bancal',
+      'do.depth'        : 'Profundidad de llenado (pulg)',
+      'do.bag'          : 'Tama\u00f1o del saco',
+      'do.plant'        : 'Planta',
+      'do.planted'      : 'Sembrado el',
+      'do.cuft'         : 'pies c\u00fabicos',
+
+      'see.title'       : 'Ver',
+      'see.intro'       : 'Fotograf\u00edas de los bancales y los jardines, tomadas por el equipo de cuidadores.',
+
+      'share.title'     : 'Compartir',
+      'share.intro'     : 'Deja un mensaje para el equipo, o comparte la granja con alguien m\u00e1s.',
+      'share.share_h'   : 'Comparte la granja',
+      'share.note_h'    : 'Deja un mensaje',
+      'share.send'      : 'Enviar mensaje',
+      'share.notes_h'   : 'Mensajes de visitantes',
+
+      'back'            : '\u2190 Volver',
+      'back.farm'       : '\u2190 Volver a la granja',
+      'loading'         : 'Cargando\u2026',
+      'managed'         : 'gestionado por'
     }
   }
 };
-function t(k){
-  var l = localStorage.getItem('lfg_lang') || 'en';
-  var d = window.I18N.dict[l] || window.I18N.dict.en;
-  return (d[k] != null) ? d[k] : (window.I18N.dict.en[k] != null ? window.I18N.dict.en[k] : k);
-}
-function applyI18n(lang){
-  if(lang){ localStorage.setItem('lfg_lang', lang); }
-  var cur = localStorage.getItem('lfg_lang') || 'en';
-  try { document.documentElement.setAttribute('lang', cur); } catch(e){}
-  document.querySelectorAll('[data-i18n]').forEach(function(el){
-    var v = t(el.getAttribute('data-i18n')); if(v != null) el.textContent = v;
+
+/* ── applying it ─────────────────────────────────────────────────────── */
+
+function setSiteLang(l) {
+  if (!window.I18N.dict[l]) l = 'en';
+  try { localStorage.setItem('lfg_lang', l); } catch (e) {}
+
+  /* The lang attribute is not cosmetic. It tells a browser translator what
+     it is starting FROM, and it tells a screen reader which voice to use.
+     Leaving it at "en" on a Spanish page makes both worse. */
+  document.documentElement.setAttribute('lang', l);
+
+  var d = window.I18N.dict[l], en = window.I18N.dict.en;
+  document.querySelectorAll('[data-i18n]').forEach(function (el) {
+    var k = el.getAttribute('data-i18n');
+    var v = d[k] !== undefined ? d[k] : en[k];
+    if (v !== undefined) el.textContent = v;
   });
-  document.querySelectorAll('[data-i18n-ph]').forEach(function(el){
-    var v = t(el.getAttribute('data-i18n-ph')); if(v != null) el.setAttribute('placeholder', v);
+  document.querySelectorAll('[data-i18n-ph]').forEach(function (el) {
+    var k = el.getAttribute('data-i18n-ph');
+    var v = d[k] !== undefined ? d[k] : en[k];
+    if (v !== undefined) el.setAttribute('placeholder', v);
+  });
+
+  document.querySelectorAll('.lang-switch button').forEach(function (b) {
+    b.classList.toggle('on', b.getAttribute('data-l') === l);
   });
 }
 
-/* ---- Unified language switcher (shared across all pages) ---- */
-function paintSwitches(l){
-  document.querySelectorAll('.lang-switch button').forEach(function(b){
-    b.classList.toggle('on', b.getAttribute('data-l')===l);
-  });
-}
-function setSiteLang(l){
-  applyI18n(l); paintSwitches(l);
-  if(typeof window.onLangChange==='function'){ try{ window.onLangChange(l); }catch(e){} }
-}
-function buildSwitches(){
-  var cur=localStorage.getItem('lfg_lang')||'en';
-  var codes={en:'EN',es:'ES',fr:'FR',pt:'PT'};
-  document.querySelectorAll('[data-lang-switch]').forEach(function(box){
-    if(box.getAttribute('data-built')) return;
-    box.setAttribute('data-built','1');
+function buildSwitches() {
+  var cur = 'en';
+  try { cur = localStorage.getItem('lfg_lang') || 'en'; } catch (e) {}
+  var codes = { en: 'EN', es: 'ES' };
+
+  document.querySelectorAll('[data-lang-switch]').forEach(function (box) {
+    if (box.getAttribute('data-built')) return;
+    box.setAttribute('data-built', '1');
     box.classList.add('lang-switch');
-    window.I18N.langs.forEach(function(l){
-      var b=document.createElement('button');
-      b.type='button'; b.textContent=codes[l]||l.toUpperCase();
-      b.setAttribute('data-l',l);
-      if(l===cur) b.classList.add('on');
-      b.addEventListener('click', function(){ setSiteLang(l); });
+    /* Never translate the switch. EN and ES are labels for languages, not
+       words in a sentence, and a translator will happily mangle them. */
+    box.setAttribute('translate', 'no');
+
+    window.I18N.langs.forEach(function (l) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = codes[l] || l.toUpperCase();
+      b.setAttribute('data-l', l);
+      b.setAttribute('lang', l);
+      if (l === cur) b.classList.add('on');
+      b.addEventListener('click', function () { setSiteLang(l); });
       box.appendChild(b);
     });
+
+    /* Point at the tool that covers the other sixty. Two buttons cannot
+       serve a campus drawing from 60+ countries, and implying otherwise is
+       worse than naming the thing that can. */
+    if (!box.parentNode.querySelector('.lang-hint')) {
+      var hint = document.createElement('span');
+      hint.className = 'lang-hint';
+      hint.textContent = '\u00bfOtro idioma? Use su navegador \u00b7 Other language? Use your browser';
+      box.parentNode.insertBefore(hint, box.nextSibling);
+    }
   });
 }
-function injectSwitchCSS(){
-  if(document.getElementById('lang-switch-css')) return;
-  var st=document.createElement('style'); st.id='lang-switch-css';
-  st.textContent='.lang-switch{display:inline-flex;gap:2px;background:rgba(255,255,255,.06);border-radius:999px;padding:3px;vertical-align:middle;}'
-    +'.lang-switch button{border:0;background:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;letter-spacing:.3px;color:#9a978d;padding:5px 9px;border-radius:999px;line-height:1;transition:color .15s,background .15s;}'
-    +'.lang-switch button:hover{color:#F0EDE6;}'
-    +'.lang-switch button.on{background:rgba(255,255,255,.13);color:#F0EDE6;}';
+
+function injectSwitchCSS() {
+  if (document.getElementById('lang-switch-css')) return;
+  var st = document.createElement('style');
+  st.id = 'lang-switch-css';
+  st.textContent =
+    '.lang-switch{display:inline-flex;gap:2px;background:rgba(255,255,255,.06);' +
+      'border-radius:999px;padding:3px;vertical-align:middle;}' +
+    '.lang-switch button{border:0;background:none;cursor:pointer;font-family:inherit;' +
+      'font-size:12px;font-weight:600;letter-spacing:.3px;color:#9a978d;padding:7px 12px;' +
+      'border-radius:999px;line-height:1;transition:color .15s,background .15s;}' +
+    '.lang-switch button:hover{color:#F0EDE6;}' +
+    '.lang-switch button.on{background:rgba(255,255,255,.13);color:#F0EDE6;}' +
+    '.lang-hint{display:block;margin-top:7px;font-size:11px;line-height:1.4;opacity:.55;}';
   document.head.appendChild(st);
 }
-document.addEventListener('DOMContentLoaded', function(){
-  injectSwitchCSS(); buildSwitches();
-  setSiteLang(localStorage.getItem('lfg_lang')||'en');
+
+document.addEventListener('DOMContentLoaded', function () {
+  injectSwitchCSS();
+  buildSwitches();
+  var l = 'en';
+  try { l = localStorage.getItem('lfg_lang') || 'en'; } catch (e) {}
+  setSiteLang(l);
 });
