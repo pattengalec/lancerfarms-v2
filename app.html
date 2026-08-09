@@ -1029,7 +1029,12 @@ async function submitLog(){
   document.getElementById('when-label').textContent='Now';
   document.querySelectorAll('#what-grid .chip').forEach(c=>c.classList.remove('on'));
   refreshApproveBadge();
-  go('hub');
+  /* Stay on the log. Logging is repetitive — someone walking the beds
+     enters several things in a row — and bouncing to the hub after each
+     save charged a tap to get back, which is why it felt like being dumped
+     somewhere. The form is already cleared above, so it is ready for the
+     next entry, and the toast is the confirmation that it saved. */
+  document.querySelector('main').scrollTop = 0;
 }
 
 /* ---------- TASKS with color aging ---------- */
