@@ -372,7 +372,7 @@ html, body {
 }
 .amend-row:last-child { border-bottom: none; }
 .amend-name { font-size: 0.85rem; font-weight: 600; color: var(--forest); }
-.amend-dose { font-family: 'Courier Prime', monospace; font-size: 0.75rem; color: var(--orange-dim); margin: 0.1rem 0; }
+.amend-dose { font-family: var(--font-mono, 'Courier Prime', monospace); font-size: 0.75rem; color: var(--orange-dim); margin: 0.1rem 0; }
 .amend-why { font-size: 0.73rem; color: var(--cream); line-height: 1.45; }
 
 /* Badges */
@@ -393,7 +393,7 @@ html, body {
   flex-shrink: 0; width: 1.5rem; height: 1.5rem;
   background: var(--green-deep); color: var(--lime-pale);
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 0.7rem; font-weight: 700; font-family: 'Courier Prime', monospace;
+  font-size: 0.7rem; font-weight: 700; font-family: var(--font-mono, 'Courier Prime', monospace);
   margin-top: 0.1rem;
 }
 .step-text { font-size: 0.8rem; color: var(--cream); line-height: 1.5; }
@@ -418,7 +418,7 @@ html, body {
 .plan-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
 .plan-row:last-child { border-bottom: none; }
 .plan-key { color: var(--cream); }
-.plan-val { font-family: 'Courier Prime', monospace; color: var(--forest); text-align: right; font-size: 0.78rem; }
+.plan-val { font-family: var(--font-mono, 'Courier Prime', monospace); color: var(--forest); text-align: right; font-size: 0.78rem; }
 .plan-val.highlight { color: var(--orange-dim); font-weight: 700; }
 
 /* Mix bar */
@@ -446,7 +446,7 @@ html, body {
   display: flex; justify-content: space-between; align-items: flex-start;
 }
 .ref-card-name { font-weight: 700; font-size: 0.88rem; color: var(--cream); }
-.ref-card-npk  { font-family: 'Courier Prime', monospace; font-size: 0.7rem; color: var(--lime-pale); margin-top: 0.1rem; }
+.ref-card-npk  { font-family: var(--font-mono, 'Courier Prime', monospace); font-size: 0.7rem; color: var(--lime-pale); margin-top: 0.1rem; }
 .ref-card-body { padding: 0.75rem 0.9rem; }
 .ref-row { margin-bottom: 0.55rem; }
 .ref-row-label { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream); margin-bottom: 0.1rem; }

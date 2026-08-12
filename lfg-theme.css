@@ -62,7 +62,7 @@
 
 /* The one component rule with no inline equivalent anywhere. */
 .form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); font-family: 'Courier Prime', monospace; }
+.form-group label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); font-family: var(--font-mono, 'Courier Prime', monospace); }
 .form-group input, .form-group select, .form-group textarea { background: var(--bg); border: var(--border-w) solid var(--card-border); border-radius: 8px; padding: 11px 14px; font-size: 0.92rem; font-family: inherit; color: var(--ink); outline: none; transition: border-color 0.15s; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent-2); }
 .form-group textarea { resize: vertical; min-height: 80px; }
