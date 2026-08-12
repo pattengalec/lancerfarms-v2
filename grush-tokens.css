@@ -33,6 +33,8 @@
    thing that can fail to load on the day it matters.
    ═══════════════════════════════════════════════════════════════════════ */
 
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
 :root{
   /* ── FARM: the default ground ────────────────────────────────────── */
   --paper:        #2A2620;
@@ -61,7 +63,7 @@
      pages, Source Sans on seventeen. This makes it exact rather than
      nearly. */
   --font-head:    'Fraunces', Georgia, serif;
-  --font-body:    'Source Sans 3', system-ui, -apple-system, sans-serif;
+  --font-body:    'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   --font-mono:    'Courier Prime', ui-monospace, monospace;
 
   /* ── the shell ───────────────────────────────────────────────────────
