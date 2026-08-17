@@ -133,7 +133,11 @@
       { label: 'Photos',       icon: '\u{1F4F7}', href: 'app.html?s=photos' },
       { label: 'Inventory',    icon: '\u{1F4E6}', href: 'app.html?s=inventory' },
       { label: 'Locations',    icon: '\u{1F4CD}', href: 'app.html?s=areas' },
-      { label: 'How-to cards', icon: '\u{1F5C2}', href: 'howto.html' }
+      { label: 'How-to cards', icon: '\u{1F5C2}', href: 'howto.html' },
+      /* Added Aug 2026 for the Koo mycoremediation meeting. Locked with
+         the rest of Staff — Chad, Lanphere, and Koo are all admins in
+         grush_operators, so all three see it once signed in. */
+      { label: 'Faculty & Research', icon: '\u{1F393}', href: 'faculty.html' }
     ]
   });
 
