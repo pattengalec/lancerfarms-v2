@@ -87,11 +87,37 @@
 
   footer{padding:30px 22px 10px; text-align:center; font-size:11.5px; letter-spacing:.08em;
     text-transform:uppercase; color:var(--line-strong);}
+
+  /* ── sign-in gate ── */
+  #gate{max-width:420px; margin:60px auto; text-align:center; padding:0 22px;}
+  #gate h2{font-size:22px; margin-bottom:8px;}
+  #gate p{color:var(--soft); font-size:14.5px; margin-bottom:18px;}
+  #gate input{width:100%; min-height:52px; padding:0 14px; font-size:16px; margin-bottom:12px;
+    font-family:inherit; color:var(--ink); background:var(--card);
+    border:1.5px solid var(--line); border-radius:11px; outline:none;}
+  #gate input:focus{border-color:var(--amber);}
+  #gate button{width:100%; min-height:52px; border-radius:12px; font-weight:600; font-size:15px;
+    border:1.5px solid var(--green); background:var(--green); color:#fff; cursor:pointer;}
+  #gateMsg{font-size:13.5px; margin-top:10px; min-height:1.2em;}
+  #gateMsg.ok{color:var(--leaf);} #gateMsg.bad{color:#C97A4A;}
+  #content{display:none;}
 </style>
 <link rel="stylesheet" href="grush-tokens.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
 </head>
 <body>
 
+<div id="gate">
+  <h2>Faculty sign-in</h2>
+  <p>This area is limited to Lancer Farms admins. Enter your CBU email and we'll send a sign-in link.</p>
+  <input id="gateEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="you@calbaptist.edu">
+  <button id="gateSend">Send sign-in link</button>
+  <p id="gateMsg"></p>
+</div>
+
+<div id="content">
 <div class="wrap">
 
   <div class="top">
@@ -178,6 +204,7 @@
   </div>
 
 </div>
+</div><!-- /content -->
 
 <script>
 window.GRUSH_NAV = {
@@ -190,6 +217,48 @@ window.GRUSH_NAV = {
 <script src="i18n.js?v=2"></script>
 
 <footer>Lancer Farms &amp; Gardens · CBU Environmental Science</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+
+  async function checkGate(){
+    var s = await GRUSH.session();
+    if(!s){ showGate(); return; }
+    var r = await GRUSH.sb.rpc('grush_role');
+    if(!r.error && r.data === 'admin'){ showContent(); }
+    else showGate('Signed in, but that address is not an admin on this farm.');
+  }
+  function showGate(msg){
+    $('gate').style.display = 'block';
+    $('content').style.display = 'none';
+    if(msg){ $('gateMsg').className = 'bad'; $('gateMsg').textContent = msg; }
+  }
+  function showContent(){
+    $('gate').style.display = 'none';
+    $('content').style.display = 'block';
+  }
+  $('gateSend').addEventListener('click', async function(){
+    var email = $('gateEmail').value.trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+      $('gateMsg').className='bad'; $('gateMsg').textContent='That doesn\u2019t look like an email address.'; return;
+    }
+    $('gateSend').disabled = true; $('gateSend').textContent = 'Sending\u2026';
+    var r = await GRUSH.sendLink(email);
+    $('gateMsg').className = r.ok ? 'ok' : 'bad';
+    $('gateMsg').textContent = r.msg;
+    $('gateSend').textContent = 'Send sign-in link'; $('gateSend').disabled = false;
+  });
+  document.addEventListener('grush:auth', function(e){
+    var evt = e && e.detail;
+    if(evt === 'INITIAL_SESSION' || evt === 'TOKEN_REFRESHED' || evt === 'USER_UPDATED') return;
+    checkGate();
+  });
+
+  checkGate();
+})();
+</script>
 
 </body>
 </html>
