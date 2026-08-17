@@ -116,6 +116,8 @@
   .prow .acts a, .prow .acts button{width:36px; height:36px; border-radius:9px; border:1.5px solid var(--line-strong);
     background:transparent; color:var(--ink); display:flex; align-items:center; justify-content:center;
     font-size:15px; text-decoration:none; cursor:pointer;}
+  .prow .fic{width:34px; height:34px; border-radius:9px; background:var(--card2); color:var(--leaf);
+    display:flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto;}
 
   .panel{background:var(--card2); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:8px;}
   .frow{display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:10px;}
@@ -165,7 +167,7 @@
   /* ── print ── */
   @media print{
     .topbar, .toolrow .btn, .exportrow, .panel, #grush-rail, .grush-burger-float,
-    #viewList, .chip button, .prow .acts, footer{display:none !important;}
+    #viewList, .chip button, .prow .acts, footer, #btnAddFile, #btnDuplicate{display:none !important;}
     body{padding-bottom:0; background:#fff; color:#111;}
     .sec{border-color:#ccc;}
     .chartbox{border-color:#ccc; break-inside:avoid;}
@@ -224,7 +226,16 @@
         <span style="color:var(--soft)">&#8594;</span>
         <input type="date" id="dEnd" title="End date">
         <button class="btn ghost small" id="btnSaveHead">Save</button>
+        <button class="btn small" id="btnDuplicate">&#128257; Duplicate</button>
       </div>
+    </div>
+
+    <div class="sec">
+      <h3>Files</h3>
+      <div class="hint">Upload the professor's existing PDF, Word, or Excel protocol as reference — attach it here once, then duplicate this experiment each semester without re-uploading.</div>
+      <div class="plist" id="fileList"></div>
+      <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg" style="display:none">
+      <button class="btn small" id="btnAddFile">+ Upload file</button>
     </div>
 
     <div class="sec">
@@ -374,7 +385,7 @@
   'use strict';
   var sb = GRUSH.sb;
   var $ = function(id){ return document.getElementById(id); };
-  var state = { admin:false, areas:[], experiments:[], current:null, students:[], expAreas:[], readings:[], charts:[] };
+  var state = { admin:false, areas:[], experiments:[], current:null, students:[], expAreas:[], readings:[], charts:[], files:[] };
 
   function toast(msg){
     var t = $('toast'); t.textContent = msg; t.classList.add('on');
@@ -508,7 +519,7 @@
     $('dStart').value = data.start_date || '';
     $('dEnd').value = data.end_date || '';
     window.scrollTo(0,0);
-    await Promise.all([loadExpAreas(), loadStudents(), loadReadings()]);
+    await Promise.all([loadExpAreas(), loadStudents(), loadReadings(), loadFiles()]);
   }
 
   $('btnSaveHead').addEventListener('click', async function(){
@@ -622,6 +633,97 @@
     $('stName').value=''; $('stEmail').value=''; $('stPhone').value=''; $('stPhoneRow').style.display='none';
     $('studentPanel').style.display='none';
     loadStudents();
+  });
+
+  /* ── files ── */
+  var FILE_BUCKET = 'experiment-files';
+  function fileIcon(mime){
+    if(!mime) return '&#128196;';
+    if(mime.includes('pdf')) return '&#128209;';
+    if(mime.includes('word') || mime.includes('document')) return '&#128196;';
+    if(mime.includes('sheet') || mime.includes('excel') || mime==='text/csv') return '&#128202;';
+    if(mime.includes('image')) return '&#128247;';
+    return '&#128196;';
+  }
+  function fmtSize(n){
+    if(!n) return '';
+    if(n < 1024) return n + ' B';
+    if(n < 1024*1024) return (n/1024).toFixed(0) + ' KB';
+    return (n/1024/1024).toFixed(1) + ' MB';
+  }
+  async function loadFiles(){
+    var { data, error } = await sb.from('lfg_experiment_files').select('*').eq('experiment_id', state.current.id).order('uploaded_at');
+    state.files = error ? [] : data;
+    $('fileList').innerHTML = state.files.map(function(f){
+      return '<div class="prow">'
+        + '<div class="fic">'+fileIcon(f.mime_type)+'</div>'
+        + '<div class="who"><b>'+esc(f.file_name)+'</b><span>'+fmtSize(f.size_bytes)+'</span></div>'
+        + '<div class="acts">'
+          + '<button data-dl="'+f.id+'" title="Download">&#8595;</button>'
+          + '<button data-rm="'+f.id+'" title="Remove">&times;</button>'
+        + '</div></div>';
+    }).join('') || '<span style="color:var(--soft);font-size:13.5px">No files attached yet.</span>';
+    Array.prototype.forEach.call(document.querySelectorAll('#fileList [data-dl]'), function(b){
+      b.addEventListener('click', async function(){
+        var f = state.files.find(function(x){ return x.id === b.dataset.dl; });
+        var { data, error } = await sb.storage.from(FILE_BUCKET).createSignedUrl(f.storage_path, 60);
+        if(error){ toast('Could not open file: ' + error.message); return; }
+        window.open(data.signedUrl, '_blank');
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#fileList [data-rm]'), function(b){
+      b.addEventListener('click', async function(){
+        var f = state.files.find(function(x){ return x.id === b.dataset.rm; });
+        if(!confirm('Remove "' + f.file_name + '"?')) return;
+        await sb.storage.from(FILE_BUCKET).remove([f.storage_path]);
+        await sb.from('lfg_experiment_files').delete().eq('id', f.id);
+        loadFiles();
+      });
+    });
+  }
+  $('btnAddFile').addEventListener('click', function(){ $('fileInput').click(); });
+  $('fileInput').addEventListener('change', async function(){
+    var file = this.files[0];
+    this.value = '';
+    if(!file) return;
+    toast('Uploading\u2026');
+    var path = state.current.id + '/' + Date.now() + '-' + file.name.replace(/[^\w.\-]/g,'_');
+    var up = await sb.storage.from(FILE_BUCKET).upload(path, file, { contentType: file.type || undefined });
+    if(up.error){ toast('Upload failed: ' + up.error.message); return; }
+    var { error } = await sb.from('lfg_experiment_files').insert({
+      experiment_id: state.current.id, file_name: file.name, storage_path: path,
+      mime_type: file.type || null, size_bytes: file.size,
+      uploaded_by: (await GRUSH.session())?.user?.email || null
+    });
+    if(error){ toast('Saved to storage but could not record it: ' + error.message); return; }
+    toast('Uploaded');
+    loadFiles();
+  });
+
+  /* ── duplicate: clone structure for a new semester, not people or data ── */
+  $('btnDuplicate').addEventListener('click', async function(){
+    if(!confirm('Duplicate "' + state.current.title + '"? Areas and files carry over; students and readings start fresh.')) return;
+    var src = state.current;
+    var { data: created, error } = await sb.from('lfg_experiments').insert({
+      title: src.title + ' (copy)', description: src.description, hypothesis: src.hypothesis,
+      status: 'planned', start_date: null, end_date: null,
+      created_by: (await GRUSH.session())?.user?.email || null
+    }).select().single();
+    if(error){ toast('Could not duplicate: ' + error.message); return; }
+
+    if(state.expAreas.length){
+      await sb.from('lfg_experiment_areas').insert(state.expAreas.map(function(a){
+        return { experiment_id: created.id, area_id: a.area_id, custom_label: a.custom_label };
+      }));
+    }
+    if(state.files.length){
+      await sb.from('lfg_experiment_files').insert(state.files.map(function(f){
+        return { experiment_id: created.id, file_name: f.file_name, storage_path: f.storage_path,
+          mime_type: f.mime_type, size_bytes: f.size_bytes, uploaded_by: f.uploaded_by };
+      }));
+    }
+    toast('Duplicated — ready for a new semester');
+    openExperiment(created.id);
   });
 
   /* ── readings + chart ── */
