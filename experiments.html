@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark light">
 <title>Experiments — Lancer Farms &amp; Gardens</title>
-<meta name="description" content="Experiment tracking for Lancer Farms &amp; Gardens: assign beds, students, and log data.">
+<meta name="description" content="Experiment templates for Lancer Farms &amp; Gardens: build a lab proposal and procedure once, assign it to a new class or team every semester.">
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&family=Courier+Prime&display=swap" rel="stylesheet">
@@ -27,12 +27,11 @@
   a{color:inherit;}
   .wrap{max-width:760px; margin:0 auto; padding:0 18px;}
 
-  /* ── top bar ── */
   .topbar{position:sticky; top:0; z-index:50; background:var(--paper);
     border-bottom:1px solid var(--line); padding:16px 18px; display:flex;
     align-items:center; gap:12px;}
   .back{font-size:20px; color:var(--leaf); text-decoration:none; flex:0 0 auto;
-    min-width:32px; min-height:32px; display:flex; align-items:center;}
+    min-width:32px; min-height:32px; display:flex; align-items:center; cursor:pointer; background:none; border:none;}
   .topbar h1{font-size:20px; flex:1;}
   .topbar .sub{font-size:11.5px; color:var(--soft); font-family:var(--font-mono);
     letter-spacing:.06em; text-transform:uppercase;}
@@ -48,7 +47,6 @@
 
   main{padding:20px 18px 60px;}
 
-  /* ── gate ── */
   #gate{max-width:420px; margin:60px auto; text-align:center; padding:0 18px;}
   #gate h2{font-size:22px; margin-bottom:8px;}
   #gate p{color:var(--soft); font-size:14.5px; margin-bottom:18px;}
@@ -59,7 +57,6 @@
   #gateMsg{font-size:13.5px; margin-top:10px; min-height:1.2em;}
   #gateMsg.ok{color:var(--leaf);} #gateMsg.bad{color:var(--alert);}
 
-  /* ── list ── */
   .toolrow{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:10px;}
   .toolrow h2{font-size:22px;}
   .cards{display:grid; gap:12px;}
@@ -76,19 +73,17 @@
 
   .pill{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.05em;
     text-transform:uppercase; padding:3px 10px; border-radius:999px; flex:0 0 auto;}
+  .pill.draft{background:rgba(176,169,156,.18); color:var(--soft);}
+  .pill.published{background:rgba(126,154,110,.22); color:var(--leaf);}
+  .pill.archived{background:rgba(69,66,58,.5); color:var(--soft);}
   .pill.planned{background:rgba(176,169,156,.18); color:var(--soft);}
   .pill.active{background:rgba(126,154,110,.22); color:var(--leaf);}
   .pill.completed{background:rgba(201,151,63,.2); color:var(--amber);}
-  .pill.archived{background:rgba(69,66,58,.5); color:var(--soft);}
 
-  /* ── detail ── */
-  #viewDetail{display:none;}
   .dhead{margin-bottom:22px;}
   .dhead input[type=text]{width:100%; font:600 26px/1.2 'Fraunces',Georgia,serif; color:var(--ink);
     background:transparent; border:none; border-bottom:1.5px solid transparent; padding:2px 0; outline:none;}
   .dhead input[type=text]:focus{border-color:var(--amber);}
-  .dhead textarea{width:100%; font:15px/1.5 inherit; color:var(--soft); background:transparent;
-    border:none; resize:vertical; outline:none; margin-top:6px; min-height:44px;}
   .dhead-row{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap;}
   .dhead select, .dhead input[type=date]{background:var(--card); color:var(--ink);
     border:1.5px solid var(--line); border-radius:9px; padding:6px 10px; font-size:13px; font-family:inherit;}
@@ -96,6 +91,13 @@
   .sec{margin-top:28px; padding-top:22px; border-top:1px solid var(--line);}
   .sec h3{font-size:18px; margin-bottom:4px;}
   .sec .hint{color:var(--soft); font-size:13px; margin-bottom:14px;}
+  .fieldlabel{font-size:11.5px; font-family:var(--font-mono); letter-spacing:.08em; text-transform:uppercase;
+    color:var(--leaf); margin:18px 0 6px; display:block;}
+  .fieldlabel:first-child{margin-top:0;}
+  textarea.longfield{width:100%; min-height:110px; padding:12px 14px; font-size:15px; line-height:1.5;
+    font-family:inherit; color:var(--ink); background:var(--card); border:1.5px solid var(--line);
+    border-radius:12px; outline:none; resize:vertical;}
+  textarea.longfield:focus{border-color:var(--amber);}
 
   .chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
   .chip{display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line);
@@ -106,9 +108,13 @@
 
   .plist{display:grid; gap:8px; margin-bottom:12px;}
   .prow{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line);
-    border-radius:12px; padding:11px 12px;}
+    border-radius:12px; padding:11px 12px; cursor:default;}
+  .prow.clickable{cursor:pointer;}
+  .prow.clickable:active{border-color:var(--green);}
   .prow .avatar{width:34px; height:34px; border-radius:50%; background:var(--green); color:#fff;
     display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex:0 0 auto;}
+  .prow .fic{width:34px; height:34px; border-radius:9px; background:var(--card2); color:var(--leaf);
+    display:flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto;}
   .prow .who{flex:1; min-width:0;}
   .prow .who b{display:block; font-size:14.5px;}
   .prow .who span{display:block; font-size:12px; color:var(--soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
@@ -116,8 +122,6 @@
   .prow .acts a, .prow .acts button{width:36px; height:36px; border-radius:9px; border:1.5px solid var(--line-strong);
     background:transparent; color:var(--ink); display:flex; align-items:center; justify-content:center;
     font-size:15px; text-decoration:none; cursor:pointer;}
-  .prow .fic{width:34px; height:34px; border-radius:9px; background:var(--card2); color:var(--leaf);
-    display:flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto;}
 
   .panel{background:var(--card2); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:8px;}
   .frow{display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:10px;}
@@ -153,21 +157,20 @@
     font-size:13.5px; z-index:2000; opacity:0; pointer-events:none; transition:opacity .2s;}
   .toast.on{opacity:1;}
 
-  /* ── modal (new experiment) ── */
   .scrim{position:fixed; inset:0; z-index:1500; background:rgba(0,0,0,.65); display:none;
     align-items:center; justify-content:center; padding:20px;}
   .scrim.on{display:flex;}
   .sheet{width:100%; max-width:440px; max-height:88vh; overflow-y:auto; background:var(--paper);
     border:1.5px solid var(--line); border-radius:18px; padding:22px; box-shadow:0 18px 60px rgba(0,0,0,.5);}
   .sheet h3{font-size:19px; margin-bottom:14px;}
+  .sheet .hint{color:var(--soft); font-size:13px; margin-bottom:14px; margin-top:-6px;}
 
   footer{padding:30px 22px 10px; text-align:center; font-size:11.5px; letter-spacing:.08em;
     text-transform:uppercase; color:var(--line-strong);}
 
-  /* ── print ── */
   @media print{
     .topbar, .toolrow .btn, .exportrow, .panel, #grush-rail, .grush-burger-float,
-    #viewList, .chip button, .prow .acts, footer, #btnAddFile, #btnDuplicate{display:none !important;}
+    #viewList, #viewTemplate, .chip button, .prow .acts, footer, #btnAddFile, #btnDuplicateSection{display:none !important;}
     body{padding-bottom:0; background:#fff; color:#111;}
     .sec{border-color:#ccc;}
     .chartbox{border-color:#ccc; break-inside:avoid;}
@@ -183,10 +186,10 @@
 <body>
 
 <div class="topbar">
-  <a class="back" href="faculty.html" aria-label="Back to Faculty">&#8592;</a>
+  <a class="back" id="topbarBack" href="faculty.html" aria-label="Back">&#8592;</a>
   <div style="flex:1">
-    <h1>Experiments</h1>
-    <div class="sub">Lancer Farms &amp; Gardens · Faculty</div>
+    <h1 id="topbarTitle">Experiments</h1>
+    <div class="sub" id="topbarSub">Lancer Farms &amp; Gardens · Faculty</div>
   </div>
   <button class="btn lead small" id="btnNew" style="display:none">+ New</button>
 </div>
@@ -201,46 +204,84 @@
     <p id="gateMsg"></p>
   </div>
 
+  <!-- ══ LEVEL 1: template list ══ -->
   <div id="viewList" style="display:none">
     <div class="toolrow">
-      <h2>Experiments</h2>
-      <button class="btn lead" id="btnNew2">+ New experiment</button>
+      <h2>Experiment templates</h2>
+      <button class="btn lead" id="btnNew2">+ New template</button>
     </div>
     <div class="cards" id="cardList"></div>
   </div>
 
-  <div id="viewDetail">
-    <a class="btn ghost small" id="btnBackToList" style="margin-bottom:16px">&#8592; All experiments</a>
+  <!-- ══ LEVEL 2: template detail (proposal, procedure, files, sections) ══ -->
+  <div id="viewTemplate" style="display:none">
+    <a class="btn ghost small" id="btnBackToList" style="margin-bottom:16px">&#8592; All templates</a>
 
     <div class="dhead">
-      <input type="text" id="dTitle" placeholder="Experiment title">
-      <textarea id="dDesc" placeholder="Description"></textarea>
+      <input type="text" id="tTitle" placeholder="Experiment title">
       <div class="dhead-row">
-        <select id="dStatus">
-          <option value="planned">Planned</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
+        <select id="tStatus">
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
           <option value="archived">Archived</option>
         </select>
-        <input type="date" id="dStart" title="Start date">
-        <span style="color:var(--soft)">&#8594;</span>
-        <input type="date" id="dEnd" title="End date">
-        <button class="btn ghost small" id="btnSaveHead">Save</button>
-        <button class="btn small" id="btnDuplicate">&#128257; Duplicate</button>
+        <button class="btn ghost small" id="btnSaveTemplate">Save</button>
       </div>
     </div>
 
+    <label class="fieldlabel">Lab proposal <span style="text-transform:none;letter-spacing:0">— the background and rationale</span></label>
+    <textarea class="longfield" id="tDesc" placeholder="What is this experiment testing, and why?"></textarea>
+
+    <label class="fieldlabel">Lab procedure <span style="text-transform:none;letter-spacing:0">— the steps students follow</span></label>
+    <textarea class="longfield" id="tProcedure" placeholder="1. Prepare...&#10;2. Measure...&#10;3. Record..." style="min-height:160px"></textarea>
+
+    <label class="fieldlabel">Hypothesis <span style="text-transform:none;letter-spacing:0">— optional</span></label>
+    <textarea class="longfield" id="tHypothesis" placeholder="Optional" style="min-height:60px"></textarea>
+
     <div class="sec">
-      <h3>Files</h3>
-      <div class="hint">Upload the professor's existing PDF, Word, or Excel protocol as reference — attach it here once, then duplicate this experiment each semester without re-uploading.</div>
+      <h3>Reference files</h3>
+      <div class="hint">Upload the source PDF, Word, or Excel protocol here — it stays attached to the template, so every section assigned from it can reach the same files.</div>
       <div class="plist" id="fileList"></div>
       <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg" style="display:none">
       <button class="btn small" id="btnAddFile">+ Upload file</button>
     </div>
 
     <div class="sec">
+      <h3>Sections</h3>
+      <div class="hint">Each section is one semester's (or one team's) run of this template — its own students, beds, and data. Assign the same template again next semester without rebuilding anything above.</div>
+      <div class="plist" id="sectionList"></div>
+      <button class="btn lead small" id="btnNewSection">+ New section</button>
+    </div>
+
+    <div class="sec">
+      <button class="btn danger small" id="btnDeleteTemplate">Delete template</button>
+    </div>
+  </div>
+
+  <!-- ══ LEVEL 3: section detail (areas, students, data) ══ -->
+  <div id="viewSection" style="display:none">
+    <a class="btn ghost small" id="btnBackToTemplate" style="margin-bottom:16px">&#8592; <span id="backToTemplateLabel">Template</span></a>
+
+    <div class="dhead">
+      <input type="text" id="sLabel" placeholder='e.g. "Fall 2026 — Soil &amp; Water Team"'>
+      <div class="dhead-row">
+        <select id="sStatus">
+          <option value="planned">Planned</option>
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+          <option value="archived">Archived</option>
+        </select>
+        <input type="date" id="sStart" title="Start date">
+        <span style="color:var(--soft)">&#8594;</span>
+        <input type="date" id="sEnd" title="End date">
+        <button class="btn ghost small" id="btnSaveSection">Save</button>
+        <button class="btn small" id="btnDuplicateSection">&#128257; Assign again</button>
+      </div>
+    </div>
+
+    <div class="sec" style="margin-top:0; border-top:none; padding-top:0">
       <h3>Areas &amp; bench spots</h3>
-      <div class="hint">Beds, sections, or bench testing areas assigned to this experiment.</div>
+      <div class="hint">Beds, sections, or bench testing areas assigned for this run.</div>
       <div class="chips" id="areaChips"></div>
       <button class="btn small" id="btnAddArea">+ Add area</button>
       <div class="panel" id="areaPanel" style="display:none">
@@ -342,36 +383,55 @@
     </div>
 
     <div class="sec">
-      <button class="btn danger small" id="btnDeleteExp">Delete experiment</button>
+      <button class="btn danger small" id="btnDeleteSection">Delete section</button>
     </div>
   </div>
 
 </main>
 
-<div class="scrim" id="newScrim">
+<div class="scrim" id="newTemplateScrim">
   <div class="sheet">
-    <h3>New experiment</h3>
+    <h3>New experiment template</h3>
     <div class="frow">
       <label>Title</label>
-      <input type="text" id="nTitle" placeholder="e.g. Oyster mushroom mycoremediation trial">
+      <input type="text" id="nTitle" placeholder="e.g. Soil Organic Carbon Accumulation Trial">
     </div>
     <div class="frow">
-      <label>Description</label>
-      <textarea id="nDesc" placeholder="What is this experiment testing?"></textarea>
+      <label>Lab proposal</label>
+      <textarea id="nDesc" placeholder="What is this experiment testing, and why?" style="min-height:80px"></textarea>
+    </div>
+    <div class="frow">
+      <label>Lab procedure</label>
+      <textarea id="nProcedure" placeholder="Steps students will follow" style="min-height:90px"></textarea>
+    </div>
+    <div class="exportrow">
+      <button class="btn lead" id="btnCreateTemplate">Create</button>
+      <button class="btn ghost" id="btnCancelNewTemplate">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="newSectionScrim">
+  <div class="sheet">
+    <h3>New section</h3>
+    <p class="hint">One assignment of this template to a specific class, team, or semester.</p>
+    <div class="frow">
+      <label>Label</label>
+      <input type="text" id="nsLabel" placeholder='e.g. "Fall 2026 — Carbon Research Team"'>
     </div>
     <div class="frow two">
       <div>
         <label>Start date</label>
-        <input type="date" id="nStart">
+        <input type="date" id="nsStart">
       </div>
       <div>
         <label>End date</label>
-        <input type="date" id="nEnd">
+        <input type="date" id="nsEnd">
       </div>
     </div>
     <div class="exportrow">
-      <button class="btn lead" id="btnCreateExp">Create</button>
-      <button class="btn ghost" id="btnCancelNew">Cancel</button>
+      <button class="btn lead" id="btnCreateSection">Create</button>
+      <button class="btn ghost" id="btnCancelNewSection">Cancel</button>
     </div>
   </div>
 </div>
@@ -385,16 +445,18 @@
   'use strict';
   var sb = GRUSH.sb;
   var $ = function(id){ return document.getElementById(id); };
-  var state = { admin:false, areas:[], experiments:[], current:null, students:[], expAreas:[], readings:[], charts:[], files:[] };
+  var state = {
+    admin:false, areas:[], templates:[], currentTemplate:null, currentSection:null,
+    sections:[], files:[], students:[], expAreas:[], readings:[], charts:[]
+  };
 
   function toast(msg){
     var t = $('toast'); t.textContent = msg; t.classList.add('on');
     clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('on'); }, 2200);
   }
-  /* Wraps a button's async click handler so a double-tap (common on a page
-     with no other loading indicator) can't fire the request twice — which
-     for Add reading meant a silently duplicated data point in the chart
-     and CSV export. */
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function fmtDate(iso){ if(!iso) return ''; var d=new Date(iso); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
   function lockButton(btn, fn){
     return async function(e){
       if(btn.disabled) return;
@@ -402,9 +464,6 @@
       try { await fn(e); } finally { btn.disabled = false; }
     };
   }
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){
-    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function fmtDate(iso){ if(!iso) return ''; var d=new Date(iso); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
 
   /* ── gate ── */
   async function checkGate(){
@@ -417,16 +476,20 @@
   function showGate(msg){
     $('gate').style.display = 'block';
     $('viewList').style.display = 'none';
-    $('viewDetail').style.display = 'none';
+    $('viewTemplate').style.display = 'none';
+    $('viewSection').style.display = 'none';
     $('btnNew').style.display = 'none';
     if(msg){ $('gateMsg').className = 'bad'; $('gateMsg').textContent = msg; }
   }
   function showApp(){
     $('gate').style.display = 'none';
     $('btnNew').style.display = 'inline-flex';
-    var id = new URLSearchParams(location.search).get('id');
+    var p = new URLSearchParams(location.search);
+    var tid = p.get('id'), sid = p.get('section');
     loadAreas().then(function(){
-      if(id) openExperiment(id); else showList();
+      if(tid && sid) openSection(tid, sid);
+      else if(tid) openTemplate(tid);
+      else showList();
     });
   }
   $('gateSend').addEventListener('click', async function(){
@@ -446,14 +509,11 @@
     checkGate();
   });
 
-  /* ── areas (real beds, for pickers) ── */
+  /* ── real beds, for pickers ── */
   async function loadAreas(){
     var { data, error } = await sb.from('lfg_growing_areas')
       .select('id,name,zone,area_type').is('archived_at', null).order('sort_order');
     if(!error) state.areas = data || [];
-    /* Reset before repopulating — a sign-out/sign-in cycle without a full
-       reload used to re-run this and append a second, duplicate set of
-       options on top of the first. */
     var sel = $('areaSelect');
     sel.innerHTML = '<option value="">— choose a bed —</option>';
     state.areas.forEach(function(a){
@@ -463,108 +523,301 @@
     });
   }
 
-  /* ── list ── */
+  function setTopbar(title, sub, backFn){
+    $('topbarTitle').textContent = title;
+    $('topbarSub').textContent = sub;
+    $('topbarBack').onclick = function(e){ if(backFn){ e.preventDefault(); backFn(); } };
+    $('topbarBack').href = backFn ? 'javascript:void(0)' : 'faculty.html';
+  }
+
+  /* ══ LEVEL 1: template list ══ */
   function showList(){
     history.replaceState(null, '', 'experiments.html');
-    $('viewDetail').style.display = 'none';
+    $('viewTemplate').style.display = 'none';
+    $('viewSection').style.display = 'none';
     $('viewList').style.display = 'block';
-    loadExperiments();
+    setTopbar('Experiments', 'Lancer Farms & Gardens · Faculty', null);
+    loadTemplates();
   }
-  async function loadExperiments(){
+  async function loadTemplates(){
     var { data, error } = await sb.from('lfg_experiments').select('*').order('created_at', {ascending:false});
     if(error){ $('cardList').innerHTML = '<div class="empty">Could not load: ' + esc(error.message) + '</div>'; return; }
-    state.experiments = data || [];
-    if(!state.experiments.length){ $('cardList').innerHTML = '<div class="empty">No experiments yet. Tap + New experiment to start one.</div>'; return; }
+    state.templates = data || [];
+    if(!state.templates.length){ $('cardList').innerHTML = '<div class="empty">No experiment templates yet. Tap + New template to build one — a lab proposal and procedure you can assign every semester.</div>'; return; }
 
-    var ids = state.experiments.map(function(e){ return e.id; });
-    var counts = {};
-    var [areaRows, studentRows] = await Promise.all([
-      sb.from('lfg_experiment_areas').select('experiment_id').in('experiment_id', ids),
-      sb.from('lfg_experiment_students').select('experiment_id').in('experiment_id', ids)
+    var ids = state.templates.map(function(t){ return t.id; });
+    var [sectionRows, fileRows] = await Promise.all([
+      sb.from('lfg_experiment_sections').select('experiment_id').in('experiment_id', ids),
+      sb.from('lfg_experiment_files').select('experiment_id').in('experiment_id', ids)
     ]);
-    (areaRows.data||[]).forEach(function(r){ counts[r.experiment_id] = counts[r.experiment_id]||{a:0,s:0}; counts[r.experiment_id].a++; });
-    (studentRows.data||[]).forEach(function(r){ counts[r.experiment_id] = counts[r.experiment_id]||{a:0,s:0}; counts[r.experiment_id].s++; });
+    var counts = {};
+    (sectionRows.data||[]).forEach(function(r){ counts[r.experiment_id] = counts[r.experiment_id]||{s:0,f:0}; counts[r.experiment_id].s++; });
+    (fileRows.data||[]).forEach(function(r){ counts[r.experiment_id] = counts[r.experiment_id]||{s:0,f:0}; counts[r.experiment_id].f++; });
 
-    $('cardList').innerHTML = state.experiments.map(function(e){
-      var c = counts[e.id] || {a:0,s:0};
-      return '<div class="xcard" data-id="'+e.id+'">'
-        + '<div class="row1"><h3>'+esc(e.title)+'</h3><span class="pill '+e.status+'">'+e.status+'</span></div>'
-        + (e.description ? '<div class="desc">'+esc(e.description)+'</div>' : '')
+    $('cardList').innerHTML = state.templates.map(function(t){
+      var c = counts[t.id] || {s:0,f:0};
+      return '<div class="xcard" data-id="'+t.id+'">'
+        + '<div class="row1"><h3>'+esc(t.title)+'</h3><span class="pill '+t.status+'">'+t.status+'</span></div>'
+        + (t.description ? '<div class="desc">'+esc(t.description)+'</div>' : '')
         + '<div class="meta">'
-          + '<span>&#127793; '+c.a+' area'+(c.a===1?'':'s')+'</span>'
-          + '<span>&#127891; '+c.s+' student'+(c.s===1?'':'s')+'</span>'
-          + (e.start_date ? '<span>&#128197; '+fmtDate(e.start_date)+'</span>' : '')
+          + '<span>&#128203; '+c.s+' section'+(c.s===1?'':'s')+'</span>'
+          + '<span>&#128196; '+c.f+' file'+(c.f===1?'':'s')+'</span>'
         + '</div></div>';
     }).join('');
     Array.prototype.forEach.call(document.querySelectorAll('.xcard'), function(el){
-      el.addEventListener('click', function(){ openExperiment(el.dataset.id); });
+      el.addEventListener('click', function(){ openTemplate(el.dataset.id); });
     });
   }
 
-  $('btnNew').addEventListener('click', function(){ $('newScrim').classList.add('on'); });
-  $('btnNew2').addEventListener('click', function(){ $('newScrim').classList.add('on'); });
-  $('btnCancelNew').addEventListener('click', function(){ $('newScrim').classList.remove('on'); });
-  $('btnCreateExp').addEventListener('click', lockButton($('btnCreateExp'), async function(){
+  $('btnNew').addEventListener('click', function(){ $('newTemplateScrim').classList.add('on'); });
+  $('btnNew2').addEventListener('click', function(){ $('newTemplateScrim').classList.add('on'); });
+  $('btnCancelNewTemplate').addEventListener('click', function(){ $('newTemplateScrim').classList.remove('on'); });
+  $('btnCreateTemplate').addEventListener('click', lockButton($('btnCreateTemplate'), async function(){
     var title = $('nTitle').value.trim();
     if(!title){ toast('Give it a title first'); return; }
     var row = {
       title: title, description: $('nDesc').value.trim() || null,
-      start_date: $('nStart').value || null, end_date: $('nEnd').value || null,
+      procedure: $('nProcedure').value.trim() || null,
       created_by: (await GRUSH.session())?.user?.email || null
     };
     var { data, error } = await sb.from('lfg_experiments').insert(row).select().single();
     if(error){ toast('Could not create: ' + error.message); return; }
-    $('newScrim').classList.remove('on');
-    $('nTitle').value=''; $('nDesc').value=''; $('nStart').value=''; $('nEnd').value='';
-    openExperiment(data.id);
+    $('newTemplateScrim').classList.remove('on');
+    $('nTitle').value=''; $('nDesc').value=''; $('nProcedure').value='';
+    openTemplate(data.id);
   }));
   $('btnBackToList').addEventListener('click', showList);
 
-  /* ── detail ── */
-  async function openExperiment(id){
+  /* ══ LEVEL 2: template detail ══ */
+  async function openTemplate(id){
     var { data, error } = await sb.from('lfg_experiments').select('*').eq('id', id).single();
-    if(error || !data){ toast('Experiment not found'); showList(); return; }
-    state.current = data;
+    if(error || !data){ toast('Template not found'); showList(); return; }
+    state.currentTemplate = data;
     history.replaceState(null, '', 'experiments.html?id=' + id);
     $('viewList').style.display = 'none';
-    $('viewDetail').style.display = 'block';
-    $('dTitle').value = data.title || '';
-    $('dDesc').value = data.description || '';
-    $('dStatus').value = data.status || 'planned';
-    $('dStart').value = data.start_date || '';
-    $('dEnd').value = data.end_date || '';
+    $('viewSection').style.display = 'none';
+    $('viewTemplate').style.display = 'block';
+    setTopbar(data.title, 'Template', showList);
+    $('tTitle').value = data.title || '';
+    $('tStatus').value = data.status || 'draft';
+    $('tDesc').value = data.description || '';
+    $('tProcedure').value = data.procedure || '';
+    $('tHypothesis').value = data.hypothesis || '';
     window.scrollTo(0,0);
-    await Promise.all([loadExpAreas(), loadStudents(), loadReadings(), loadFiles()]);
+    await Promise.all([loadFiles(), loadSections()]);
   }
 
-  $('btnSaveHead').addEventListener('click', async function(){
+  $('btnSaveTemplate').addEventListener('click', lockButton($('btnSaveTemplate'), async function(){
     var patch = {
-      title: $('dTitle').value.trim() || 'Untitled experiment',
-      description: $('dDesc').value.trim() || null,
-      status: $('dStatus').value,
-      start_date: $('dStart').value || null,
-      end_date: $('dEnd').value || null
+      title: $('tTitle').value.trim() || 'Untitled experiment',
+      status: $('tStatus').value,
+      description: $('tDesc').value.trim() || null,
+      procedure: $('tProcedure').value.trim() || null,
+      hypothesis: $('tHypothesis').value.trim() || null
     };
-    var { error } = await sb.from('lfg_experiments').update(patch).eq('id', state.current.id);
+    var { error } = await sb.from('lfg_experiments').update(patch).eq('id', state.currentTemplate.id);
+    if(!error){ state.currentTemplate = Object.assign(state.currentTemplate, patch); setTopbar(patch.title, 'Template', showList); }
     toast(error ? 'Could not save: ' + error.message : 'Saved');
-  });
+  }));
 
-  $('btnDeleteExp').addEventListener('click', lockButton($('btnDeleteExp'), async function(){
-    if(!confirm('Delete "' + state.current.title + '" and all its areas, students, and readings? This cannot be undone.')) return;
-    /* The DB row cascades to lfg_experiment_files automatically, but the
-       actual objects in Storage don't disappear on their own — clean those
-       up first or they sit there invisibly, using space, forever. */
+  $('btnDeleteTemplate').addEventListener('click', lockButton($('btnDeleteTemplate'), async function(){
+    if(!confirm('Delete "' + state.currentTemplate.title + '" and every section, student, and reading under it? This cannot be undone.')) return;
     if(state.files.length){
       await sb.storage.from(FILE_BUCKET).remove(state.files.map(function(f){ return f.storage_path; }));
     }
-    var { error } = await sb.from('lfg_experiments').delete().eq('id', state.current.id);
+    var { error } = await sb.from('lfg_experiments').delete().eq('id', state.currentTemplate.id);
     if(error){ toast('Could not delete: ' + error.message); return; }
     showList();
   }));
 
-  /* ── areas on experiment ── */
+  /* ── files (template-level) ── */
+  var FILE_BUCKET = 'experiment-files';
+  function fileIcon(mime){
+    if(!mime) return '&#128196;';
+    if(mime.includes('pdf')) return '&#128209;';
+    if(mime.includes('word') || mime.includes('document')) return '&#128196;';
+    if(mime.includes('sheet') || mime.includes('excel') || mime==='text/csv') return '&#128202;';
+    if(mime.includes('image')) return '&#128247;';
+    return '&#128196;';
+  }
+  function fmtSize(n){
+    if(!n) return '';
+    if(n < 1024) return n + ' B';
+    if(n < 1024*1024) return (n/1024).toFixed(0) + ' KB';
+    return (n/1024/1024).toFixed(1) + ' MB';
+  }
+  async function loadFiles(){
+    var { data, error } = await sb.from('lfg_experiment_files').select('*').eq('experiment_id', state.currentTemplate.id).order('uploaded_at');
+    state.files = error ? [] : data;
+    $('fileList').innerHTML = state.files.map(function(f){
+      return '<div class="prow">'
+        + '<div class="fic">'+fileIcon(f.mime_type)+'</div>'
+        + '<div class="who"><b>'+esc(f.file_name)+'</b><span>'+fmtSize(f.size_bytes)+'</span></div>'
+        + '<div class="acts">'
+          + '<button data-dl="'+f.id+'" title="Download">&#8595;</button>'
+          + '<button data-rm="'+f.id+'" title="Remove">&times;</button>'
+        + '</div></div>';
+    }).join('') || '<span style="color:var(--soft);font-size:13.5px">No files attached yet.</span>';
+    Array.prototype.forEach.call(document.querySelectorAll('#fileList [data-dl]'), function(b){
+      b.addEventListener('click', async function(){
+        var win = window.open('', '_blank');
+        var f = state.files.find(function(x){ return x.id === b.dataset.dl; });
+        var { data, error } = await sb.storage.from(FILE_BUCKET).createSignedUrl(f.storage_path, 60);
+        if(error){ if(win) win.close(); toast('Could not open file: ' + error.message); return; }
+        if(win) win.location.href = data.signedUrl;
+        else window.open(data.signedUrl, '_blank');
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#fileList [data-rm]'), function(b){
+      b.addEventListener('click', async function(){
+        var f = state.files.find(function(x){ return x.id === b.dataset.rm; });
+        if(!confirm('Remove "' + f.file_name + '"?')) return;
+        await sb.storage.from(FILE_BUCKET).remove([f.storage_path]);
+        await sb.from('lfg_experiment_files').delete().eq('id', f.id);
+        loadFiles();
+      });
+    });
+  }
+  $('btnAddFile').addEventListener('click', function(){ $('fileInput').click(); });
+  function friendlyUploadError(msg){
+    if(/mime type|not allowed|invalid/i.test(msg))
+      return 'That file type isn\u2019t supported \u2014 try PDF, Word, Excel, CSV, or an image.';
+    if(/exceeded|maximum allowed size|too large|payload/i.test(msg))
+      return 'That file is too large \u2014 25MB max.';
+    return 'Upload failed: ' + msg;
+  }
+  $('fileInput').addEventListener('change', async function(){
+    var file = this.files[0];
+    this.value = '';
+    if(!file) return;
+    toast('Uploading\u2026');
+    var path = state.currentTemplate.id + '/' + Date.now() + '-' + file.name.replace(/[^\w.\-]/g,'_');
+    var up = await sb.storage.from(FILE_BUCKET).upload(path, file, { contentType: file.type || undefined });
+    if(up.error){ toast(friendlyUploadError(up.error.message)); return; }
+    var { error } = await sb.from('lfg_experiment_files').insert({
+      experiment_id: state.currentTemplate.id, file_name: file.name, storage_path: path,
+      mime_type: file.type || null, size_bytes: file.size,
+      uploaded_by: (await GRUSH.session())?.user?.email || null
+    });
+    if(error){ toast('Saved to storage but could not record it: ' + error.message); return; }
+    toast('Uploaded');
+    loadFiles();
+  });
+
+  /* ── sections list (within template) ── */
+  async function loadSections(){
+    var { data, error } = await sb.from('lfg_experiment_sections').select('*').eq('experiment_id', state.currentTemplate.id).order('created_at', {ascending:false});
+    state.sections = error ? [] : data;
+    if(!state.sections.length){
+      $('sectionList').innerHTML = '<span style="color:var(--soft);font-size:13.5px">No sections yet — assign this template to a class or team to start one.</span>';
+      return;
+    }
+    var ids = state.sections.map(function(s){ return s.id; });
+    var [studentRows, areaRows] = await Promise.all([
+      sb.from('lfg_experiment_students').select('section_id').in('section_id', ids),
+      sb.from('lfg_experiment_areas').select('section_id').in('section_id', ids)
+    ]);
+    var counts = {};
+    (studentRows.data||[]).forEach(function(r){ counts[r.section_id] = counts[r.section_id]||{st:0,a:0}; counts[r.section_id].st++; });
+    (areaRows.data||[]).forEach(function(r){ counts[r.section_id] = counts[r.section_id]||{st:0,a:0}; counts[r.section_id].a++; });
+
+    $('sectionList').innerHTML = state.sections.map(function(s){
+      var c = counts[s.id] || {st:0,a:0};
+      return '<div class="prow clickable" data-id="'+s.id+'">'
+        + '<div class="fic">&#128203;</div>'
+        + '<div class="who"><b>'+esc(s.label)+'</b><span>'+c.st+' student'+(c.st===1?'':'s')+' · '+c.a+' area'+(c.a===1?'':'s')+(s.start_date?' · '+fmtDate(s.start_date):'')+'</span></div>'
+        + '<span class="pill '+s.status+'" style="flex:0 0 auto">'+s.status+'</span>'
+        + '</div>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#sectionList .prow'), function(el){
+      el.addEventListener('click', function(){ openSection(state.currentTemplate.id, el.dataset.id); });
+    });
+  }
+  $('btnNewSection').addEventListener('click', function(){
+    $('nsLabel').value = ''; $('nsStart').value=''; $('nsEnd').value='';
+    $('newSectionScrim').classList.add('on');
+  });
+  $('btnCancelNewSection').addEventListener('click', function(){ $('newSectionScrim').classList.remove('on'); });
+  $('btnCreateSection').addEventListener('click', lockButton($('btnCreateSection'), async function(){
+    var label = $('nsLabel').value.trim();
+    if(!label){ toast('Give the section a label'); return; }
+    var row = {
+      experiment_id: state.currentTemplate.id, label: label,
+      start_date: $('nsStart').value || null, end_date: $('nsEnd').value || null,
+      created_by: (await GRUSH.session())?.user?.email || null
+    };
+    var { data, error } = await sb.from('lfg_experiment_sections').insert(row).select().single();
+    if(error){ toast('Could not create: ' + error.message); return; }
+    $('newSectionScrim').classList.remove('on');
+    openSection(state.currentTemplate.id, data.id);
+  }));
+
+  /* ══ LEVEL 3: section detail ══ */
+  async function openSection(templateId, sectionId){
+    var [tmplRes, secRes] = await Promise.all([
+      sb.from('lfg_experiments').select('*').eq('id', templateId).single(),
+      sb.from('lfg_experiment_sections').select('*').eq('id', sectionId).single()
+    ]);
+    if(tmplRes.error || !tmplRes.data || secRes.error || !secRes.data){
+      toast('Section not found'); showList(); return;
+    }
+    state.currentTemplate = tmplRes.data;
+    state.currentSection = secRes.data;
+    history.replaceState(null, '', 'experiments.html?id=' + templateId + '&section=' + sectionId);
+    $('viewList').style.display = 'none';
+    $('viewTemplate').style.display = 'none';
+    $('viewSection').style.display = 'block';
+    $('backToTemplateLabel').textContent = state.currentTemplate.title;
+    setTopbar(state.currentSection.label, state.currentTemplate.title, function(){ openTemplate(templateId); });
+    $('sLabel').value = state.currentSection.label || '';
+    $('sStatus').value = state.currentSection.status || 'planned';
+    $('sStart').value = state.currentSection.start_date || '';
+    $('sEnd').value = state.currentSection.end_date || '';
+    window.scrollTo(0,0);
+    await Promise.all([loadExpAreas(), loadStudents(), loadReadings()]);
+  }
+  $('btnBackToTemplate').addEventListener('click', function(){ openTemplate(state.currentTemplate.id); });
+
+  $('btnSaveSection').addEventListener('click', lockButton($('btnSaveSection'), async function(){
+    var patch = {
+      label: $('sLabel').value.trim() || 'Untitled section',
+      status: $('sStatus').value,
+      start_date: $('sStart').value || null,
+      end_date: $('sEnd').value || null
+    };
+    var { error } = await sb.from('lfg_experiment_sections').update(patch).eq('id', state.currentSection.id);
+    if(!error){ state.currentSection = Object.assign(state.currentSection, patch); setTopbar(patch.label, state.currentTemplate.title, function(){ openTemplate(state.currentTemplate.id); }); }
+    toast(error ? 'Could not save: ' + error.message : 'Saved');
+  }));
+
+  $('btnDeleteSection').addEventListener('click', lockButton($('btnDeleteSection'), async function(){
+    if(!confirm('Delete "' + state.currentSection.label + '" — its students, areas, and readings? This cannot be undone.')) return;
+    var { error } = await sb.from('lfg_experiment_sections').delete().eq('id', state.currentSection.id);
+    if(error){ toast('Could not delete: ' + error.message); return; }
+    openTemplate(state.currentTemplate.id);
+  }));
+
+  $('btnDuplicateSection').addEventListener('click', lockButton($('btnDuplicateSection'), async function(){
+    var suggested = state.currentSection.label.replace(/^[^—-]+[—-]\s*/, '');
+    var label = prompt('Label for the new section (areas carry over; students and readings start fresh):', suggested || state.currentSection.label);
+    if(!label) return;
+    var { data: created, error } = await sb.from('lfg_experiment_sections').insert({
+      experiment_id: state.currentTemplate.id, label: label, status: 'planned',
+      created_by: (await GRUSH.session())?.user?.email || null
+    }).select().single();
+    if(error){ toast('Could not create: ' + error.message); return; }
+    if(state.expAreas.length){
+      await sb.from('lfg_experiment_areas').insert(state.expAreas.map(function(a){
+        return { section_id: created.id, area_id: a.area_id, custom_label: a.custom_label };
+      }));
+    }
+    toast('New section ready');
+    openSection(state.currentTemplate.id, created.id);
+  }));
+
+  /* ── areas on section ── */
   async function loadExpAreas(){
-    var { data, error } = await sb.from('lfg_experiment_areas').select('id,area_id,custom_label').eq('experiment_id', state.current.id);
+    var { data, error } = await sb.from('lfg_experiment_areas').select('id,area_id,custom_label').eq('section_id', state.currentSection.id);
     state.expAreas = error ? [] : data;
     $('areaChips').innerHTML = state.expAreas.map(function(r){
       var label = r.custom_label || (state.areas.find(function(a){return a.id===r.area_id;})||{}).name || 'Area';
@@ -579,10 +832,6 @@
     refreshReadingAreaSelect();
   }
   function refreshReadingAreaSelect(){
-    /* Option value is the lfg_experiment_areas row id, not area_id — a
-       custom bench spot has no area_id, so keying on that would collapse
-       every bench area into "general". Resolved back out in the two spots
-       that save/read a reading. */
     var sel = $('rArea');
     sel.innerHTML = '<option value="">— general —</option>';
     state.expAreas.forEach(function(r){
@@ -602,14 +851,14 @@
     var areaId = $('areaSelect').value, custom = $('areaCustom').value.trim();
     if(!areaId && !custom){ toast('Choose a bed or type a custom spot'); return; }
     var { error } = await sb.from('lfg_experiment_areas').insert({
-      experiment_id: state.current.id, area_id: areaId || null, custom_label: areaId ? null : custom
+      section_id: state.currentSection.id, area_id: areaId || null, custom_label: areaId ? null : custom
     });
     if(error){ toast('Could not add: ' + error.message); return; }
     $('areaSelect').value=''; $('areaCustom').value=''; $('areaPanel').style.display='none';
     loadExpAreas();
   }));
 
-  /* ── students ── */
+  /* ── students on section ── */
   function initials(name){ return (name||'').trim().split(/\s+/).map(function(p){return p[0];}).slice(0,2).join('').toUpperCase(); }
   function contactHref(s){
     if(s.contact_method === 'text') return 'sms:' + (s.phone||'');
@@ -619,7 +868,7 @@
   function contactIcon(m){ return m==='text' ? '&#128172;' : m==='call' ? '&#128222;' : '&#128231;'; }
 
   async function loadStudents(){
-    var { data, error } = await sb.from('lfg_experiment_students').select('*').eq('experiment_id', state.current.id).order('added_at');
+    var { data, error } = await sb.from('lfg_experiment_students').select('*').eq('section_id', state.currentSection.id).order('added_at');
     state.students = error ? [] : data;
     $('studentList').innerHTML = state.students.map(function(s){
       return '<div class="prow">'
@@ -651,7 +900,7 @@
     if(!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast('Name and a valid school email are required'); return; }
     if(method !== 'email' && !phone){ toast('Add a phone number for text/call'); return; }
     var { error } = await sb.from('lfg_experiment_students').insert({
-      experiment_id: state.current.id, student_name: name, student_email: email,
+      section_id: state.currentSection.id, student_name: name, student_email: email,
       contact_method: method, phone: phone || null
     });
     if(error){ toast('Could not add: ' + error.message); return; }
@@ -660,114 +909,9 @@
     loadStudents();
   }));
 
-  /* ── files ── */
-  var FILE_BUCKET = 'experiment-files';
-  function fileIcon(mime){
-    if(!mime) return '&#128196;';
-    if(mime.includes('pdf')) return '&#128209;';
-    if(mime.includes('word') || mime.includes('document')) return '&#128196;';
-    if(mime.includes('sheet') || mime.includes('excel') || mime==='text/csv') return '&#128202;';
-    if(mime.includes('image')) return '&#128247;';
-    return '&#128196;';
-  }
-  function fmtSize(n){
-    if(!n) return '';
-    if(n < 1024) return n + ' B';
-    if(n < 1024*1024) return (n/1024).toFixed(0) + ' KB';
-    return (n/1024/1024).toFixed(1) + ' MB';
-  }
-  async function loadFiles(){
-    var { data, error } = await sb.from('lfg_experiment_files').select('*').eq('experiment_id', state.current.id).order('uploaded_at');
-    state.files = error ? [] : data;
-    $('fileList').innerHTML = state.files.map(function(f){
-      return '<div class="prow">'
-        + '<div class="fic">'+fileIcon(f.mime_type)+'</div>'
-        + '<div class="who"><b>'+esc(f.file_name)+'</b><span>'+fmtSize(f.size_bytes)+'</span></div>'
-        + '<div class="acts">'
-          + '<button data-dl="'+f.id+'" title="Download">&#8595;</button>'
-          + '<button data-rm="'+f.id+'" title="Remove">&times;</button>'
-        + '</div></div>';
-    }).join('') || '<span style="color:var(--soft);font-size:13.5px">No files attached yet.</span>';
-    Array.prototype.forEach.call(document.querySelectorAll('#fileList [data-dl]'), function(b){
-      b.addEventListener('click', async function(){
-        /* window.open() must happen INSIDE the synchronous click handler or
-           mobile Safari/Chrome treat it as a popup and block it silently.
-           Open a blank tab first, then point it at the signed URL once the
-           (async) request comes back. */
-        var win = window.open('', '_blank');
-        var f = state.files.find(function(x){ return x.id === b.dataset.dl; });
-        var { data, error } = await sb.storage.from(FILE_BUCKET).createSignedUrl(f.storage_path, 60);
-        if(error){ if(win) win.close(); toast('Could not open file: ' + error.message); return; }
-        if(win) win.location.href = data.signedUrl;
-        else window.open(data.signedUrl, '_blank'); // popup blocker already won here either way
-      });
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('#fileList [data-rm]'), function(b){
-      b.addEventListener('click', async function(){
-        var f = state.files.find(function(x){ return x.id === b.dataset.rm; });
-        if(!confirm('Remove "' + f.file_name + '"?')) return;
-        await sb.storage.from(FILE_BUCKET).remove([f.storage_path]);
-        await sb.from('lfg_experiment_files').delete().eq('id', f.id);
-        loadFiles();
-      });
-    });
-  }
-  $('btnAddFile').addEventListener('click', function(){ $('fileInput').click(); });
-  function friendlyUploadError(msg){
-    if(/mime type|not allowed|invalid/i.test(msg))
-      return 'That file type isn\u2019t supported \u2014 try PDF, Word, Excel, CSV, or an image.';
-    if(/exceeded|maximum allowed size|too large|payload/i.test(msg))
-      return 'That file is too large \u2014 25MB max.';
-    return 'Upload failed: ' + msg;
-  }
-  $('fileInput').addEventListener('change', async function(){
-    var file = this.files[0];
-    this.value = '';
-    if(!file) return;
-    toast('Uploading\u2026');
-    var path = state.current.id + '/' + Date.now() + '-' + file.name.replace(/[^\w.\-]/g,'_');
-    var up = await sb.storage.from(FILE_BUCKET).upload(path, file, { contentType: file.type || undefined });
-    if(up.error){ toast(friendlyUploadError(up.error.message)); return; }
-    var { error } = await sb.from('lfg_experiment_files').insert({
-      experiment_id: state.current.id, file_name: file.name, storage_path: path,
-      mime_type: file.type || null, size_bytes: file.size,
-      uploaded_by: (await GRUSH.session())?.user?.email || null
-    });
-    if(error){ toast('Saved to storage but could not record it: ' + error.message); return; }
-    toast('Uploaded');
-    loadFiles();
-  });
-
-  /* ── duplicate: clone structure for a new semester, not people or data ── */
-  $('btnDuplicate').addEventListener('click', lockButton($('btnDuplicate'), async function(){
-    if(!confirm('Duplicate "' + state.current.title + '"? Areas and files carry over; students and readings start fresh.')) return;
-    var src = state.current;
-    var baseTitle = src.title.replace(/\s*\(copy\)\s*$/, ''); // avoid "(copy) (copy)" on repeat
-    var { data: created, error } = await sb.from('lfg_experiments').insert({
-      title: baseTitle + ' (copy)', description: src.description, hypothesis: src.hypothesis,
-      status: 'planned', start_date: null, end_date: null,
-      created_by: (await GRUSH.session())?.user?.email || null
-    }).select().single();
-    if(error){ toast('Could not duplicate: ' + error.message); return; }
-
-    if(state.expAreas.length){
-      await sb.from('lfg_experiment_areas').insert(state.expAreas.map(function(a){
-        return { experiment_id: created.id, area_id: a.area_id, custom_label: a.custom_label };
-      }));
-    }
-    if(state.files.length){
-      await sb.from('lfg_experiment_files').insert(state.files.map(function(f){
-        return { experiment_id: created.id, file_name: f.file_name, storage_path: f.storage_path,
-          mime_type: f.mime_type, size_bytes: f.size_bytes, uploaded_by: f.uploaded_by };
-      }));
-    }
-    toast('Duplicated — ready for a new semester');
-    openExperiment(created.id);
-  }));
-
-  /* ── readings + chart ── */
+  /* ── readings + chart on section ── */
   async function loadReadings(){
-    var { data, error } = await sb.from('lfg_experiment_readings').select('*').eq('experiment_id', state.current.id).order('recorded_at');
+    var { data, error } = await sb.from('lfg_experiment_readings').select('*').eq('section_id', state.currentSection.id).order('recorded_at');
     state.readings = error ? [] : data;
     var tbody = document.querySelector('#readingsTable tbody');
     tbody.innerHTML = state.readings.slice().reverse().map(function(r){
@@ -789,7 +933,7 @@
     if(!metric || value === ''){ toast('Metric and value are required'); return; }
     var pickedRow = state.expAreas.find(function(a){ return a.id === $('rArea').value; });
     var row = {
-      experiment_id: state.current.id, metric: metric, value: Number(value),
+      section_id: state.currentSection.id, metric: metric, value: Number(value),
       unit: $('rUnit').value.trim() || null,
       area_id: pickedRow ? (pickedRow.area_id || null) : null,
       custom_area_label: pickedRow ? (pickedRow.custom_label || null) : null,
@@ -824,9 +968,6 @@
         return { label: key, data: byArea[key], borderColor: palette[i % palette.length],
           backgroundColor: palette[i % palette.length], tension: .25, pointRadius: 3 };
       });
-      /* No chartjs-adapter-date-fns is loaded, so the x axis stays a plain
-         linear scale of millisecond timestamps with ticks reformatted by
-         hand — avoids pulling in a second CDN script just for date labels. */
       var chart = new Chart(ctx, {
         type: 'line',
         data: { datasets: datasets },
@@ -845,7 +986,6 @@
     });
   }
 
-  /* ── export ── */
   $('btnCopyCsv').addEventListener('click', async function(){
     var rows = [['Metric','Value','Unit','Area','Note','Recorded By','Recorded At']];
     state.readings.forEach(function(r){
