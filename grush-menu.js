@@ -82,6 +82,17 @@
     ]
   });
 
+  /* ── FACULTY ─────────────────────────────────────────────────────────
+     One destination: the research/overview hub built for the Koo
+     mycoremediation meeting. Unlocked — anyone with the link should be
+     able to open it without an account. */
+  M.addTier({
+    id: 'faculty', label: 'Faculty', locked: false,
+    items: [
+      { label: 'Faculty & Research', icon: '\u{1F393}', href: 'faculty.html' }
+    ]
+  });
+
   /* An index of everything the site does. After every tier, because it
      describes the whole menu above it rather than being another
      destination in it. */
