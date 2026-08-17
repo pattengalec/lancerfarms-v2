@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LFG Data — Lancer Farms & Gardens</title>
+<meta name="theme-color" content="#2A3A2E">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Source+Sans+3:wght@300;400;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<!-- The 'lfg-mode' pre-paint bootstrap that used to sit here is gone with
+     this page's local ☀ toggle. grush-settings.js owns theming site-wide and
+     runs its own applyTheme() from <head> before first paint. -->
+<!-- Shared design tokens. This page's own :root below now carries only
+     what it genuinely differs on; everything else comes from here. -->
+<link rel="stylesheet" href="lfg-theme.css?v=6">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* The 13 colour tokens that used to sit here are gone — they were
+     byte-identical to lfg-theme.css, which is linked above. One palette for
+     grush-settings.js to snapshot instead of two copies drifting apart.
+
+     What remains is what this page genuinely differs on: its own serif
+     (IM Fell English, not the theme's Georgia), a lighter shadow, the
+     green accents used by the bed cards, and the title-bar plates. */
+  --forest:     #A8B89A;
+  --lime:       #7E9A6E;
+  --lime-pale:  #A8B89A;
+  /* fixed plates — carry their own background AND ink, so the title bar
+     reads the same whichever way the page ground goes. */
+  --bar-bg:     #1F1C17;
+  --bar-ink:    #F0EDE2;
+  --bar-accent: #D4A44E;
+  --bar-soft:   #B6C4A9;
+  --bar-line:   #45423A;
+  --shadow:     0 2px 16px rgba(61,74,62,0.08);
+  --font-head:  'IM Fell English', Georgia, serif;
+  --font-body:  'Source Sans 3', sans-serif;
+  --font-mono:  'Courier Prime', monospace;
+}
+
+[data-mode="dark"] {
+  --bg:         #24231E;
+  --surface:    #262626;
+  --card:       #383838;
+  --card-border:#45423A;
+  --ink:        #F0EDE6;
+  --ink-soft:   #A8A39A;
+  --accent:     #7E9A6E;
+  --mist:       #33312A;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  min-height: 100vh;
+}
+
+/* ── Site title bar (herbarium plate) ──
+   Replaces the green .data-header. A PLATE: its own background and ink,
+   identical in both modes, matching visitor/almanac/app. Nowrap + clamp
+   so a long name shrinks rather than wrapping and thickening the bar. */
+.sitebar{flex:0 0 auto; background:var(--bar-bg); display:flex; align-items:center; gap:10px;
+  padding:9px 12px; position:sticky; top:0; z-index:40; flex-wrap:nowrap;
+  border-bottom:1px solid var(--bar-line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
+.sitebar img{width:36px; height:36px; flex:none; object-fit:contain; border-radius:50%;
+  border:1px solid var(--bar-line); padding:2px;}
+.sitebar .wrap{flex:1 1 auto; min-width:0; overflow:hidden;}
+.sitebar .eb{font-family:var(--font-mono); font-size:.58rem; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--bar-accent); margin-bottom:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.sitebar .wm{font-family:var(--font-head); font-weight:700; line-height:1.05; color:var(--bar-ink);
+  font-size:clamp(.95rem, 4.4vw, 1.2rem);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.sitebar .wm em{font-style:normal; font-weight:400; color:var(--bar-soft);}
+
+/* per-tab heading, where the tab bar used to be */
+.screen-head{flex:0 0 auto; display:flex; align-items:baseline; justify-content:space-between;
+  gap:10px; padding:14px 24px 0; max-width:900px; margin:0 auto;}
+.screen-head h1{font-family:var(--font-head); font-size:1.35rem; color:var(--ink); margin:0;}
+.screen-head .last-updated{font-family:var(--font-mono); font-size:0.66rem; color:var(--ink-soft);
+  white-space:nowrap;}
+
+.hdr-btn{background:transparent; border:var(--border-w) solid var(--card-border); color:var(--ink-soft);
+  border-radius:20px; padding:5px 11px; font-size:0.7rem; font-family:var(--font-mono);
+  text-decoration:none; cursor:pointer; min-height:34px; display:inline-flex; align-items:center;}
+
+
+/* ── Shell ── */
+.data-shell {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+/* ── Tab panels ── */
+.tab-panel { display: none; flex-direction: column; gap: 20px; }
+.tab-panel.active { display: flex; }
+
+/* ── Stat grid ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media(min-width: 600px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.stat-card {
+  background: var(--card);
+  border: var(--border-w) solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat-card.accent { border-color: var(--accent); }
+.stat-card.alert  { border-color: var(--alert); }
+
+.stat-num {
+  font-family: var(--font-mono);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+.stat-card.accent .stat-num { color: var(--accent); }
+.stat-card.alert  .stat-num { color: var(--alert); }
+
+.stat-label {
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 5px;
+  font-family: var(--font-mono);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--card);
+  border: var(--border-w) solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.card h3 {
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  opacity: 0.7;
+}
+
+/* ── Data rows ── */
+.data-list { display: flex; flex-direction: column; gap: 8px; }
+
+.data-row {
+  background: var(--surface);
+  border: var(--border-w) solid var(--card-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.data-row .row-main { flex: 1; min-width: 0; }
+.data-row .row-title { font-size: 0.9rem; font-weight: 600; color: var(--ink); }
+.data-row .row-sub { font-size: 0.72rem; color: var(--ink-soft); opacity: 0.8; margin-top: 3px; font-family: var(--font-mono); }
+.data-row .row-badge { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+.badge-green  { background: #2E3A2C; color: #AEC69E; }
+.badge-amber  { background: #43371E; color: #E3B778; }
+.badge-red    { background: #45261E; color: #E8A488; }
+.badge-gray   { background: var(--mist); color: var(--ink-soft); }
+.badge-blue   { background: #26374A; color: #A6C6E8; }
+
+/* ── Bed grid ── */
+.bed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.bed-cell {
+  background: var(--surface);
+  border: var(--border-w) solid var(--card-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 150ms, transform 150ms;
+}
+.bed-cell:hover { border-color: var(--accent); transform: translateY(-1px); }
+.bed-cell.has-activity { border-color: var(--accent-2); }
+.bed-cell.no-activity { opacity: 0.6; }
+
+.bed-cell .bed-id {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+.bed-cell .bed-name { font-size: 0.82rem; font-weight: 600; color: var(--ink); }
+.bed-cell .bed-mgr  { font-size: 0.65rem; color: var(--ink-soft); margin-top: 2px; }
+.bed-cell .bed-last { font-size: 0.6rem; font-family: var(--font-mono); color: var(--ink-soft); opacity: 0.7; margin-top: 4px; }
+
+/* ── Inventory grid ── */
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.inv-cell {
+  background: var(--surface);
+  border: var(--border-w) solid var(--card-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.inv-cell.low { border-color: var(--alert); }
+.inv-cell .inv-name { font-size: 0.85rem; font-weight: 600; color: var(--ink); }
+.inv-cell .inv-qty  { font-family: var(--font-mono); font-size: 1.4rem; color: var(--ink); line-height: 1.1; margin-top: 2px; }
+.inv-cell.low .inv-qty { color: var(--alert); }
+.inv-cell .inv-sub  { font-size: 0.65rem; color: var(--ink-soft); opacity: 0.75; margin-top: 2px; }
+
+/* ── Photo grid ── */
+.photo-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+@media(min-width:600px) { .photo-grid { grid-template-columns: repeat(4,1fr); } }
+.photo-thumb { aspect-ratio:1; border-radius:8px; overflow:hidden; cursor:pointer; background:var(--mist); }
+.photo-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+
+/* ── Lightbox ── */
+/* 1100: above grush-nav's rail (900) and drawer (1010). At 100 the rail
+   would cover the bottom of the image and its controls. */
+.lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:1100; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+.lightbox.open { display:flex; }
+.lightbox img { max-width:100%; max-height:70vh; border-radius:var(--radius); object-fit:contain; }
+.lightbox-meta { margin-top:14px; text-align:center; color:#fff; }
+.lightbox-meta h3 { font-family:var(--font-head); font-size:1rem; }
+.lightbox-meta p { font-size:0.75rem; opacity:0.7; font-family:var(--font-mono); margin-top:4px; }
+.lightbox-close { position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.15); border:none; color:#fff; border-radius:50%; width:36px; height:36px; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+/* ── Empty / skeleton ── */
+.empty-state { text-align:center; padding:32px; color:var(--ink-soft); opacity:0.6; font-size:0.85rem; font-style:italic; }
+.skeleton { background:var(--mist); border-radius:8px; animation:shimmer 1.4s ease infinite; }
+@keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:1} }
+
+/* ── Almanac ── */
+.alm-hero { background:linear-gradient(180deg,#2A3A2E,#2d5a3d); color:#fff; border-radius:var(--radius); padding:20px; text-align:center; }
+.alm-temp { font-family:var(--font-head); font-size:3rem; }
+.alm-cond { font-size:0.85rem; opacity:0.85; margin-top:4px; }
+.info-row { background:var(--card); border-radius:8px; padding:12px 16px; border:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; }
+.info-row .label { font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft); font-family:var(--font-mono); }
+.info-row .value { font-size:0.9rem; font-weight:600; color:var(--ink); text-align:right; max-width:60%; }
+
+/* ── Read-only banner ── */
+.readonly-banner {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: var(--border-w) solid var(--accent-2);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface); color:var(--ink); padding:10px 20px; border-radius:20px; font-size:0.82rem; font-family:var(--font-mono); transition:transform 0.3s ease; z-index:999; white-space:nowrap; border:var(--border-w) solid var(--card-border); box-shadow:0 4px 16px rgba(0,0,0,0.12); }
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+@media(max-width:480px) {
+  .data-shell { padding: 16px 12px 48px; }
+}
+
+.info-row .label{font-size:0.95rem !important;text-transform:none !important;letter-spacing:0 !important;font-family:var(--font-body) !important;}
+.info-row{min-height:60px;padding:16px 18px !important;}
+.stat-num{font-size:2rem !important;}
+.stat-label{font-size:0.9rem !important;text-transform:none !important;letter-spacing:0 !important;}
+.readonly-banner{display:none !important;}
+body{padding-bottom:96px;}
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+<link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
+<script src="grush-settings.js?v=11"></script>
+</head>
+<body class="grush-surface">
+
+<!-- Title bar. grush-nav mounts its rail and drawer; the four tabs that
+     used to sit in a scrolling tab-bar are drawer items now. -->
+<div class="sitebar">
+  <img src="lfg-logo-192.webp" alt="">
+  <div class="wrap">
+    <div class="eb">Live data &middot; Zone 9b</div>
+    <div class="wm">Lancer Farms <em>&amp; Gardens</em></div>
+  </div>
+</div>
+
+<div class="screen-head">
+  <h1 id="tab-title">Overview</h1>
+  <span class="last-updated" id="last-updated">Refreshing&hellip;</span>
+</div>
+
+<!-- ── Shell ── -->
+<div class="data-shell">
+
+  <div class="readonly-banner">📊 Read-only view · Data refreshes live from the farm · No login required</div>
+
+  <!-- OVERVIEW -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="stat-grid" id="overview-stats">
+      <div class="stat-card accent"><div class="stat-num" id="stat-areas">—</div><div class="stat-label">Growing Areas</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-events">—</div><div class="stat-label">Events Logged</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-photos">—</div><div class="stat-label">Photos</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Recent Field Log</h3>
+      <div class="data-list" id="overview-log">
+        <div class="skeleton" style="height:52px;"></div>
+        <div class="skeleton" style="height:52px;margin-top:8px;"></div>
+        <div class="skeleton" style="height:52px;margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Recent Activity by Area</h3>
+      <div class="data-list" id="overview-events">
+        <div class="skeleton" style="height:52px;"></div>
+        <div class="skeleton" style="height:52px;margin-top:8px;"></div>
+        <div class="skeleton" style="height:52px;margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BEDS -->
+  <div class="tab-panel" id="tab-beds">
+    <div class="card">
+      <h3>All Growing Areas</h3>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="bed-zone-filter"></div>
+      <div class="bed-grid" id="beds-grid">
+        <div class="skeleton" style="height:80px;"></div>
+        <div class="skeleton" style="height:80px;"></div>
+        <div class="skeleton" style="height:80px;"></div>
+        <div class="skeleton" style="height:80px;"></div>
+        <div class="skeleton" style="height:80px;"></div>
+        <div class="skeleton" style="height:80px;"></div>
+      </div>
+    </div>
+    <div class="card" id="bed-detail-card" style="display:none;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <h3 id="bed-detail-name" style="margin:0;flex:1;">—</h3>
+        <button onclick="closeBedDetail()" style="background:none;border:none;color:var(--ink-soft);font-size:1.2rem;cursor:pointer;">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;" id="bed-detail-info"></div>
+      <div class="section-label" style="margin-top:16px;margin-bottom:8px;">Event History</div>
+      <div class="data-list" id="bed-detail-events"></div>
+    </div>
+  </div>
+
+  <!-- FIELD LOG -->
+  <div class="tab-panel" id="tab-log">
+    <div class="card">
+      <h3>Field Log</h3>
+      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="font-size:0.72rem;color:var(--ink-soft);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;">From</label>
+          <input type="date" id="log-from" style="background:var(--bg);border:var(--border-w) solid var(--card-border);border-radius:6px;padding:6px 10px;font-size:0.82rem;color:var(--ink);outline:none;">
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="font-size:0.72rem;color:var(--ink-soft);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;">To</label>
+          <input type="date" id="log-to" style="background:var(--bg);border:var(--border-w) solid var(--card-border);border-radius:6px;padding:6px 10px;font-size:0.82rem;color:var(--ink);outline:none;">
+        </div>
+        <button onclick="loadLog()" style="background:var(--accent);color:var(--on-accent);border:none;border-radius:6px;padding:7px 14px;font-size:0.8rem;font-family:var(--font-mono);cursor:pointer;">Filter</button>
+      </div>
+      <div class="data-list" id="log-list">
+        <div class="skeleton" style="height:52px;"></div>
+        <div class="skeleton" style="height:52px;margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  
+
+  <!-- PHOTOS -->
+  <div class="tab-panel" id="tab-photos">
+    <div class="card">
+      <h3>Farm Photos</h3>
+      <div class="photo-grid" id="photo-grid">
+        <div class="skeleton" style="height:100px;"></div>
+        <div class="skeleton" style="height:100px;"></div>
+        <div class="skeleton" style="height:100px;"></div>
+        <div class="skeleton" style="height:100px;"></div>
+        <div class="skeleton" style="height:100px;"></div>
+        <div class="skeleton" style="height:100px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALMANAC -->
+  
+
+</div><!-- /data-shell -->
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+  <div class="lightbox-meta">
+    <h3 id="lightbox-title"></h3>
+    <p id="lightbox-date"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DB ────────────────────────────────────────────────────────
+// Credentials come from lfg-config.js. Nothing is hardcoded on this page.
+const SUPABASE_URL = window.LFG_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = window.LFG_CONFIG.SUPABASE_ANON_KEY;
+// Read-only page, but the header still carries a signed-in operator's JWT
+// when there is one — that is what lets an operator see pending rows.
+const DB_HEADERS = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+async function syncDbAuth(){ DB_HEADERS.Authorization = `Bearer ${await GRUSH.token()}`; }
+document.addEventListener('grush:auth', syncDbAuth);
+
+async function sbGet(table, params) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params ? '?' + params : ''}`, { headers: DB_HEADERS });
+  if (!res.ok) throw new Error(`GET ${table} failed: ${res.status}`);
+  return res.json();
+}
+
+function esc(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(String(s||''))); return d.innerHTML; }
+function fmtDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e) { return ''; } }
+function fmtDateTime(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); } catch(e) { return ''; } }
+function showToast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800); }
+
+// ── Footer: Share ────────────────────────────────────────────
+// Was called from the footer markup but never defined — clicking did
+// nothing. Uses the native share sheet where available, falls back to
+// copying the link. Donate is a plain link to donate.html now — no JS
+// needed there.
+async function sharesite(){
+  const shareData = { title: document.title, url: location.href };
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch(e) { /* user cancelled — not an error */ }
+    return;
+  }
+  try { await navigator.clipboard.writeText(location.href); showToast('Link copied'); }
+  catch(e) { showToast('Could not copy — copy the address bar instead'); }
+}
+
+const FARM_LAT = 33.9281417, FARM_LNG = -117.4301472;
+
+// ── Mode ──────────────────────────────────────────────────────
+/* This page's local ☀ toggle is gone. It flipped data-mode between two
+   near-identical DARK palettes (#2A2620 vs #24231E) — v3 of the theme
+   shipped with its light block holding dark values, so the button did
+   almost nothing. grush-settings.js is the only theme owner now, reached
+   from Display → Settings in the drawer.
+   Kept as no-ops because call sites below still reference them. */
+window.toggleMode = function(){};
+function updateModeIcon(){}
+
+// ── Tabs ──────────────────────────────────────────────────────
+const TAB_TITLES = { overview:'Overview', beds:'Beds', log:'Field Log', photos:'Photos' };
+
+window.switchTab = function(tab, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('tab-' + tab);
+  if (!el) return;
+  el.classList.add('active');
+  /* The tab bar is gone — tabs are drawer items now — so the heading is
+     what tells you where you are. btn is still accepted so any older call
+     site keeps working. */
+  const h = document.getElementById('tab-title');
+  if (h) h.textContent = TAB_TITLES[tab] || 'Overview';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (tab === 'photos')  loadPhotos();
+  if (tab === 'log')     loadLog();
+  if (tab === 'beds')    loadBeds();
+};
+
+// ── Overview ──────────────────────────────────────────────────
+async function loadOverview() {
+  try {
+    const [areas, events, photos] = await Promise.all([
+      sbGet('lfg_growing_areas','archived_at=is.null'),
+      sbGet('lfg_area_events','order=event_date.desc&limit=200'),
+      sbGet('lfg_photos','select=id')
+    ]);
+
+    document.getElementById('stat-areas').textContent = areas.length;
+    document.getElementById('stat-events').textContent = events.length;
+    document.getElementById('stat-photos').textContent = photos.length;
+
+    // Recent log
+    const log = await sbGet('lfg_log','order=logged_at.desc&limit=8');
+    const logBox = document.getElementById('overview-log');
+    if (!log.length) { logBox.innerHTML = '<div class="empty-state">No log entries yet.</div>'; }
+    else {
+      logBox.innerHTML = log.map(e => `
+        <div class="data-row">
+          <div class="row-main">
+            <div class="row-title">${esc(e.note)}</div>
+            <div class="row-sub">${esc(e.location_label || 'Farm')} · ${esc(e.logged_by || '')} · ${fmtDateTime(e.logged_at)}</div>
+          </div>
+        </div>`).join('');
+    }
+
+    // Recent events
+    const evBox = document.getElementById('overview-events');
+    const areaMap = {};
+    areas.forEach(a => { areaMap[a.id] = a.name; });
+    if (!events.length) { evBox.innerHTML = '<div class="empty-state">No events logged yet.</div>'; }
+    else {
+      evBox.innerHTML = events.slice(0,10).map(e => `
+        <div class="data-row">
+          <div class="row-main">
+            <div class="row-title">${esc(areaMap[e.area_id] || 'Unknown area')} — ${esc(e.event_type)}</div>
+            <div class="row-sub">${esc(e.plant_name || e.notes || '—')} · ${esc(e.performed_by || '')} · ${fmtDate(e.event_date)}</div>
+          </div>
+          <span class="row-badge badge-green">${esc(e.event_type)}</span>
+        </div>`).join('');
+    }
+
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  } catch(e) { console.error('Overview load error:', e); }
+}
+
+// ── Beds ──────────────────────────────────────────────────────
+let allAreas = [];
+let activeZone = '';
+
+async function loadBeds() {
+  const grid = document.getElementById('beds-grid');
+  try {
+    allAreas = await sbGet('lfg_growing_areas','archived_at=is.null&order=zone.asc,sort_order.asc.nullslast,name.asc');
+    const events = await sbGet('lfg_area_events','order=event_date.desc&limit=500');
+
+    // Map last event per area
+    const lastEvent = {};
+    events.forEach(e => { if (!lastEvent[e.area_id]) lastEvent[e.area_id] = e; });
+
+    // Zone filter
+    const zones = [...new Set(allAreas.map(a => a.zone || 'Unzoned'))].sort();
+    const filterEl = document.getElementById('bed-zone-filter');
+    filterEl.innerHTML = `<button class="tab-btn active" style="padding:6px 12px;border-radius:20px;border:var(--border-w) solid var(--card-border);background:var(--accent);color:var(--on-accent);" onclick="filterBedZone('',this)">All</button>` +
+      zones.map(z => `<button class="tab-btn" style="padding:6px 12px;border-radius:20px;border:var(--border-w) solid var(--card-border);" onclick="filterBedZone('${esc(z)}',this)">${esc(z)}</button>`).join('');
+
+    renderBedGrid(allAreas, lastEvent);
+    window._lastEventMap = lastEvent;
+  } catch(e) { grid.innerHTML = '<div class="empty-state">Could not load beds.</div>'; }
+}
+
+window.filterBedZone = function(zone, btn) {
+  activeZone = zone;
+  document.querySelectorAll('#bed-zone-filter button').forEach(b => {
+    b.style.background = '';
+    b.style.color = '';
+  });
+  btn.style.background = 'var(--accent)';
+  btn.style.color = 'var(--on-accent)';
+  const filtered = zone ? allAreas.filter(a => (a.zone||'Unzoned') === zone) : allAreas;
+  renderBedGrid(filtered, window._lastEventMap || {});
+};
+
+function renderBedGrid(areas, lastEvent) {
+  const grid = document.getElementById('beds-grid');
+  grid.innerHTML = areas.map(a => {
+    const last = lastEvent[a.id];
+    const hasActivity = !!last;
+    return `<div class="bed-cell ${hasActivity ? 'has-activity' : 'no-activity'}" onclick="showBedDetail('${a.id}')">
+      <div class="bed-id">${esc(a.zone || '')}</div>
+      <div class="bed-name">${esc(a.name)}</div>
+      <div class="bed-mgr">${esc(a.manager || 'Unassigned')}</div>
+      <div class="bed-last">${last ? fmtDate(last.event_date) : 'No activity'}</div>
+    </div>`;
+  }).join('');
+}
+
+window.showBedDetail = function(areaId) {
+  const area = allAreas.find(a => a.id === areaId);
+  if (!area) return;
+  const card = document.getElementById('bed-detail-card');
+  document.getElementById('bed-detail-name').textContent = area.name;
+  document.getElementById('bed-detail-info').innerHTML = [
+    ['Zone', area.zone || '—'],
+    ['Type', area.area_type?.replace('_',' ') || '—'],
+    ['Manager', area.manager || 'Unassigned'],
+    ['Description', area.description || '—'],
+    ['Blessing', area.blessing ? `"${area.blessing}"${area.blessing_ref ? ' — ' + area.blessing_ref : ''}` : '—']
+  ].map(([l,v]) => `<div class="info-row"><span class="label">${l}</span><span class="value" style="font-size:0.82rem;font-weight:400;">${esc(v)}</span></div>`).join('');
+
+  card.style.display = '';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const evBox = document.getElementById('bed-detail-events');
+  evBox.innerHTML = '<div class="skeleton" style="height:52px;"></div>';
+  sbGet('lfg_area_events', `area_id=eq.${areaId}&order=event_date.desc&limit=15`).then(events => {
+    if (!events.length) { evBox.innerHTML = '<div class="empty-state">No events logged for this area.</div>'; return; }
+    evBox.innerHTML = events.map(e => `
+      <div class="data-row">
+        <div class="row-main">
+          <div class="row-title">${esc(e.event_type)}${e.plant_name ? ' — ' + esc(e.plant_name) : ''}</div>
+          <div class="row-sub">${esc(e.notes || '—')} · ${esc(e.performed_by || '')} · ${fmtDate(e.event_date)}</div>
+        </div>
+        <span class="row-badge badge-green">${esc(e.event_type)}</span>
+      </div>`).join('');
+  }).catch(() => { evBox.innerHTML = '<div class="empty-state">Could not load events.</div>'; });
+};
+
+window.closeBedDetail = function() {
+  document.getElementById('bed-detail-card').style.display = 'none';
+};
+
+// ── Field Log ─────────────────────────────────────────────────
+async function loadLog() {
+  const box = document.getElementById('log-list');
+  const from = document.getElementById('log-from').value;
+  const to   = document.getElementById('log-to').value;
+  let params = 'order=logged_at.desc&limit=100';
+  if (from) params += `&logged_at=gte.${from}`;
+  if (to)   params += `&logged_at=lte.${to}T23:59:59`;
+  try {
+    const log = await sbGet('lfg_log', params);
+    if (!log.length) { box.innerHTML = '<div class="empty-state">No log entries in this range.</div>'; return; }
+    box.innerHTML = log.map(e => `
+      <div class="data-row">
+        <div class="row-main">
+          <div class="row-title">${esc(e.note)}</div>
+          <div class="row-sub">${esc(e.location_label || 'Farm')} · ${esc(e.logged_by || '')} · ${fmtDateTime(e.logged_at)}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) { box.innerHTML = '<div class="empty-state">Could not load log.</div>'; }
+}
+
+// ── Inventory ─────────────────────────────────────────────────
+// ── Photos ────────────────────────────────────────────────────
+let lbData = [];
+
+async function loadPhotos() {
+  const grid = document.getElementById('photo-grid');
+  try {
+    const photos = await sbGet('lfg_photos','order=uploaded_at.desc&limit=80');
+    if (!photos.length) { grid.innerHTML = '<div class="empty-state">No photos yet.</div>'; return; }
+    lbData = [];
+    grid.innerHTML = photos.map((ph, idx) => {
+      const thumb = ph.thumbnail_url || ph.cloudinary_url.replace('/upload/','/upload/w_300,h_300,c_fill/');
+      lbData.push({ src: ph.cloudinary_url, title: ph.caption || 'Farm photo', date: fmtDate(ph.uploaded_at), by: ph.uploaded_by || '' });
+      return `<div class="photo-thumb" onclick="openLightbox(${idx})"><img src="${esc(thumb)}" alt="${esc(ph.caption||'')}" loading="lazy"></div>`;
+    }).join('');
+  } catch(e) { grid.innerHTML = '<div class="empty-state">Could not load photos.</div>'; }
+}
+
+window.openLightbox = function(idx) {
+  const d = lbData[idx]; if (!d) return;
+  document.getElementById('lightbox-img').src = d.src;
+  document.getElementById('lightbox-title').textContent = d.title;
+  document.getElementById('lightbox-date').textContent = d.date + (d.by ? ' · ' + d.by : '');
+  document.getElementById('lightbox').classList.add('open');
+};
+window.closeLightbox = function() { document.getElementById('lightbox').classList.remove('open'); };
+
+// ── Almanac ───────────────────────────────────────────────────
+// ── Refresh ───────────────────────────────────────────────────
+window.refreshAll = function() {
+  showToast('Refreshing…');
+  loadOverview();
+  const activeTab = document.querySelector('.tab-panel.active')?.id?.replace('tab-','');
+  if (activeTab && activeTab !== 'overview') {
+    if (activeTab === 'beds')      loadBeds();
+    if (activeTab === 'log')       loadLog();
+    if (activeTab === 'photos')    loadPhotos();
+  }
+};
+
+// ── Init ─────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  updateModeIcon();
+  // Set default log date range (last 30 days)
+  const today = new Date().toISOString().slice(0,10);
+  const from = new Date(); from.setDate(from.getDate() - 30);
+  document.getElementById('log-to').value = today;
+  document.getElementById('log-from').value = from.toISOString().slice(0,10);
+  loadOverview();
+});
+</script>
+<footer class="site-footer">
+  <a href="about-grush.html"><span class="fic">🌱</span>About</a>
+  <a href="#" onclick="sharesite();return false"><span class="fic">↗</span>Share</a>
+  <a href="donate.html"><span class="fic">♡</span>Donate</a>
+  <a href="about-grush.html" style="font-family:'Yellowtail',cursive;font-size:18px;letter-spacing:0;text-transform:none;color:#C34044;border:none"><span class="fic" style="font-size:18px">grush</span></a>
+</footer>
+<script>
+/* Navigation config for grush-nav.js. The four tabs that used to live in a
+   horizontally-scrolling tab bar are drawer items now — on a phone that bar
+   cut "Photos" off the right edge.
+
+   This page is a DOCUMENT, not a tool: it keeps normal page scrolling so
+   Safari's URL bar still collapses on a long field log. No grush-shell. */
+window.GRUSH_NAV = {
+  eyebrow: 'Farm data · Live records',
+  title: 'Lancer Farms & Gardens',
+  rail: [ { label:'Farm', icon:'\u{1F6B6}', href:'visitor.html' } ],
+
+  /* groups: removed Aug 2026 — grush-menu.js is the single list now.
+     Eleven pages each carried their own, and six had drifted apart. */
+
+};
+</script>
+<!-- The menu, defined once in grush-menu.js and extended by the Grush
+     overlay. Both load before grush-nav, which reads the result. -->
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+</body>
+</html>

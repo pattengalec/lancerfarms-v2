@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>Support the Developer — Lancer Farms &amp; Gardens</title>
+<meta name="description" content="Support Chad Pattengale, the student developer who builds and maintains this site.">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&family=Courier+Prime&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<style>
+  :root{
+    --paper:#2A2620; --card:#34302A; --card2:#3B362F; --line:#45423A; --line-strong:#5A554A;
+    --ink:#F0EDE2; --soft:#B0A99C; --leaf:#A8B89A; --green:#7E9A6E;
+    --amber:#C9973F; --venmo:#3D95CE;
+    --font-mono:'Courier Prime',monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{min-height:100%;}
+  body{
+    font-family:'Source Sans 3',system-ui,sans-serif; font-size:17px; line-height:1.6;
+    color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
+    padding-bottom:60px;
+  }
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; line-height:1.15;}
+  .wrap{max-width:560px; margin:0 auto; padding:0 22px;}
+  a{color:inherit;}
+
+  .top{padding:44px 0 30px; border-bottom:1px solid var(--line); text-align:center;}
+  .kick{font-family:var(--font-mono); font-size:11.5px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--leaf); margin-bottom:14px;}
+  .mark{width:68px; height:68px; margin:0 auto 14px; display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-weight:600; font-size:24px; color:var(--venmo);
+    border:1.5px solid var(--line-strong); border-radius:50%;}
+  h1{font-size:clamp(24px,6.5vw,32px); margin-bottom:10px;}
+  .top p{color:var(--soft); font-size:15px; max-width:440px; margin:0 auto;}
+
+  .notice{background:var(--card); border:1.5px solid var(--amber); border-radius:14px; padding:16px 18px;
+    margin:24px 0; font-size:14px; color:var(--ink); line-height:1.55;}
+  .notice b{color:var(--amber);}
+
+  .sec{padding:30px 0; border-bottom:1px solid var(--line);}
+  .sec:last-of-type{border-bottom:none;}
+  .sec h2{font-size:20px; margin-bottom:6px;}
+  .sec .hint{color:var(--soft); font-size:14px; margin-bottom:16px;}
+
+  .amounts{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px;}
+  .amt-btn{min-height:56px; border-radius:12px; border:1.5px solid var(--line-strong); background:var(--card);
+    color:var(--ink); font-family:'Fraunces',serif; font-weight:600; font-size:19px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; text-decoration:none;}
+  .amt-btn:active{border-color:var(--venmo); background:var(--card2);}
+
+  .customrow{display:flex; gap:10px; margin-top:6px;}
+  .customrow input{flex:1; min-height:52px; padding:0 14px; font-size:16px; font-family:inherit;
+    color:var(--ink); background:var(--card); border:1.5px solid var(--line); border-radius:11px; outline:none;}
+  .customrow input:focus{border-color:var(--amber);}
+  .customrow button{min-width:110px; min-height:52px; border-radius:11px; border:1.5px solid var(--venmo);
+    background:var(--venmo); color:#fff; font-weight:600; font-size:15px; cursor:pointer;}
+
+  .frow{margin-bottom:12px;}
+  .frow label{font-size:11.5px; font-family:var(--font-mono); letter-spacing:.08em; text-transform:uppercase;
+    color:var(--leaf); margin-bottom:5px; display:block;}
+  .frow input{width:100%; min-height:50px; padding:0 14px; font-size:15px; font-family:inherit;
+    color:var(--ink); background:var(--card); border:1.5px solid var(--line); border-radius:11px; outline:none;}
+  .frow input:focus{border-color:var(--amber);}
+
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    min-height:52px; border-radius:12px; font-weight:600; font-size:15px; text-decoration:none;
+    border:1.5px solid var(--line-strong); color:var(--ink); background:var(--card); cursor:pointer;}
+  .btn.lead{background:var(--green); border-color:var(--green); color:#fff;}
+
+  #receipt{display:none; background:var(--card); border:1.5px solid var(--green); border-radius:14px;
+    padding:20px 22px; margin-top:16px;}
+  #receipt h3{font-size:16px; margin-bottom:14px;}
+  #receipt .rline{display:flex; justify-content:space-between; font-size:14px; padding:7px 0;
+    border-bottom:1px solid var(--line);}
+  #receipt .rline:last-child{border-bottom:none;}
+  #receipt .rline span:first-child{color:var(--soft);}
+  #receipt .disclaimer{margin-top:14px; font-size:12px; color:var(--soft); line-height:1.5;}
+
+  footer{padding:30px 22px 10px; text-align:center; font-size:11.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--line-strong);}
+
+  @media print{
+    .top .kick, .notice, .sec:first-of-type, #donateForm, footer, a.back{display:none !important;}
+    body{background:#fff; color:#111; padding-bottom:0;}
+    #receipt{border-color:#999; background:#fff;}
+    #receipt .rline{border-color:#ddd;}
+  }
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="top">
+    <div class="kick">Support the Developer</div>
+    <div class="mark">V</div>
+    <h1>This isn't a farm donation</h1>
+    <p>Lancer Farms &amp; Gardens runs on software built and maintained by one student, in his own time. If it's been useful to you, this is how you say so.</p>
+  </div>
+
+  <div class="notice">
+    <b>Read this first:</b> this page supports <b>Chad Pattengale personally</b>, the developer of this site — not Lancer Farms &amp; Gardens, not California Baptist University. It's a personal gift sent by Venmo, not a donation to the farm or a registered nonprofit, and it is <b>not tax-deductible</b>.
+  </div>
+
+  <div class="sec">
+    <h2>Send a gift</h2>
+    <p class="hint">Opens Venmo with the amount already filled in.</p>
+    <div class="amounts">
+      <a class="amt-btn" href="#" data-amt="1">$1</a>
+      <a class="amt-btn" href="#" data-amt="5">$5</a>
+      <a class="amt-btn" href="#" data-amt="10">$10</a>
+      <a class="amt-btn" href="#" data-amt="20">$20</a>
+      <a class="amt-btn" href="#" data-amt="50">$50</a>
+      <a class="amt-btn" href="#" id="btnCustomOpen">Other</a>
+    </div>
+    <div class="customrow" id="customRow" style="display:none">
+      <input type="number" id="customAmt" min="1" step="1" placeholder="Amount">
+      <button id="btnCustomGo">Continue</button>
+    </div>
+  </div>
+
+  <div class="sec" id="donateForm">
+    <h2>Receipt (optional)</h2>
+    <p class="hint">Sent a gift and want a record of it? Fill this in after you send it in Venmo — this creates a self-reported receipt for your own files. It isn't verified against Venmo, since this site has no way to confirm a payment actually went through.</p>
+    <div class="frow">
+      <label>Amount</label>
+      <input type="number" id="rAmount" min="1" step="0.01" placeholder="10.00">
+    </div>
+    <div class="frow">
+      <label>Your name — optional</label>
+      <input type="text" id="rName" placeholder="Jane Smith">
+    </div>
+    <div class="frow">
+      <label>Your email — optional</label>
+      <input type="email" id="rEmail" placeholder="you@example.com">
+    </div>
+    <div class="frow">
+      <label>Note — optional</label>
+      <input type="text" id="rNote" placeholder="Anything you'd like on the receipt">
+    </div>
+    <button class="btn lead" id="btnGenerate">Generate receipt</button>
+
+    <div id="receipt">
+      <h3>Receipt</h3>
+      <div class="rline"><span>To</span><span id="rcTo">Chad Pattengale (@Chad-Pattengale)</span></div>
+      <div class="rline"><span>Amount</span><span id="rcAmount"></span></div>
+      <div class="rline"><span>From</span><span id="rcFrom"></span></div>
+      <div class="rline"><span>Note</span><span id="rcNote"></span></div>
+      <div class="rline"><span>Date</span><span id="rcDate"></span></div>
+      <div class="disclaimer">Self-reported receipt, not verified against a Venmo transaction. Not a donation to Lancer Farms &amp; Gardens or CBU, and not tax-deductible.</div>
+      <button class="btn" style="margin-top:16px" id="btnPrint">&#128438; Print / Save as PDF</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>Lancer Farms &amp; Gardens · CBU Environmental Science</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var VENMO_USER = 'Chad-Pattengale';
+  var sb = null;
+  try {
+    sb = window.supabase.createClient(window.LFG_CONFIG.SUPABASE_URL, window.LFG_CONFIG.SUPABASE_ANON_KEY);
+  } catch(e) { /* receipts still work locally even if this fails */ }
+
+  function venmoUrl(amount){
+    var note = encodeURIComponent('Support for lancerfarms.com development');
+    return 'https://venmo.com/' + VENMO_USER + '?txn=pay&amount=' + encodeURIComponent(amount) + '&note=' + note;
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.amt-btn[data-amt]'), function(btn){
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      var amt = btn.dataset.amt;
+      $('rAmount').value = amt;
+      window.open(venmoUrl(amt), '_blank');
+    });
+  });
+
+  $('btnCustomOpen').addEventListener('click', function(e){
+    e.preventDefault();
+    $('customRow').style.display = 'flex';
+    $('customAmt').focus();
+  });
+  $('btnCustomGo').addEventListener('click', function(){
+    var amt = parseFloat($('customAmt').value);
+    if(!amt || amt <= 0) return;
+    $('rAmount').value = amt;
+    window.open(venmoUrl(amt), '_blank');
+  });
+
+  $('btnGenerate').addEventListener('click', async function(){
+    var amount = parseFloat($('rAmount').value);
+    if(!amount || amount <= 0){ $('rAmount').focus(); return; }
+    var name = $('rName').value.trim();
+    var email = $('rEmail').value.trim();
+    var note = $('rNote').value.trim();
+
+    $('rcAmount').textContent = '$' + amount.toFixed(2);
+    $('rcFrom').textContent = name || 'Not provided';
+    $('rcNote').textContent = note || '—';
+    $('rcDate').textContent = new Date().toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+    $('receipt').style.display = 'block';
+    $('receipt').scrollIntoView({behavior:'smooth', block:'start'});
+
+    if(sb){
+      try {
+        await sb.from('lfg_donations').insert({
+          donor_name: name || null, donor_email: email || null,
+          amount: amount, note: note || null
+        });
+      } catch(e) { /* receipt still displays even if logging fails */ }
+    }
+  });
+
+  $('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+</script>
+
+<script>
+window.GRUSH_NAV = { eyebrow: 'Support this site', rail: false, title: 'Lancer Farms & Gardens' };
+</script>
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+<script src="i18n.js?v=2"></script>
+
+</body>
+</html>
