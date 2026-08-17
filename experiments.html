@@ -229,14 +229,23 @@
       </div>
     </div>
 
-    <label class="fieldlabel">Lab proposal <span style="text-transform:none;letter-spacing:0">— the background and rationale</span></label>
-    <textarea class="longfield" id="tDesc" placeholder="What is this experiment testing, and why?"></textarea>
+    <label class="fieldlabel">Research question</label>
+    <textarea class="longfield" id="tQuestion" placeholder="The core question this experiment is asking" style="min-height:60px"></textarea>
 
-    <label class="fieldlabel">Lab procedure <span style="text-transform:none;letter-spacing:0">— the steps students follow</span></label>
-    <textarea class="longfield" id="tProcedure" placeholder="1. Prepare...&#10;2. Measure...&#10;3. Record..." style="min-height:160px"></textarea>
+    <label class="fieldlabel">Background &amp; rationale</label>
+    <textarea class="longfield" id="tBackground" placeholder="Context and prior research — why this question matters"></textarea>
 
-    <label class="fieldlabel">Hypothesis <span style="text-transform:none;letter-spacing:0">— optional</span></label>
+    <label class="fieldlabel">Experimental design</label>
+    <textarea class="longfield" id="tDesign" placeholder="Treatments, groups, timeline"></textarea>
+
+    <label class="fieldlabel">Materials &amp; equipment <span style="text-transform:none;letter-spacing:0">— one per line</span></label>
+    <textarea class="longfield" id="tMaterials" placeholder="Seeds&#10;Potting mix&#10;Analytical balance..." style="min-height:100px"></textarea>
+
+    <label class="fieldlabel">Hypothesis</label>
     <textarea class="longfield" id="tHypothesis" placeholder="Optional" style="min-height:60px"></textarea>
+
+    <label class="fieldlabel">Procedure steps <span style="text-transform:none;letter-spacing:0">— one per line, numbered automatically</span></label>
+    <textarea class="longfield" id="tProcedure" placeholder="Grind each dried sample to a fine powder...&#10;Sieve through the 6-tiered stack...&#10;Weigh 0.25g into the labeled vessel..." style="min-height:160px"></textarea>
 
     <div class="sec">
       <h3>Reference files</h3>
@@ -397,13 +406,30 @@
       <input type="text" id="nTitle" placeholder="e.g. Soil Organic Carbon Accumulation Trial">
     </div>
     <div class="frow">
-      <label>Lab proposal</label>
-      <textarea id="nDesc" placeholder="What is this experiment testing, and why?" style="min-height:80px"></textarea>
+      <label>Research question</label>
+      <textarea id="nQuestion" placeholder="The core question this experiment is asking" style="min-height:50px"></textarea>
     </div>
     <div class="frow">
-      <label>Lab procedure</label>
-      <textarea id="nProcedure" placeholder="Steps students will follow" style="min-height:90px"></textarea>
+      <label>Background &amp; rationale</label>
+      <textarea id="nBackground" placeholder="Context and prior research" style="min-height:60px"></textarea>
     </div>
+    <div class="frow">
+      <label>Experimental design</label>
+      <textarea id="nDesign" placeholder="Treatments, groups, timeline" style="min-height:60px"></textarea>
+    </div>
+    <div class="frow">
+      <label>Materials &amp; equipment — one per line</label>
+      <textarea id="nMaterials" placeholder="Seeds&#10;Potting mix..." style="min-height:70px"></textarea>
+    </div>
+    <div class="frow">
+      <label>Hypothesis</label>
+      <textarea id="nHypothesis" placeholder="Optional" style="min-height:50px"></textarea>
+    </div>
+    <div class="frow">
+      <label>Procedure steps — one per line</label>
+      <textarea id="nProcedure" placeholder="Step 1...&#10;Step 2..." style="min-height:80px"></textarea>
+    </div>
+    <p class="hint">Leave anything blank and fill it in later — this doesn't need to be complete to save.</p>
     <div class="exportrow">
       <button class="btn lead" id="btnCreateTemplate">Create</button>
       <button class="btn ghost" id="btnCancelNewTemplate">Cancel</button>
@@ -558,7 +584,7 @@
       var c = counts[t.id] || {s:0,f:0};
       return '<div class="xcard" data-id="'+t.id+'">'
         + '<div class="row1"><h3>'+esc(t.title)+'</h3><span class="pill '+t.status+'">'+t.status+'</span></div>'
-        + (t.description ? '<div class="desc">'+esc(t.description)+'</div>' : '')
+        + (t.research_question ? '<div class="desc">'+esc(t.research_question)+'</div>' : '')
         + '<div class="meta">'
           + '<span>&#128203; '+c.s+' section'+(c.s===1?'':'s')+'</span>'
           + '<span>&#128196; '+c.f+' file'+(c.f===1?'':'s')+'</span>'
@@ -576,14 +602,19 @@
     var title = $('nTitle').value.trim();
     if(!title){ toast('Give it a title first'); return; }
     var row = {
-      title: title, description: $('nDesc').value.trim() || null,
+      title: title,
+      research_question: $('nQuestion').value.trim() || null,
+      background: $('nBackground').value.trim() || null,
+      design: $('nDesign').value.trim() || null,
+      materials: $('nMaterials').value.trim() || null,
+      hypothesis: $('nHypothesis').value.trim() || null,
       procedure: $('nProcedure').value.trim() || null,
       created_by: (await GRUSH.session())?.user?.email || null
     };
     var { data, error } = await sb.from('lfg_experiments').insert(row).select().single();
     if(error){ toast('Could not create: ' + error.message); return; }
     $('newTemplateScrim').classList.remove('on');
-    $('nTitle').value=''; $('nDesc').value=''; $('nProcedure').value='';
+    ['nTitle','nQuestion','nBackground','nDesign','nMaterials','nHypothesis','nProcedure'].forEach(function(id){ $(id).value=''; });
     openTemplate(data.id);
   }));
   $('btnBackToList').addEventListener('click', showList);
@@ -600,9 +631,12 @@
     setTopbar(data.title, 'Template', showList);
     $('tTitle').value = data.title || '';
     $('tStatus').value = data.status || 'draft';
-    $('tDesc').value = data.description || '';
-    $('tProcedure').value = data.procedure || '';
+    $('tQuestion').value = data.research_question || '';
+    $('tBackground').value = data.background || '';
+    $('tDesign').value = data.design || '';
+    $('tMaterials').value = data.materials || '';
     $('tHypothesis').value = data.hypothesis || '';
+    $('tProcedure').value = data.procedure || '';
     window.scrollTo(0,0);
     await Promise.all([loadFiles(), loadSections()]);
   }
@@ -611,9 +645,12 @@
     var patch = {
       title: $('tTitle').value.trim() || 'Untitled experiment',
       status: $('tStatus').value,
-      description: $('tDesc').value.trim() || null,
-      procedure: $('tProcedure').value.trim() || null,
-      hypothesis: $('tHypothesis').value.trim() || null
+      research_question: $('tQuestion').value.trim() || null,
+      background: $('tBackground').value.trim() || null,
+      design: $('tDesign').value.trim() || null,
+      materials: $('tMaterials').value.trim() || null,
+      hypothesis: $('tHypothesis').value.trim() || null,
+      procedure: $('tProcedure').value.trim() || null
     };
     var { error } = await sb.from('lfg_experiments').update(patch).eq('id', state.currentTemplate.id);
     if(!error){ state.currentTemplate = Object.assign(state.currentTemplate, patch); setTopbar(patch.title, 'Template', showList); }
