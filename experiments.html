@@ -391,6 +391,17 @@
     var t = $('toast'); t.textContent = msg; t.classList.add('on');
     clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('on'); }, 2200);
   }
+  /* Wraps a button's async click handler so a double-tap (common on a page
+     with no other loading indicator) can't fire the request twice — which
+     for Add reading meant a silently duplicated data point in the chart
+     and CSV export. */
+  function lockButton(btn, fn){
+    return async function(e){
+      if(btn.disabled) return;
+      btn.disabled = true;
+      try { await fn(e); } finally { btn.disabled = false; }
+    };
+  }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function fmtDate(iso){ if(!iso) return ''; var d=new Date(iso); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
@@ -440,7 +451,11 @@
     var { data, error } = await sb.from('lfg_growing_areas')
       .select('id,name,zone,area_type').is('archived_at', null).order('sort_order');
     if(!error) state.areas = data || [];
+    /* Reset before repopulating — a sign-out/sign-in cycle without a full
+       reload used to re-run this and append a second, duplicate set of
+       options on top of the first. */
     var sel = $('areaSelect');
+    sel.innerHTML = '<option value="">— choose a bed —</option>';
     state.areas.forEach(function(a){
       var o = document.createElement('option'); o.value = a.id;
       o.textContent = a.name + (a.zone ? ' (' + a.zone + ')' : '');
@@ -489,7 +504,7 @@
   $('btnNew').addEventListener('click', function(){ $('newScrim').classList.add('on'); });
   $('btnNew2').addEventListener('click', function(){ $('newScrim').classList.add('on'); });
   $('btnCancelNew').addEventListener('click', function(){ $('newScrim').classList.remove('on'); });
-  $('btnCreateExp').addEventListener('click', async function(){
+  $('btnCreateExp').addEventListener('click', lockButton($('btnCreateExp'), async function(){
     var title = $('nTitle').value.trim();
     if(!title){ toast('Give it a title first'); return; }
     var row = {
@@ -502,7 +517,7 @@
     $('newScrim').classList.remove('on');
     $('nTitle').value=''; $('nDesc').value=''; $('nStart').value=''; $('nEnd').value='';
     openExperiment(data.id);
-  });
+  }));
   $('btnBackToList').addEventListener('click', showList);
 
   /* ── detail ── */
@@ -534,12 +549,18 @@
     toast(error ? 'Could not save: ' + error.message : 'Saved');
   });
 
-  $('btnDeleteExp').addEventListener('click', async function(){
+  $('btnDeleteExp').addEventListener('click', lockButton($('btnDeleteExp'), async function(){
     if(!confirm('Delete "' + state.current.title + '" and all its areas, students, and readings? This cannot be undone.')) return;
+    /* The DB row cascades to lfg_experiment_files automatically, but the
+       actual objects in Storage don't disappear on their own — clean those
+       up first or they sit there invisibly, using space, forever. */
+    if(state.files.length){
+      await sb.storage.from(FILE_BUCKET).remove(state.files.map(function(f){ return f.storage_path; }));
+    }
     var { error } = await sb.from('lfg_experiments').delete().eq('id', state.current.id);
     if(error){ toast('Could not delete: ' + error.message); return; }
     showList();
-  });
+  }));
 
   /* ── areas on experiment ── */
   async function loadExpAreas(){
@@ -558,6 +579,10 @@
     refreshReadingAreaSelect();
   }
   function refreshReadingAreaSelect(){
+    /* Option value is the lfg_experiment_areas row id, not area_id — a
+       custom bench spot has no area_id, so keying on that would collapse
+       every bench area into "general". Resolved back out in the two spots
+       that save/read a reading. */
     var sel = $('rArea');
     sel.innerHTML = '<option value="">— general —</option>';
     state.expAreas.forEach(function(r){
@@ -573,7 +598,7 @@
   }
   $('btnAddArea').addEventListener('click', function(){ $('areaPanel').style.display = 'block'; });
   $('btnCancelArea').addEventListener('click', function(){ $('areaPanel').style.display = 'none'; });
-  $('btnSaveArea').addEventListener('click', async function(){
+  $('btnSaveArea').addEventListener('click', lockButton($('btnSaveArea'), async function(){
     var areaId = $('areaSelect').value, custom = $('areaCustom').value.trim();
     if(!areaId && !custom){ toast('Choose a bed or type a custom spot'); return; }
     var { error } = await sb.from('lfg_experiment_areas').insert({
@@ -582,7 +607,7 @@
     if(error){ toast('Could not add: ' + error.message); return; }
     $('areaSelect').value=''; $('areaCustom').value=''; $('areaPanel').style.display='none';
     loadExpAreas();
-  });
+  }));
 
   /* ── students ── */
   function initials(name){ return (name||'').trim().split(/\s+/).map(function(p){return p[0];}).slice(0,2).join('').toUpperCase(); }
@@ -619,7 +644,7 @@
       $('stPhoneRow').style.display = (r.value === 'email') ? 'none' : 'block';
     });
   });
-  $('btnSaveStudent').addEventListener('click', async function(){
+  $('btnSaveStudent').addEventListener('click', lockButton($('btnSaveStudent'), async function(){
     var name = $('stName').value.trim(), email = $('stEmail').value.trim();
     var method = document.querySelector('input[name=stMethod]:checked').value;
     var phone = $('stPhone').value.trim();
@@ -633,7 +658,7 @@
     $('stName').value=''; $('stEmail').value=''; $('stPhone').value=''; $('stPhoneRow').style.display='none';
     $('studentPanel').style.display='none';
     loadStudents();
-  });
+  }));
 
   /* ── files ── */
   var FILE_BUCKET = 'experiment-files';
@@ -665,10 +690,16 @@
     }).join('') || '<span style="color:var(--soft);font-size:13.5px">No files attached yet.</span>';
     Array.prototype.forEach.call(document.querySelectorAll('#fileList [data-dl]'), function(b){
       b.addEventListener('click', async function(){
+        /* window.open() must happen INSIDE the synchronous click handler or
+           mobile Safari/Chrome treat it as a popup and block it silently.
+           Open a blank tab first, then point it at the signed URL once the
+           (async) request comes back. */
+        var win = window.open('', '_blank');
         var f = state.files.find(function(x){ return x.id === b.dataset.dl; });
         var { data, error } = await sb.storage.from(FILE_BUCKET).createSignedUrl(f.storage_path, 60);
-        if(error){ toast('Could not open file: ' + error.message); return; }
-        window.open(data.signedUrl, '_blank');
+        if(error){ if(win) win.close(); toast('Could not open file: ' + error.message); return; }
+        if(win) win.location.href = data.signedUrl;
+        else window.open(data.signedUrl, '_blank'); // popup blocker already won here either way
       });
     });
     Array.prototype.forEach.call(document.querySelectorAll('#fileList [data-rm]'), function(b){
@@ -682,6 +713,13 @@
     });
   }
   $('btnAddFile').addEventListener('click', function(){ $('fileInput').click(); });
+  function friendlyUploadError(msg){
+    if(/mime type|not allowed|invalid/i.test(msg))
+      return 'That file type isn\u2019t supported \u2014 try PDF, Word, Excel, CSV, or an image.';
+    if(/exceeded|maximum allowed size|too large|payload/i.test(msg))
+      return 'That file is too large \u2014 25MB max.';
+    return 'Upload failed: ' + msg;
+  }
   $('fileInput').addEventListener('change', async function(){
     var file = this.files[0];
     this.value = '';
@@ -689,7 +727,7 @@
     toast('Uploading\u2026');
     var path = state.current.id + '/' + Date.now() + '-' + file.name.replace(/[^\w.\-]/g,'_');
     var up = await sb.storage.from(FILE_BUCKET).upload(path, file, { contentType: file.type || undefined });
-    if(up.error){ toast('Upload failed: ' + up.error.message); return; }
+    if(up.error){ toast(friendlyUploadError(up.error.message)); return; }
     var { error } = await sb.from('lfg_experiment_files').insert({
       experiment_id: state.current.id, file_name: file.name, storage_path: path,
       mime_type: file.type || null, size_bytes: file.size,
@@ -701,11 +739,12 @@
   });
 
   /* ── duplicate: clone structure for a new semester, not people or data ── */
-  $('btnDuplicate').addEventListener('click', async function(){
+  $('btnDuplicate').addEventListener('click', lockButton($('btnDuplicate'), async function(){
     if(!confirm('Duplicate "' + state.current.title + '"? Areas and files carry over; students and readings start fresh.')) return;
     var src = state.current;
+    var baseTitle = src.title.replace(/\s*\(copy\)\s*$/, ''); // avoid "(copy) (copy)" on repeat
     var { data: created, error } = await sb.from('lfg_experiments').insert({
-      title: src.title + ' (copy)', description: src.description, hypothesis: src.hypothesis,
+      title: baseTitle + ' (copy)', description: src.description, hypothesis: src.hypothesis,
       status: 'planned', start_date: null, end_date: null,
       created_by: (await GRUSH.session())?.user?.email || null
     }).select().single();
@@ -724,7 +763,7 @@
     }
     toast('Duplicated — ready for a new semester');
     openExperiment(created.id);
-  });
+  }));
 
   /* ── readings + chart ── */
   async function loadReadings(){
@@ -745,7 +784,7 @@
     });
     drawCharts();
   }
-  $('btnAddReading').addEventListener('click', async function(){
+  $('btnAddReading').addEventListener('click', lockButton($('btnAddReading'), async function(){
     var metric = $('rMetric').value.trim(), value = $('rValue').value;
     if(!metric || value === ''){ toast('Metric and value are required'); return; }
     var pickedRow = state.expAreas.find(function(a){ return a.id === $('rArea').value; });
@@ -761,7 +800,7 @@
     if(error){ toast('Could not add: ' + error.message); return; }
     $('rMetric').value=''; $('rValue').value=''; $('rUnit').value=''; $('rNote').value='';
     loadReadings();
-  });
+  }));
 
   function drawCharts(){
     state.charts.forEach(function(c){ c.destroy(); });
@@ -785,6 +824,9 @@
         return { label: key, data: byArea[key], borderColor: palette[i % palette.length],
           backgroundColor: palette[i % palette.length], tension: .25, pointRadius: 3 };
       });
+      /* No chartjs-adapter-date-fns is loaded, so the x axis stays a plain
+         linear scale of millisecond timestamps with ticks reformatted by
+         hand — avoids pulling in a second CDN script just for date labels. */
       var chart = new Chart(ctx, {
         type: 'line',
         data: { datasets: datasets },
