@@ -467,12 +467,14 @@ async function sharesite(){
   catch(e) { showToast('Could not copy — copy the address bar instead'); }
 }
 async function donate(){
+  var win = window.open('', '_blank');
   try {
     const rows = await sbGet('lfg_config', 'key=eq.donations_url&select=value');
     const url = rows && rows[0] && rows[0].value;
-    if (url) window.open(url, '_blank');
-    else showToast('Donations aren\u2019t set up yet');
-  } catch(e) { showToast('Could not load donation link'); }
+    if (url && win) { win.location.href = url; }
+    else if (url) { window.open(url, '_blank'); }
+    else { if (win) win.close(); showToast('Donations aren\u2019t set up yet'); }
+  } catch(e) { if (win) win.close(); showToast('Could not load donation link'); }
 }
 (async function initFooterLinks(){
   try {

@@ -248,7 +248,7 @@ textarea{min-height:120px;resize:vertical;}
       <label for="r-what">What happened</label>
       <textarea id="r-what" placeholder="What happened, when, who was present, and what was done. Facts only — this is not the place to assign fault."></textarea>
 
-      <button class="btn primary" onclick="sendReport()">Submit report</button>
+      <button class="btn primary" onclick="sendReport(this)">Submit report</button>
       <button class="btn" style="margin-top:9px" onclick="window.print()">Print this page</button>
       <p class="msg" id="r-msg"></p>
     </form>
@@ -288,10 +288,12 @@ function copyLoc(btn){
 <script src="lfg-config.js"></script>
 <script src="lfg-db.js?v=1"></script>
 <script>
-async function sendReport(){
+async function sendReport(btn){
   var msg  = document.getElementById('r-msg');
   var what = document.getElementById('r-what').value.trim();
   if(!what){ msg.className='msg bad'; msg.textContent='Say what happened before submitting.'; return; }
+  if(btn && btn.disabled) return;
+  if(btn) btn.disabled = true;
 
   var where = document.getElementById('r-where').value.trim();
   var who   = document.getElementById('r-who').value.trim();
@@ -313,6 +315,7 @@ async function sendReport(){
     msg.className='msg bad';
     msg.textContent='Could not send: ' + (e.message || 'no connection') +
       '. Print this page or write it down \u2014 do not rely on this form.';
+    if(btn) btn.disabled = false; /* let them retry on failure */
   }
 }
 </script>
