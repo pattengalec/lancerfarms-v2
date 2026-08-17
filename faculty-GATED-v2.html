@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>Lancer Farms &amp; Gardens — Faculty &amp; Research</title>
+<meta name="description" content="Lancer Farms &amp; Gardens at California Baptist University — site overview and growing data for faculty and research collaborators.">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&family=Courier+Prime&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#2A2620; --card:#34302A; --line:#45423A; --line-strong:#5A554A;
+    --ink:#F0EDE2; --soft:#B0A99C; --leaf:#A8B89A; --green:#7E9A6E;
+    --amber:#C9973F;
+    --font-mono:'Courier Prime',monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{min-height:100%;}
+  body{
+    font-family:'Source Sans 3',system-ui,sans-serif; font-size:17px; line-height:1.6;
+    color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
+    padding-bottom:88px; /* clears the rail-less drawer burger */
+  }
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; line-height:1.12;}
+  .wrap{max-width:640px; margin:0 auto; padding:0 22px;}
+
+  .top{padding:52px 0 34px; border-bottom:1px solid var(--line); text-align:center;}
+  .kick{font-family:var(--font-mono); font-size:11.5px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--leaf); margin-bottom:14px;}
+  .mark{width:76px; height:76px; margin:0 auto 14px; display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-weight:600; font-size:28px; color:var(--green);
+    border:1.5px solid var(--line-strong); border-radius:50%;}
+  h1{font-size:clamp(28px,7vw,40px); margin-bottom:8px;}
+  .top p{color:var(--soft); font-size:15.5px; max-width:440px; margin:0 auto;}
+
+  .sec{padding:38px 0; border-bottom:1px solid var(--line);}
+  .sec:last-of-type{border-bottom:none;}
+  .sec h2{font-size:clamp(21px,4.5vw,26px); margin-bottom:6px;}
+  .sec .lede{color:var(--soft); font-size:15px; margin-bottom:20px; max-width:520px;}
+
+  .people{display:grid; gap:10px; margin-top:8px;}
+  .people div{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px;}
+  .people b{display:block; font-size:15.5px; color:var(--ink);}
+  .people span{display:block; font-size:13.5px; color:var(--soft); margin-top:2px;}
+
+  .stats{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:6px;}
+  .stat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;}
+  .stat b{display:block; font-family:'Fraunces',serif; font-size:26px; color:var(--amber); line-height:1;}
+  .stat span{display:block; font-size:12.5px; color:var(--soft); margin-top:6px; letter-spacing:.02em;}
+
+  table{width:100%; border-collapse:collapse; margin-top:18px; font-size:14px;}
+  th,td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--line);}
+  th{color:var(--leaf); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase;}
+  td{color:var(--ink);}
+  tr:last-child td{font-weight:700; border-bottom:none; color:var(--amber);}
+
+  .infralist{list-style:none; margin-top:14px; display:grid; gap:10px;}
+  .infralist li{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:14px 16px; font-size:14.5px; color:var(--soft); display:flex; gap:12px;}
+  .infralist li b{color:var(--ink); font-weight:600; flex:0 0 auto;}
+  .infralist .ic{font-size:18px; line-height:1.4;}
+
+  .pitch{background:var(--card); border:1.5px solid var(--green); border-radius:14px; padding:20px 22px; margin-top:16px;}
+  .pitch p{color:var(--ink); font-size:15px; margin-bottom:10px;}
+  .pitch p:last-child{margin-bottom:0; color:var(--soft); font-size:13.5px;}
+
+  .cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;}
+  .btn{flex:1; min-width:150px; min-height:52px; display:flex; align-items:center; justify-content:center;
+    gap:8px; border-radius:12px; font-weight:600; font-size:15px; text-decoration:none;
+    border:1.5px solid var(--line-strong); color:var(--ink); background:var(--card);}
+  .btn.lead{background:var(--green); border-color:var(--green); color:#fff;}
+
+  .menu{display:grid; gap:10px; margin-top:8px;}
+  .mrow{display:flex; align-items:center; gap:14px; background:var(--card); border:1.5px solid var(--line-strong);
+    border-radius:14px; padding:16px 18px; text-decoration:none; color:var(--ink); transition:border-color .15s;}
+  .mrow:active{border-color:var(--green);}
+  .mrow.lead{background:var(--green); border-color:var(--green); color:#fff;}
+  .mrow .mic{font-size:24px; flex:0 0 auto; width:32px; text-align:center;}
+  .mrow .mtext{flex:1; min-width:0;}
+  .mrow .mtext b{display:block; font-size:16px; font-weight:600;}
+  .mrow .mtext small{display:block; font-size:13px; color:var(--soft); margin-top:2px;}
+  .mrow.lead .mtext small{color:rgba(255,255,255,.8);}
+  .mrow .mchev{font-size:18px; color:var(--soft); flex:0 0 auto;}
+  .mrow.lead .mchev{color:#fff;}
+
+  footer{padding:30px 22px 10px; text-align:center; font-size:11.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--line-strong);}
+
+  /* ── sign-in gate ── */
+  #gate{max-width:420px; margin:60px auto; text-align:center; padding:0 22px;}
+  #gate h2{font-size:22px; margin-bottom:8px;}
+  #gate p{color:var(--soft); font-size:14.5px; margin-bottom:18px;}
+  #gate input{width:100%; min-height:52px; padding:0 14px; font-size:16px; margin-bottom:12px;
+    font-family:inherit; color:var(--ink); background:var(--card);
+    border:1.5px solid var(--line); border-radius:11px; outline:none;}
+  #gate input:focus{border-color:var(--amber);}
+  #gate button{width:100%; min-height:52px; border-radius:12px; font-weight:600; font-size:15px;
+    border:1.5px solid var(--green); background:var(--green); color:#fff; cursor:pointer;}
+  #gateMsg{font-size:13.5px; margin-top:10px; min-height:1.2em;}
+  #gateMsg.ok{color:var(--leaf);} #gateMsg.bad{color:#C97A4A;}
+  #content{display:none;}
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+</head>
+<body>
+
+<div id="gate">
+  <h2>Faculty sign-in</h2>
+  <p>This area is limited to Lancer Farms admins. Enter your CBU email and we'll send a sign-in link.</p>
+  <input id="gateEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="you@calbaptist.edu">
+  <button id="gateSend">Send sign-in link</button>
+  <p id="gateMsg"></p>
+</div>
+
+<div id="content">
+<div class="wrap">
+
+  <div class="top">
+    <div class="kick">Faculty &amp; Research</div>
+    <div class="mark">LFG</div>
+    <h1>Lancer Farms &amp; Gardens</h1>
+    <p>A working overview of the site — who runs it, what's growing, and the digital infrastructure already in place for research use.</p>
+  </div>
+
+  <div class="sec" style="padding-top:30px;">
+    <h2>Faculty menu</h2>
+    <p class="lede">Everything faculty need, in one place.</p>
+    <div class="menu">
+      <a class="mrow lead" href="experiments.html">
+        <span class="mic">&#129441;</span>
+        <span class="mtext"><b>Experiments</b><small>Create trials, assign beds &amp; students, log data</small></span>
+        <span class="mchev">&#8594;</span>
+      </a>
+      <a class="mrow" href="data.html">
+        <span class="mic">&#128202;</span>
+        <span class="mtext"><b>Farm Data</b><small>Live records across the whole farm</small></span>
+        <span class="mchev">&#8594;</span>
+      </a>
+      <a class="mrow" href="manual.html">
+        <span class="mic">&#128215;</span>
+        <span class="mtext"><b>Farm Manual</b><small>Operating procedures &amp; reference</small></span>
+        <span class="mchev">&#8594;</span>
+      </a>
+      <a class="mrow" href="about-grush.html">
+        <span class="mic">&#127793;</span>
+        <span class="mtext"><b>About the Platform</b><small>How Grush runs this site</small></span>
+        <span class="mchev">&#8594;</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>Overview</h2>
+    <p class="lede">Lancer Farms &amp; Gardens is a student-run organic teaching garden at California Baptist University, located next to the historic Hawthorne House. It operates as a live campus site — not a static demonstration plot.</p>
+    <div class="people">
+      <div><b>Dr. Bonjun Koo</b><span>Program Director, Environmental Science</span></div>
+      <div><b>Dr. Jacob Lanphere</b><span>Founding Faculty Advisor, Environmental Science</span></div>
+      <div><b>Julie Ratzlaff</b><span>Lab Director</span></div>
+      <div><b>Chad Pattengale</b><span>Student Caretaker · Environmental Science student, CBU (B.S. in progress)</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>Growing area</h2>
+    <p class="lede">23 raised beds across three zones, plus tracked grove, grounds, and landmark areas.</p>
+    <div class="stats">
+      <div class="stat"><b>23</b><span>raised beds, all full sun</span></div>
+      <div class="stat"><b>970</b><span>sq ft total growing area</span></div>
+      <div class="stat"><b>30"</b><span>soil depth, every bed</span></div>
+      <div class="stat"><b>35</b><span>tracked growing areas total</span></div>
+    </div>
+    <table>
+      <tr><th>Zone</th><th>Beds</th><th>Size</th><th>Area</th></tr>
+      <tr><td>Zone 1</td><td>10</td><td>4 × 8 ft</td><td>320 sq ft</td></tr>
+      <tr><td>Zone 2</td><td>6</td><td>5 × 10 ft</td><td>300 sq ft</td></tr>
+      <tr><td>Zone 3</td><td>7</td><td>5 × 10 ft</td><td>350 sq ft</td></tr>
+      <tr><td>Total</td><td>23</td><td>—</td><td>970 sq ft</td></tr>
+    </table>
+  </div>
+
+  <div class="sec">
+    <h2>Research-ready infrastructure</h2>
+    <p class="lede">The farm already runs on a digital operations layer, built in-house — not proposed, live today.</p>
+    <ul class="infralist">
+      <li><span class="ic">&#128273;</span><span><b>Per-bed QR records.</b> Every bed has an individual digital record and physical QR sign, linking directly to that bed's data.</span></li>
+      <li><span class="ic">&#128248;</span><span><b>Photo-documented logs.</b> 59 photo records on file with an approval workflow, tied to specific beds and plantings.</span></li>
+      <li><span class="ic">&#127807;</span><span><b>Plant &amp; trial tracking.</b> 34 tracked plant profiles with planting windows, spacing, and stage timelines already in the database.</span></li>
+      <li><span class="ic">&#128225;</span><span><b>Zoned drip irrigation.</b> 3-zone controlled irrigation with measured supply rates, independent of hand-watering.</span></li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>Experiments</h2>
+    <p class="lede">A working tool, not a mockup — set up a trial, assign beds or bench spots, add students, and log data.</p>
+    <div class="pitch">
+      <p>Create an experiment, assign it real beds or a custom bench spot, add students by school email with their preferred contact method, and log readings as the trial runs — with charts, CSV export, and a print-ready report built in.</p>
+      <p>Chad's parallel venture, Desert Fog Mycology, contributes direct substrate and fungal-cultivation expertise for a mycoremediation pilot specifically.</p>
+    </div>
+  </div>
+
+</div>
+</div><!-- /content -->
+
+<script>
+window.GRUSH_NAV = {
+  eyebrow: 'Faculty · Research', rail: false, title: 'Lancer Farms & Gardens'
+};
+</script>
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+<script src="i18n.js?v=2"></script>
+
+<footer>Lancer Farms &amp; Gardens · CBU Environmental Science</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+
+  async function checkGate(){
+    var s = await GRUSH.session();
+    if(!s){ showGate(); return; }
+    var r = await GRUSH.sb.rpc('grush_role');
+    if(!r.error && r.data === 'admin'){ showContent(); }
+    else showGate('Signed in, but that address is not an admin on this farm.');
+  }
+  function showGate(msg){
+    $('gate').style.display = 'block';
+    $('content').style.display = 'none';
+    if(msg){ $('gateMsg').className = 'bad'; $('gateMsg').textContent = msg; }
+  }
+  function showContent(){
+    $('gate').style.display = 'none';
+    $('content').style.display = 'block';
+  }
+  $('gateSend').addEventListener('click', async function(){
+    var email = $('gateEmail').value.trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+      $('gateMsg').className='bad'; $('gateMsg').textContent='That doesn\u2019t look like an email address.'; return;
+    }
+    $('gateSend').disabled = true; $('gateSend').textContent = 'Sending\u2026';
+    var r = await GRUSH.sendLink(email);
+    $('gateMsg').className = r.ok ? 'ok' : 'bad';
+    $('gateMsg').textContent = r.msg;
+    $('gateSend').textContent = 'Send sign-in link'; $('gateSend').disabled = false;
+  });
+  document.addEventListener('grush:auth', function(e){
+    var evt = e && e.detail;
+    if(evt === 'INITIAL_SESSION' || evt === 'TOKEN_REFRESHED' || evt === 'USER_UPDATED') return;
+    checkGate();
+  });
+
+  checkGate();
+})();
+</script>
+
+</body>
+</html>
