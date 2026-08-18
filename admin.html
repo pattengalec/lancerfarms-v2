@@ -2466,5 +2466,19 @@ document.addEventListener('grush:auth', (e) => {
   else { liftStats(); openGroup(0,0); }
 })();
 </script>
+
+<script>
+  window.GRUSH_NAV = {
+  eyebrow: 'Admin · Operator tools', rail: false, title: 'Lancer Farms & Gardens' };
+</script>
+<!-- The menu, defined once in grush-menu.js and extended by the Grush
+     overlay. Both load before grush-nav, which reads the result. -->
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+
+<!-- Spanish chrome + the language switch. Every other language is
+     the browser's job; see i18n.js. -->
+<script src="i18n.js?v=2"></script>
 </body>
 </html>
