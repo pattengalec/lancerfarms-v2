@@ -223,26 +223,21 @@
   /* ── map ── */
   function initMap(){
     if(map) return;
-    /* zoomSnap/zoomDelta give half-step zoom instead of whole integers —
-       finer control when lining a pin up with something small.
+    /* Whole-integer zoom steps (Leaflet's default) rather than the
+       fractional zoomSnap tried earlier — that combined with
+       maxNativeZoom to produce blank/black tiles past a certain point.
+       Direct tile requests confirmed real imagery exists at least to
+       z21 here, so this isn't a missing-resolution problem; it was a
+       rendering bug from that specific combination. Simpler is safer.
 
        Tile source: the current (2022+) ArcGIS basemap layer service, not
-       the legacy server.arcgisonline.com endpoint this used before. Esri
-       deprecated the legacy tiles and the replacement genuinely carries
-       higher-resolution imagery in many regions — this isn't just a
-       zoom-level trick. Requires the API key in lfg-config.js, scoped to
-       Basemaps only and restricted to this domain by referrer URL. */
-    map = L.map('map', { zoomControl: true, zoomSnap: 0.25, zoomDelta: 0.5, maxZoom: 22 })
+       the legacy server.arcgisonline.com endpoint this used before.
+       Requires the API key in lfg-config.js, scoped to Basemaps only and
+       restricted to this domain by referrer URL. */
+    map = L.map('map', { zoomControl: true, maxZoom: 21 })
       .setView([FARM_LAT, FARM_LNG], 20);
-    /* maxNativeZoom caps how deep this location actually has real
-       imagery for. Past that, Leaflet reuses (and upscales) the deepest
-       tile it has instead of requesting one that doesn't exist — a
-       request for a nonexistent tile comes back empty, which is what
-       was showing as solid black before this. maxZoom above stays higher
-       so pinch-zoom still keeps going, just blurrier past this point. */
     L.tileLayer('https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=' + encodeURIComponent(window.LFG_CONFIG.ARCGIS_API_KEY), {
-      maxZoom: 22,
-      maxNativeZoom: 20,
+      maxZoom: 21,
       attribution: 'Imagery &copy; Esri'
     }).addTo(map);
     L.marker([FARM_LAT, FARM_LNG], { opacity: 0.5 }).addTo(map).bindPopup('Farm center point (from site config)');
