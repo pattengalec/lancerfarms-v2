@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>Garden Map — Lancer Farms &amp; Gardens</title>
+<meta name="description" content="Real satellite map of Lancer Farms & Gardens — place and label beds, zones, and landmarks.">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&family=Courier+Prime&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --paper:#2A2620; --card:#34302A; --card2:#3B362F; --line:#45423A; --line-strong:#5A554A;
+    --ink:#F0EDE2; --soft:#B0A99C; --leaf:#A8B89A; --green:#7E9A6E;
+    --amber:#C9973F; --alert:#C97A4A;
+    --font-mono:'Courier Prime',monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; overflow:hidden;}
+  body{
+    font-family:'Source Sans 3',system-ui,sans-serif; font-size:16px; line-height:1.5;
+    color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600;}
+  a{color:inherit;}
+
+  .topbar{position:fixed; top:0; left:0; right:0; z-index:900; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:14px 16px; display:flex; align-items:center; gap:12px;}
+  .back{font-size:20px; color:var(--leaf); text-decoration:none; flex:0 0 auto; min-width:32px;}
+  .topbar h1{font-size:18px; flex:1;}
+  .topbar .sub{font-size:10.5px; color:var(--soft); font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em;}
+
+  #gate{max-width:400px; margin:100px auto; text-align:center; padding:0 22px;}
+  #gate h2{font-size:22px; margin-bottom:8px;}
+  #gate p{color:var(--soft); font-size:14.5px; margin-bottom:18px;}
+  #gate input{width:100%; min-height:52px; padding:0 14px; font-size:16px; margin-bottom:12px;
+    font-family:inherit; color:var(--ink); background:var(--card);
+    border:1.5px solid var(--line); border-radius:11px; outline:none;}
+  #gateMsg{font-size:13.5px; margin-top:10px; min-height:1.2em;}
+  #gateMsg.ok{color:var(--leaf);} #gateMsg.bad{color:var(--alert);}
+  #gate button{width:100%; min-height:52px; border-radius:12px; font-weight:600; border:1.5px solid var(--green);
+    background:var(--green); color:#fff; cursor:pointer;}
+
+  #mapApp{display:none; position:fixed; inset:0; top:60px;}
+  #map{position:absolute; inset:0; background:#1a1a1a;}
+
+  .panel{position:fixed; left:12px; right:12px; bottom:12px; z-index:850; background:var(--card);
+    border:1.5px solid var(--line-strong); border-radius:16px; padding:14px 16px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4); max-height:46vh; overflow-y:auto;}
+  .panel h3{font-size:14.5px; margin-bottom:8px;}
+  .panel .hint{color:var(--soft); font-size:12.5px; margin-bottom:10px; line-height:1.4;}
+
+  .placing-banner{background:var(--green); color:#fff; border-radius:11px; padding:10px 14px;
+    font-size:13.5px; font-weight:600; margin-bottom:10px; display:flex; align-items:center;
+    justify-content:space-between; gap:10px;}
+  .placing-banner button{background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:8px;
+    padding:6px 10px; font-size:12px; font-weight:600; cursor:pointer;}
+
+  .chiplist{display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px;}
+  .chip{background:var(--card2); border:1.5px solid var(--line); border-radius:999px; padding:8px 14px;
+    font-size:13px; cursor:pointer; color:var(--ink); min-height:38px; display:flex; align-items:center;}
+  .chip:active{border-color:var(--amber);}
+  .chip.zone-Grounds{border-color:#7E9A6E88;} .chip.zone-Orchard{border-color:#C9973F88;}
+
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap;}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:42px;
+    padding:0 14px; border-radius:10px; font-weight:600; font-size:13.5px; border:1.5px solid var(--line-strong);
+    color:var(--ink); background:var(--card2); cursor:pointer;}
+  .btn.lead{background:var(--green); border-color:var(--green); color:#fff;}
+
+  .newform{display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--line);}
+  .newform .frow{margin-bottom:8px;}
+  .newform label{font-size:10.5px; font-family:var(--font-mono); letter-spacing:.06em; text-transform:uppercase;
+    color:var(--leaf); margin-bottom:4px; display:block;}
+  .newform input, .newform select{width:100%; min-height:44px; padding:0 12px; font-size:14.5px;
+    font-family:inherit; color:var(--ink); background:var(--card2); border:1.5px solid var(--line);
+    border-radius:9px; outline:none;}
+
+  .recenter{position:fixed; right:12px; z-index:850; width:44px; height:44px; border-radius:12px;
+    background:var(--card); border:1.5px solid var(--line-strong); color:var(--ink); font-size:18px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.3);}
+
+  .toast{position:fixed; left:50%; transform:translateX(-50%); background:var(--card);
+    border:1.5px solid var(--green); color:var(--ink); padding:10px 20px; border-radius:999px;
+    font-size:13.5px; z-index:2000; opacity:0; pointer-events:none; transition:opacity .2s; top:72px;}
+  .toast.on{opacity:1;}
+
+  .leaflet-popup-content-wrapper{background:var(--card); color:var(--ink); border-radius:12px;}
+  .leaflet-popup-tip{background:var(--card);}
+  .popcard b{font-family:'Fraunces',serif; display:block; margin-bottom:2px;}
+  .popcard span{font-size:12px; color:var(--soft); display:block; margin-bottom:8px;}
+  .popcard .btnrow{gap:6px;}
+  .popcard button{min-height:34px; padding:0 10px; font-size:12px; border-radius:8px;
+    border:1.5px solid var(--line-strong); background:var(--card2); color:var(--ink); cursor:pointer;}
+  .popcard button.danger{border-color:var(--alert); color:var(--alert); background:transparent;}
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="faculty.html" aria-label="Back">&#8592;</a>
+  <div style="flex:1">
+    <h1>Garden Map</h1>
+    <div class="sub">Lancer Farms &amp; Gardens</div>
+  </div>
+</div>
+
+<div id="gate">
+  <h2>Staff sign-in</h2>
+  <p>Placing pins updates the farm's real records, so this needs an operator account. Enter your farm email and we'll send a sign-in link.</p>
+  <input id="gateEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="you@example.com">
+  <button id="gateSend">Send sign-in link</button>
+  <p id="gateMsg"></p>
+</div>
+
+<div id="mapApp">
+  <div id="map"></div>
+  <button class="recenter" id="btnRecenter" style="bottom:calc(46vh + 24px)" title="Recenter">&#8982;</button>
+
+  <div class="panel">
+    <div id="placingBanner" style="display:none" class="placing-banner">
+      <span id="placingLabel"></span>
+      <button id="btnCancelPlacing">Cancel</button>
+    </div>
+
+    <h3 id="unplacedTitle">Not yet placed (<span id="unplacedCount">0</span>)</h3>
+    <p class="hint">Tap a name below, then tap its spot on the map.</p>
+    <div class="chiplist" id="unplacedList"></div>
+
+    <div class="btnrow">
+      <button class="btn lead" id="btnNewPoint">+ New point not in this list</button>
+    </div>
+
+    <div class="newform" id="newForm">
+      <div class="frow">
+        <label>Name</label>
+        <input type="text" id="npName" placeholder="e.g. Toolshed">
+      </div>
+      <div class="frow">
+        <label>Type</label>
+        <select id="npType">
+          <option value="landmark">Landmark</option>
+          <option value="raised_bed">Raised bed</option>
+          <option value="container">Container</option>
+          <option value="tree">Tree</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="frow">
+        <label>Zone / area label</label>
+        <input type="text" id="npZone" placeholder="e.g. Grounds, Zone 1, Orchard">
+      </div>
+      <div class="btnrow">
+        <button class="btn lead" id="btnStartNewPoint">Ready — tap the map</button>
+        <button class="btn" id="btnCancelNewForm">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  'use strict';
+  var sb = GRUSH.sb;
+  var $ = function(id){ return document.getElementById(id); };
+  var FARM_LAT = 33.9281417, FARM_LNG = -117.4301472;
+  var map, markers = {};
+  var placing = null; // { mode: 'existing'|'new', area?: {...}, newData?: {...} }
+  var areas = [];
+
+  function toast(msg){
+    var t = $('toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('on'); }, 2200);
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  /* ── gate ── */
+  async function checkGate(){
+    var s = await GRUSH.session();
+    if(!s){ showGate(); return; }
+    var ok = await GRUSH.isOperator();
+    if(ok) showApp();
+    else showGate('Signed in, but that address is not an operator on this farm.');
+  }
+  function showGate(msg){
+    $('gate').style.display = 'block';
+    $('mapApp').style.display = 'none';
+    if(msg){ $('gateMsg').className = 'bad'; $('gateMsg').textContent = msg; }
+  }
+  function showApp(){
+    $('gate').style.display = 'none';
+    $('mapApp').style.display = 'block';
+    initMap();
+    loadAreas();
+  }
+  $('gateSend').addEventListener('click', async function(){
+    var email = $('gateEmail').value.trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+      $('gateMsg').className='bad'; $('gateMsg').textContent='That doesn\u2019t look like an email address.'; return;
+    }
+    $('gateSend').disabled = true; $('gateSend').textContent = 'Sending\u2026';
+    var r = await GRUSH.sendLink(email);
+    $('gateMsg').className = r.ok ? 'ok' : 'bad';
+    $('gateMsg').textContent = r.msg;
+    $('gateSend').textContent = 'Send sign-in link'; $('gateSend').disabled = false;
+  });
+  document.addEventListener('grush:auth', function(e){
+    var evt = e && e.detail;
+    if(evt === 'INITIAL_SESSION' || evt === 'TOKEN_REFRESHED' || evt === 'USER_UPDATED') return;
+    checkGate();
+  });
+
+  /* ── map ── */
+  function initMap(){
+    if(map) return;
+    /* zoomSnap/zoomDelta give half-step zoom instead of whole integers —
+       finer control when lining a pin up with something small.
+
+       Tile source: the current (2022+) ArcGIS basemap layer service, not
+       the legacy server.arcgisonline.com endpoint this used before. Esri
+       deprecated the legacy tiles and the replacement genuinely carries
+       higher-resolution imagery in many regions — this isn't just a
+       zoom-level trick. Requires the API key in lfg-config.js, scoped to
+       Basemaps only and restricted to this domain by referrer URL. */
+    map = L.map('map', { zoomControl: true, zoomSnap: 0.25, zoomDelta: 0.5, maxZoom: 22 })
+      .setView([FARM_LAT, FARM_LNG], 20);
+    L.tileLayer('https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=' + encodeURIComponent(window.LFG_CONFIG.ARCGIS_API_KEY), {
+      maxZoom: 22,
+      attribution: 'Imagery &copy; Esri'
+    }).addTo(map);
+    L.marker([FARM_LAT, FARM_LNG], { opacity: 0.5 }).addTo(map).bindPopup('Farm center point (from site config)');
+
+    map.on('click', function(e){
+      if(!placing) return;
+      commitPlacement(e.latlng.lat, e.latlng.lng);
+    });
+  }
+  $('btnRecenter').addEventListener('click', function(){
+    map.setView([FARM_LAT, FARM_LNG], 20);
+  });
+
+  /* ── load + render areas ── */
+  async function loadAreas(){
+    var { data, error } = await sb.from('lfg_growing_areas')
+      .select('id,name,zone,area_type,lat,lng').is('archived_at', null).order('sort_order');
+    if(error){ toast('Could not load areas: ' + error.message); return; }
+    areas = data || [];
+    Object.values(markers).forEach(function(m){ map.removeLayer(m); });
+    markers = {};
+    areas.forEach(function(a){
+      if(a.lat != null && a.lng != null) addMarker(a);
+    });
+    renderUnplaced();
+  }
+
+  function addMarker(a){
+    var m = L.marker([a.lat, a.lng], { draggable: false }).addTo(map);
+    m.bindPopup(popupHtml(a));
+    m.on('popupopen', function(){ wirePopup(a, m); });
+    markers[a.id] = m;
+  }
+  function popupHtml(a){
+    return '<div class="popcard"><b>'+esc(a.name)+'</b><span>'+esc(a.zone||'')+' &middot; '+esc(a.area_type||'')+'</span>'
+      + '<div class="btnrow"><button data-act="move">Move</button><button data-act="remove" class="danger">Remove pin</button></div></div>';
+  }
+  function wirePopup(a, m){
+    var el = m.getPopup().getElement();
+    if(!el) return;
+    var moveBtn = el.querySelector('[data-act="move"]');
+    var rmBtn = el.querySelector('[data-act="remove"]');
+    if(moveBtn) moveBtn.onclick = function(){
+      m.closePopup();
+      m.dragging.enable();
+      toast('Drag the pin, then tap it to lock in the new spot');
+      m.once('dragend', async function(){
+        var ll = m.getLatLng();
+        var { error } = await sb.from('lfg_growing_areas').update({ lat: ll.lat, lng: ll.lng }).eq('id', a.id);
+        if(error){ toast('Could not save: ' + error.message); return; }
+        a.lat = ll.lat; a.lng = ll.lng;
+        m.dragging.disable();
+        toast('Moved ' + a.name);
+      });
+    };
+    if(rmBtn) rmBtn.onclick = async function(){
+      if(!confirm('Remove the pin for "' + a.name + '"? The record stays, just unplaced.')) return;
+      var { error } = await sb.from('lfg_growing_areas').update({ lat: null, lng: null }).eq('id', a.id);
+      if(error){ toast('Could not remove: ' + error.message); return; }
+      map.removeLayer(m);
+      delete markers[a.id];
+      a.lat = null; a.lng = null;
+      renderUnplaced();
+      toast('Pin removed');
+    };
+  }
+
+  function renderUnplaced(){
+    var unplaced = areas.filter(function(a){ return a.lat == null || a.lng == null; });
+    $('unplacedCount').textContent = unplaced.length;
+    $('unplacedList').innerHTML = unplaced.map(function(a){
+      return '<div class="chip zone-'+esc(a.zone||'')+'" data-id="'+a.id+'">'+esc(a.name)+'</div>';
+    }).join('') || '<span style="color:var(--soft);font-size:13px">Everything\u2019s placed.</span>';
+    Array.prototype.forEach.call(document.querySelectorAll('#unplacedList .chip'), function(chip){
+      chip.addEventListener('click', function(){
+        var a = areas.find(function(x){ return x.id === chip.dataset.id; });
+        startPlacing({ mode: 'existing', area: a });
+      });
+    });
+  }
+
+  /* ── placing flow ── */
+  function startPlacing(p){
+    placing = p;
+    $('placingBanner').style.display = 'flex';
+    $('placingLabel').textContent = 'Tap the map to place: ' + (p.mode === 'existing' ? p.area.name : p.newData.name);
+    $('newForm').style.display = 'none';
+  }
+  $('btnCancelPlacing').addEventListener('click', function(){ placing = null; $('placingBanner').style.display = 'none'; });
+
+  async function commitPlacement(lat, lng){
+    if(!placing) return;
+    if(placing.mode === 'existing'){
+      var a = placing.area;
+      var { error } = await sb.from('lfg_growing_areas').update({ lat: lat, lng: lng }).eq('id', a.id);
+      if(error){ toast('Could not save: ' + error.message); return; }
+      a.lat = lat; a.lng = lng;
+      addMarker(a);
+      toast('Placed ' + a.name);
+    } else {
+      var nd = placing.newData;
+      var { data, error } = await sb.from('lfg_growing_areas').insert({
+        name: nd.name, area_type: nd.type, zone: nd.zone || null, lat: lat, lng: lng
+      }).select().single();
+      if(error){ toast('Could not create: ' + error.message); return; }
+      areas.push(data);
+      addMarker(data);
+      toast('Added ' + data.name);
+    }
+    placing = null;
+    $('placingBanner').style.display = 'none';
+    renderUnplaced();
+  }
+
+  /* ── new point form ── */
+  $('btnNewPoint').addEventListener('click', function(){
+    $('newForm').style.display = 'block';
+    $('npName').focus();
+  });
+  $('btnCancelNewForm').addEventListener('click', function(){ $('newForm').style.display = 'none'; });
+  $('btnStartNewPoint').addEventListener('click', function(){
+    var name = $('npName').value.trim();
+    if(!name){ toast('Give it a name first'); return; }
+    startPlacing({
+      mode: 'new',
+      newData: { name: name, type: $('npType').value, zone: $('npZone').value.trim() }
+    });
+    $('npName').value=''; $('npZone').value='';
+  });
+
+  checkGate();
+})();
+</script>
+
+</body>
+</html>
