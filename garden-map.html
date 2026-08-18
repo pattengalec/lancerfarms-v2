@@ -83,8 +83,9 @@
     display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.3);}
 
   .toast{position:fixed; left:50%; transform:translateX(-50%); background:var(--card);
-    border:1.5px solid var(--green); color:var(--ink); padding:10px 20px; border-radius:999px;
-    font-size:13.5px; z-index:2000; opacity:0; pointer-events:none; transition:opacity .2s; top:72px;}
+    border:1.5px solid var(--green); color:var(--ink); padding:10px 20px; border-radius:16px;
+    font-size:13.5px; z-index:2000; opacity:0; pointer-events:none; transition:opacity .2s; top:72px;
+    max-width:calc(100vw - 40px); text-align:center; line-height:1.4;}
   .toast.on{opacity:1;}
 
   .leaflet-popup-content-wrapper{background:var(--card); color:var(--ink); border-radius:12px;}
@@ -179,7 +180,8 @@
 
   function toast(msg){
     var t = $('toast'); t.textContent = msg; t.classList.add('on');
-    clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('on'); }, 2200);
+    var duration = Math.min(6000, Math.max(2200, msg.length * 60));
+    clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('on'); }, duration);
   }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -333,7 +335,11 @@
     if(placing.mode === 'existing'){
       var a = placing.area;
       var { error } = await sb.from('lfg_growing_areas').update({ lat: lat, lng: lng }).eq('id', a.id);
-      if(error){ toast('Could not save: ' + error.message); return; }
+      if(error){
+        toast('Could not save: ' + error.message);
+        placing = null; $('placingBanner').style.display = 'none';
+        return;
+      }
       a.lat = lat; a.lng = lng;
       addMarker(a);
       toast('Placed ' + a.name);
@@ -342,7 +348,14 @@
       var { data, error } = await sb.from('lfg_growing_areas').insert({
         name: nd.name, area_type: nd.type, zone: nd.zone || null, lat: lat, lng: lng
       }).select().single();
-      if(error){ toast('Could not create: ' + error.message); return; }
+      if(error){
+        var msg = /duplicate key|unique constraint/i.test(error.message)
+          ? '"' + nd.name + '" already exists \u2014 check the list below, it\u2019s probably already there. Tap its name instead of creating a new one.'
+          : 'Could not create: ' + error.message;
+        toast(msg);
+        placing = null; $('placingBanner').style.display = 'none';
+        return;
+      }
       areas.push(data);
       addMarker(data);
       toast('Added ' + data.name);
