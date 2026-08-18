@@ -73,7 +73,7 @@
      Places to go. Learn / Do / See / Share are destinations; the things
      that compute an answer live in Tools. */
   M.addTier({
-    id: 'visitor', label: 'Visitor', locked: false,
+    id: 'visitor', label: 'Visitor', color: 'var(--tier-visitor)', locked: false,
     items: [
       { label: 'Learn', icon: '\u{1F4D6}', href: 'learn.html' },
       { label: 'Do',    icon: '\u{1F9E4}', href: 'do.html'    },
@@ -89,7 +89,7 @@
      otherwise would be dishonest: the developer personally, the farm's
      operating needs, and (once built) a merch store. */
   M.addTier({
-    id: 'support', label: 'Support', locked: false,
+    id: 'support', label: 'Support', color: 'var(--tier-visitor)', locked: false,
     items: [
       { label: 'Support the Developer', icon: '\u{1F49B}', href: 'donate.html' },
       { label: 'Fund the Farm',         icon: '\u{1F33E}', href: 'fund-the-farm.html' },

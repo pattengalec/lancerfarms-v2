@@ -140,13 +140,14 @@
   .grush-close:active{ background:var(--nav-cell); }
   .grush-group{
     padding:16px 18px 6px; font-size:.68rem; font-weight:700;
-    letter-spacing:.16em; text-transform:uppercase; color:var(--nav-accent);
+    letter-spacing:.16em; text-transform:uppercase; color:var(--tier-color, var(--nav-accent));
     font-family:var(--font-mono, ui-monospace, monospace);
   }
   .grush-item{
     display:flex; align-items:center; gap:14px; width:calc(100% - 20px);
     margin:0 10px 8px; min-height:68px; padding:0 14px;
     background:var(--nav-cell); border:1.5px solid var(--nav-line);
+    border-left:3px solid var(--tier-color, var(--nav-line));
     border-radius:12px; color:var(--nav-ink); text-decoration:none;
     font:600 1.02rem/1.25 inherit; font-family:inherit; text-align:left;
     cursor:pointer; -webkit-tap-highlight-color:transparent;
@@ -387,14 +388,26 @@
     if (!t || !t.items || !t.items.length) return;
     var locked = MENU.locked(t);
 
+    /* t.color has existed on tier definitions since grush-desk-staff.js
+       was written, but nothing ever read it — the drawer rendered every
+       tier in the same plain ink regardless. Setting it as a custom
+       property on the label and each item, rather than hardcoding a
+       color, means this still respects whatever grush-settings.js's
+       hue/tone/chroma trims are doing to --tier-staff/--tier-visitor
+       at the time, instead of freezing a color that could drift out of
+       sync with the rest of the page. */
+    var tierColor = t.color || 'var(--tier-visitor)';
+
     if (t.label) {
       var lb = document.createElement('div');
       lb.className = 'grush-group' + (locked ? ' grush-locked-group' : '');
+      lb.style.setProperty('--tier-color', tierColor);
       lb.textContent = t.label + (locked ? '  \u{1F512}' : '');
       drawer.appendChild(lb);
     }
     t.items.forEach(function (it) {
       var el = makeItem(it, 'grush-item' + (t.id ? ' grush-tier-' + t.id : ''));
+      if (t.id !== 'emergency') el.style.setProperty('--tier-color', tierColor);
       if (locked) {
         /* Shown, not hidden. Seeing a locked door is how you learn the
            building exists — and it is the same drawer on every page, so

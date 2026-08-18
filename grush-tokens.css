@@ -1,30 +1,32 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   grush-tokens.css — one palette, two surfaces.
+   grush-tokens.css — one palette family, two accents.
 
    HOW THIS WORKS, AND WHY IT NEEDS NO PAGE REWRITTEN.
 
-   Eighteen pages each declared their own :root. Most of them had already
-   converged on the same NAMES — --paper, --card, --line, --ink, --green —
-   and drifted only on the values. So this file redeclares those names and
-   is loaded AFTER each page's inline <style>. Same specificity, later in
-   the cascade, so it wins.
+   Most pages had already converged on the same variable NAMES — --paper,
+   --card, --line, --ink, --green — and drifted only on the values. This
+   file redeclares those names and loads AFTER each page's inline <style>.
+   Same specificity, later in the cascade, so it wins. No page loses its
+   component CSS, no selectors are rewritten, and removing the one <link>
+   puts a page back exactly as it was.
 
-   That is the whole mechanism. No page loses its component CSS, no
-   selectors are rewritten, and removing the one <link> puts a page back
-   exactly as it was. It is the same cascade fact that made the emergency
-   button stay black for three rounds — used deliberately this time.
+   ── VISITOR vs STAFF, NOT LIGHT vs DARK ───────────────────────────────
+   This used to be two things: a FARM/GRUSH surface split (class="grush-
+   surface" on <body>) AND a separate, independent light/dark toggle
+   living in grush-settings.js that could recolor either surface on top.
+   Those two systems didn't know about each other, and on any page using
+   both, the surface class silently won every time — a handful of core
+   variable names (starting with --ink) were permanently stuck regardless
+   of what a visitor actually chose in settings, because a body-level
+   class always overrides an inline style set on <html>. That's a real,
+   confirmed bug this replaces, not a hypothetical one.
 
-   ── TWO SURFACES ──────────────────────────────────────────────────────
-   FARM is the default: warm dark ground, green accent. It is where a
-   visitor reads about tomatoes.
-
-   GRUSH is opt-in with class="grush-surface" on <body>: deeper ground,
-   spore accent. It is where crew work.
-
-   The furniture is identical on both — same header, footer, drawer,
-   spacing, type. Only the ground changes. A visitor and a crew member are
-   doing different things and the surface can say so without anything
-   moving.
+   The fix is to stop having two systems: one ground, one dark palette,
+   no toggle. class="staff" on <html> is the ONLY variation now, and it
+   changes the ACCENT only — green becomes mustard — not a competing
+   light/dark state. Visitor is the default; nothing needs to opt in to
+   get it. It lives on <html> rather than <body> deliberately — see the
+   comment on the html.staff rule below for why.
 
    ── WHAT IS DELIBERATELY NOT HERE ─────────────────────────────────────
    emergency.html. It has to work when the database is down, the session
@@ -36,20 +38,22 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
 :root{
-  /* ── FARM: the default ground ────────────────────────────────────── */
-  --paper:        #2A2620;
-  --card:         #34302A;
-  --line:         #45423A;
-  --line-strong:  #5A554A;
-  --ink:          #F0EDE2;
-  --ink-soft:     #B0A99C;
+  /* ── VISITOR: the default ground — fern green ────────────────────── */
+  --paper:        #1C2117;
+  --card:         #252B1F;
+  --line:         #3A4131;
+  --line-strong:  #4C5540;
+  --ink:          #EAE6D6;
+  --ink-soft:     #A9B79C;
 
-  --green:        #7E9A6E;
-  --green-d:      #67805A;
-  --leaf:         #A8B89A;
+  --green:        #4F9142;
+  --green-d:      #3B6D31;
+  --leaf:         #7FBE5E;
 
   /* Signals. Amber warns, red stops. Neither is ever decorative — a
-     colour that appears for emphasis stops meaning anything. */
+     colour that appears for emphasis stops meaning anything. Kept
+     independent of the visitor/staff accent split on purpose: a warning
+     has to read as a warning on either side of the site. */
   --amber:        #C9973F;
   --amber-bg:     rgba(201,151,63,.12);
   --red:          #B4231F;
@@ -57,6 +61,15 @@
 
   --shadow:       0 2px 10px rgba(0,0,0,.28);
   --tap:          rgba(255,255,255,.06);
+
+  /* ── tiers ───────────────────────────────────────────────────────────
+     Read by grush-nav.js when it renders the drawer, so each tier's
+     section carries its own family's accent — Visitor and Support in
+     green, Tools/Staff/Admin in mustard — without opening a page to
+     know which kind of destination a row leads to. */
+  --tier-visitor: var(--green);
+  --tier-staff:   #C8801A;
+  --tier-admin:   #C8801A;
 
   /* ── type ────────────────────────────────────────────────────────────
      Already near-universal before this file existed: Fraunces on fifteen
@@ -70,21 +83,21 @@
      Read by grush-nav.js for the header, footer and drawer. Kept as their
      own names so the shell can be tuned without touching page content —
      the bar is allowed to be darker than the page it sits on. */
-  --nav-bar:      #221E19;
-  --nav-line:     #45423A;
-  --nav-ink:      #F0EDE2;
-  --nav-dim:      #B0A99C;
-  --nav-accent:   #7E9A6E;
+  --nav-bar:      #171C13;
+  --nav-line:     #3A4131;
+  --nav-ink:      #EAE6D6;
+  --nav-dim:      #A9B79C;
+  --nav-accent:   #4F9142;
 
-  --bar-bg:       #221E19;
-  --bar-line:     #45423A;
-  --bar-ink:      #F0EDE2;
-  --bar-soft:     #B0A99C;
-  --bar-accent:   #7E9A6E;
+  --bar-bg:       #171C13;
+  --bar-line:     #3A4131;
+  --bar-ink:      #EAE6D6;
+  --bar-soft:     #A9B79C;
+  --bar-accent:   #4F9142;
 
   /* ── shape ───────────────────────────────────────────────────────────
-     14px radius and 1px hairlines come from the Grush design language and
-     apply to both surfaces. The ground changes; the joinery does not. */
+     14px radius and 1px hairlines apply to both accents. The ground and
+     accent change; the joinery does not. */
   --radius:       14px;
   --radius-sm:    10px;
   --hair:         1px;
@@ -96,39 +109,50 @@
   --tap-min:      52px;
 }
 
-/* ═══ GRUSH SURFACE ═══════════════════════════════════════════════════
-   class="grush-surface" on <body>. Tools, records, admin. */
-body.grush-surface{
-  --paper:        #14110F;
-  --card:         #1E1A17;
-  --line:         #2E2822;
-  --line-strong:  #443C33;
-  --ink:          #E8E1D4;
-  --ink-soft:     #8F8676;
+/* ═══ STAFF ═══════════════════════════════════════════════════════════
+   class="staff" on <html> — not <body>. Two reasons, both hard-learned
+   tonight: grush-settings.js runs in <head>, before <body> exists in the
+   DOM at all, so it cannot check a body class at the point it needs to;
+   and grush-settings.js writes its own inline overrides onto <html>, so
+   putting the surface class on a DIFFERENT element than the one JS
+   writes to is exactly the html-vs-body precedence conflict that broke
+   --ink earlier tonight, just rebuilt one level up. Same element for
+   both means there is nothing left to disagree.
 
-  /* Spore replaces green as the accent. It is the only saturated colour
-     in the Grush language, which is what lets it mean something. */
-  --green:        #C9A227;
-  --green-d:      #A6851F;
-  --leaf:         #D8BC5E;
+   Tools, records, admin — the crew's side. Same shape as visitor,
+   mustard in place of green. Deliberately just an accent swap: the
+   furniture (header, footer, drawer, spacing, type) stays identical so
+   nothing needs to be relearned crossing from one side of the site to
+   the other. */
+html.staff{
+  --paper:        #221A10;
+  --card:         #2C2216;
+  --line:         #453824;
+  --line-strong:  #5A4A30;
+  --ink:          #F2E8D2;
+  --ink-soft:     #B5A184;
 
-  --amber:        #C9A227;
-  --amber-bg:     rgba(201,162,39,.12);
+  --green:        #C8801A;
+  --green-d:      #8A6620;
+  --leaf:         #E3A63C;
+
+  --amber:        #C8801A;
+  --amber-bg:     rgba(200,128,26,.12);
 
   --shadow:       0 2px 12px rgba(0,0,0,.45);
   --tap:          rgba(255,255,255,.05);
 
-  --nav-bar:      #1A1614;
-  --nav-line:     #2E2822;
-  --nav-ink:      #E8E1D4;
-  --nav-dim:      #8F8676;
-  --nav-accent:   #C9A227;
+  --nav-bar:      #191307;
+  --nav-line:     #453824;
+  --nav-ink:      #F2E8D2;
+  --nav-dim:      #B5A184;
+  --nav-accent:   #C8801A;
 
-  --bar-bg:       #1A1614;
-  --bar-line:     #2E2822;
-  --bar-ink:      #E8E1D4;
-  --bar-soft:     #8F8676;
-  --bar-accent:   #C9A227;
+  --bar-bg:       #191307;
+  --bar-line:     #453824;
+  --bar-ink:      #F2E8D2;
+  --bar-soft:     #B5A184;
+  --bar-accent:   #C8801A;
 }
 
 /* data.html took a different vocabulary before this file existed — --bg,
@@ -147,7 +171,7 @@ body.grush-surface{
 
 /* ═══ the pieces that are genuinely shared ════════════════════════════
    Kept deliberately short. Cards, rows and buttons are stage 3; putting
-   them here now would fight eighteen pages of existing component CSS and
+   them here now would fight many pages of existing component CSS and
    break things only a phone would show. */
 body{
   background: var(--paper);
@@ -156,11 +180,11 @@ body{
 }
 
 /* ── the card ───────────────────────────────────────────────────────────
-   Five pages defined .card and they already agreed on nearly everything —
-   same background, same border colour, same variables. They differed on
-   radius (12px, 12px, 14px) and border weight (1px, 1.5px, var), which is
-   the kind of drift nobody chooses and nobody notices until two cards sit
-   next to each other.
+   Several pages defined .card and they already agreed on nearly
+   everything — same background, same border colour, same variables. They
+   differed on radius and border weight, which is the kind of drift
+   nobody chooses and nobody notices until two cards sit next to each
+   other.
 
    Only those two properties are set here. Padding stays with the page:
    24px on a marketing page and 16px on a phone card are different jobs,
@@ -179,8 +203,8 @@ body:not(.card-custom) .card{
 /* One colour on the whole site, used once per page at most. */
 ::selection{ background: var(--green); color: var(--paper); }
 
-/* Focus has to be visible on both surfaces. A farm is worked in gloves
-   and sometimes with a keyboard on the shed laptop. */
+/* Focus has to be visible everywhere. A farm is worked in gloves and
+   sometimes with a keyboard on the shed laptop. */
 :focus-visible{ outline: 2px solid var(--green); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce){

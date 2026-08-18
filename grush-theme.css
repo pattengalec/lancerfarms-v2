@@ -1,27 +1,21 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   grush-theme.css — the Grush design language.
+   grush-theme.css — desk.html's unique decoration.
 
    WHAT THIS IS. desk.html ships with the farm's own look: warm browns,
-   Georgia, 1.5px lines. Correct for Lancer Farms, and deliberately plain.
-   This file restyles the same markup into Grush's identity — cooler,
-   quieter, more precisely drawn — so a crew member can tell at a glance
-   that they have crossed from the farm's website into the software.
+   Georgia, 1.5px lines. This file adds Grush's signature decorative
+   touches on top — the pin-press animation, the settle sweep, the type
+   pairing — without owning any color itself. Colors come from
+   grush-tokens.css's html.staff, same as every other staff page.
 
-   IT IS A THEME, NOT A SCHEMA. Nothing here changes structure, markup or
-   behaviour. It overrides values and adds one signature treatment. Delete
-   the <link> and desk.html falls straight back to the farm's styling with
-   nothing broken.
-
-   THE VOCABULARY, taken from getgrush.com:
-     substrate  #14110F   ground. deeper and cooler than the farm's #1E1B16
-     mycelium   #E8E1D4   text
-     spore      #C9A227   interactive. the only saturated colour in the set
-     steel      #5C7080   structure, state, the engaged pin
-     oxblood    #8C2F39   destructive only. never decorative
-
-   TYPE. Fraunces for the few display moments, IBM Plex Sans for reading,
-   IBM Plex Mono for labels — set at 0.66rem with 0.18em tracking, which
-   is the single most recognisable thing about this language after colour.
+   IT USED TO ALSO CARRY ITS OWN --paper/--card/--ink/--tier-* values
+   and its own @media (prefers-color-scheme: light) block — a second,
+   independent color system layered on top of a THIRD one
+   (grush-settings.js's old light/dark toggle), on the one page that
+   loaded all of them at once. Nobody had reconciled the three, and this
+   file's own light-mode query would have silently fought whatever the
+   other two decided. Deleted rather than reconciled: there is now
+   exactly one color system, grush-tokens.css, and this file reads its
+   variables instead of shadowing them.
 
    THE SIGNATURE MOVE — THE PIN. Press a row and a spore-coloured bar
    grows down its leading edge, then the row settles onto a steel border.
@@ -37,29 +31,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap');
 
 :root{
-  /* ── ground ── */
-  --desk-plate:  #14110F;
-  --desk-cell:   #1E1A17;
-  --desk-line:   #2E2822;
-  --desk-slot:   #191512;
-  --desk-dim:    #8F8676;
+  /* Desk-specific naming for a few things grush-tokens.css calls
+     something else, aliased rather than duplicated so there is still
+     only one real value underneath each. */
+  --desk-plate:  var(--card);
+  --desk-cell:   var(--card);
+  --desk-line:   var(--line);
+  --desk-slot:   var(--nav-bar);
+  --desk-dim:    var(--ink-soft);
 
-  /* ── state ── */
-  --desk-accent:      #C9A227;
-  --desk-active:      #1B2830;
-  --desk-active-line: #5C7080;
-
-  /* ── tiers ── */
-  --tier-visitor: #8AA6B8;
-  --tier-staff:   #C9A227;
-  --tier-admin:   #B84450;
-
-  /* ── page ── */
-  --bg:          #14110F;
-  --ink:         #E8E1D4;
-  --ink-soft:    #8F8676;
-  --card:        #1E1A17;
-  --card-border: #2E2822;
+  --desk-accent:      var(--green);
+  --desk-active:      var(--line);
+  --desk-active-line: var(--line-strong);
 
   --font-head: 'Fraunces', Georgia, serif;
   --font-body: 'IBM Plex Sans', system-ui, sans-serif;
@@ -68,16 +51,6 @@
   --grush-ease: cubic-bezier(.2,.7,.2,1);
   --grush-fast: 140ms;
   --grush-slow: 260ms;
-}
-
-@media (prefers-color-scheme: light){
-  :root{
-    --bg:#EFEBE2; --ink:#1B1815; --ink-soft:#6B6459;
-    --card:#FFFFFF; --card-border:#DCD6C9;
-    --desk-slot:#E4DFD3;
-  }
-  /* The menu plate stays dark in light mode, like the rail and title bar.
-     Only the ground flips. Rule 4 of grush-nav.js, kept. */
 }
 
 body{ font-family:var(--font-body); letter-spacing:-0.003em; }

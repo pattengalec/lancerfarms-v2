@@ -11,9 +11,6 @@
    Every surface is drawn from the site's own CSS variables, so the
    console re-skins itself live — it IS the theme preview.
 
-     BASE   rocker toggle: LIGHT / DARK. Site-controlled and immune
-            to OS theme changes after a one-time first-visit seed —
-            we never listen to the media query again.
      HUE    continuous 360° pot. The page's palette is plotted as
             a chord of dots on the knob's ring; turning transposes
             the whole chord in OKLCH (lightness & chroma locked, so
@@ -22,13 +19,23 @@
      TONE   trim pot, cool <-> warm: temperature of the neutrals,
             bounded, center detent = stock.
      DEPTH  trim pot, deep <-> bright: surface lightness within a
-            pre-bounded window computed inside the chosen base; ink
-            never moves, so contrast cannot collapse.
+            pre-bounded window; ink never moves, so contrast cannot
+            collapse.
      CHROMA trim pot, soft <-> vivid: saturation of the chromatic
             voices only, bounded, center detent = stock.
      SOUND  3-position detent: MUTE / CHILL / ASSERTIVE. Landing on
             a profile auditions its reward sound.
      TEXT   3-position detent: S / M / L.
+
+   There used to be a BASE control here too — a light/dark rocker,
+   site-controlled and seeded once from the OS preference. It's gone.
+   The site now has exactly one ground per accent (visitor green, staff
+   mustard, chosen by class="staff" on <html>, not by the visitor), and
+   these five knobs trim whichever one is active rather than choosing
+   between two whole palettes. One less state for every page to agree
+   on, and the bug that motivated removing it — a page's own CSS
+   silently overriding the toggle for a handful of variable names — has
+   nothing left to override.
 
    The console is built from the site's own CSS variables, so it
    re-skins itself live as you turn — the console IS the preview.
@@ -46,13 +53,12 @@ const GrushSettings = (() => {
 
   const SITE = document.documentElement.dataset.grushSite || 'lfg';
   const KEY  = `grush_${SITE}_settings`;
-  const VER  = 3;
+  const VER  = 4;
 
   /* ─────────────────────────── store ─────────────────────────── */
 
   const DEFAULTS = {
-    v: VER, seeded: false,
-    base: 'dark',             // light | dark
+    v: VER,
     hue: 0,                   // chord rotation, degrees; 0 = stock
     tone: 0,                  // -1..1 cool <-> warm, 0 = stock
     depth: 0,                 // -1..1 deep <-> bright, 0 = stock
@@ -66,28 +72,19 @@ const GrushSettings = (() => {
     try {
       const raw = JSON.parse(localStorage.getItem(KEY));
       if (raw && raw.v === VER) return { ...DEFAULTS, ...raw };
-      if (raw && raw.v === 2)                         // migrate v2
+      if (raw && (raw.v === 1 || raw.v === 2 || raw.v === 3)) {
+        /* v1-v3 all carried a light/dark base selection that no longer
+           exists — visitor/staff is a fixed accent swap now, not a
+           user-chosen state, so there's nothing to migrate it into.
+           Whatever base someone had picked simply stops applying;
+           everything else they'd set (hue, sound, text size) carries
+           forward normally through the DEFAULTS merge below. */
         return { ...DEFAULTS, ...raw, v: VER };
-      if (raw && raw.v === 1) {                       // migrate v1
-        return { ...DEFAULTS, seeded: !!raw.seeded,
-          base: raw.theme === 'custom' ? (raw.customBase || 'dark')
-              : (raw.theme || 'dark'),
-          hue: raw.theme === 'custom' ? (raw.hue || 0) : 0,
-          sound: raw.sound || 'chill', text: raw.text || 'default' };
       }
     } catch {}
     return { ...DEFAULTS };
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
-
-  /* One-time first-visit seed from the device preference, then deaf
-     to the OS forever — no media-query listener is ever attached. */
-  if (!S.seeded) {
-    try {
-      if (matchMedia('(prefers-color-scheme: light)').matches) S.base = 'light';
-    } catch {}
-    S.seeded = true; save();
-  }
 
   /* ──────────────────── color math (OKLab/OKLCH) ─────────────────
      Björn Ottosson's matrices. Rotation happens on (a,b) so L and
@@ -141,21 +138,10 @@ const GrushSettings = (() => {
     const a = o.a * cos - o.b * sin, b = o.a * sin + o.b * cos;
     return { ...oklabToRgb(o.L, a, b), a: color.a };
   }
-  /* Auto light derivation for page-specific colors with no hand-
-     tuned override: invert OKLab lightness, soften chroma a touch. */
-  function lightFlip(color) {
-    const o = rgbToOklab(color.r, color.g, color.b);
-    const L = Math.max(0.12, Math.min(0.985, 1.10 - o.L * 0.92));
-    return { ...oklabToRgb(L, o.a * 0.85, o.b * 0.85), a: color.a };
-  }
-  function hueChroma(color) {
-    const o = rgbToOklab(color.r, color.g, color.b);
-    return { h: Math.atan2(o.b, o.a) * 180 / Math.PI, c: Math.hypot(o.a, o.b), L: o.L };
-  }
-  /* Bounded trims applied inside the chosen base. TONE warms/cools
-     the neutrals, CHROMA scales only the chromatic voices, DEPTH
-     nudges surface lightness in a small window while ink stays put
-     — bounds sized so no knob position can break readability. */
+  /* Bounded trims applied on top of whichever accent is active. TONE
+     warms/cools the neutrals, CHROMA scales only the chromatic voices,
+     DEPTH nudges surface lightness in a small window while ink stays
+     put — bounds sized so no knob position can break readability. */
   function trim(color, s) {
     const o = rgbToOklab(color.r, color.g, color.b);
     const C = Math.hypot(o.a, o.b);
@@ -169,7 +155,7 @@ const GrushSettings = (() => {
       o.a += Math.cos(rad) * amt; o.b += Math.sin(rad) * amt;
     }
     if (s.depth) {
-      const isSurface = s.base === 'dark' ? o.L < 0.5 : o.L > 0.72;
+      const isSurface = o.L < 0.5;
       if (isSurface) o.L = Math.max(0.08, Math.min(0.99, o.L + s.depth * 0.05));
     }
     return { ...oklabToRgb(o.L, o.a, o.b), a: color.a };
@@ -177,49 +163,27 @@ const GrushSettings = (() => {
 
   /* ───────────────────────── theme engine ───────────────────────── */
 
-  /* Hand-tuned light values for the shared core vocabulary; anything
-     a page declares beyond these gets lightFlip(). Amber note: 3.39:1
-     on cream — accents and large text only, not body copy. */
-  const LIGHT = {
-    '--paper': '#F5F1E6', '--bg': '#F5F1E6', '--surface': '#FDFBF4',
-    '--card': '#FDFBF4', '--card-bg': '#FDFBF4',
-    '--ink': '#2A2620', '--ink-soft': '#6E675A',
-    '--line': '#DDD6C6', '--line-strong': '#C4BCA8',
-    '--border': '#DDD6C6', '--card-border': '#DDD6C6',
-    '--green': '#5E7A50', '--leaf': '#8AA07A', '--amber': '#A87A2F',
-    '--accent': '#5E7A50', '--accent-2': '#8AA07A',
-    '--green-d': '#3D4A3E', /* stays deep: splash paints light text on it */
-    '--shadow': '0 1px 0 rgba(32,38,28,.05), 0 2px 8px rgba(32,38,28,.08)',
-    '--card-shadow': '0 1px 0 rgba(32,38,28,.05), 0 2px 8px rgba(32,38,28,.08)',
-    /* Everything below was manual.html's own alias layer, sitting on top
-       of the standard variable names above. Each entry either duplicated
-       a name this table already covers via var() indirection (in which
-       case it's just made explicit here rather than trusted to resolve
-       through the reference chain) or introduced a name this table had
-       never heard of. --green-deep and --terra are the two that actually
-       broke: both are solid pill/button backgrounds paired with light or
-       hardcoded-white text that doesn't itself flip, so light-flipping
-       the background alone collapsed the contrast — same failure shape
-       as --green-d above, just not caught when this table was written. */
-    '--cream': '#2A2620', '--cream-dim': '#6E675A',
-    '--forest': '#8AA07A', '--forest-mid': '#5E7A50',
-    '--lime': '#5E7A50', '--lime-pale': '#8AA07A',
-    '--orange': '#A87A2F',
-    '--green-deep': '#3E5C42', /* stays deep — badge text sits on it directly */
-    '--terra': '#8A4A18' /* stays deep — one caller pairs it with hardcoded white text */
-  };
   const SKIP = /^--font|^--radius|^--border-w|^--border-s$/;
 
-  let BASE = null;   // { name: rawValue } — the page's own dark palette
+  let BASE = null;   // { name: rawValue } — the page's own resolved palette
 
+  /* Reads :root, then — if this page opted into the staff accent — layers
+     html.staff on top of it. Both live on <html>, which exists the
+     instant parsing starts, so this is safe to call from <head> before
+     <body> is anywhere in the DOM. Cached after the first call; the
+     class doesn't change mid-visit. */
   function snapshotBase() {
     if (BASE) return BASE;
     BASE = {};
+    const isStaff = document.documentElement.classList.contains('staff');
     for (const sheet of document.styleSheets) {
       let rules; try { rules = sheet.cssRules; } catch { continue; } // cross-origin
       if (!rules) continue;
       for (const rule of rules) {
-        if (!rule.selectorText || !/(^|,)\s*:root\b/.test(rule.selectorText)) continue;
+        if (!rule.selectorText) continue;
+        const isRoot = /(^|,)\s*:root\b/.test(rule.selectorText);
+        const isStaffRule = isStaff && /(^|,)\s*html\.staff\b/.test(rule.selectorText);
+        if (!isRoot && !isStaffRule) continue;
         for (const prop of rule.style) {
           if (prop.startsWith('--')) BASE[prop] = rule.style.getPropertyValue(prop).trim();
         }
@@ -234,10 +198,6 @@ const GrushSettings = (() => {
     for (const [name, raw] of Object.entries(base)) {
       if (SKIP.test(name)) { out[name] = raw; continue; }
       let val = raw;
-      if (S.base === 'light') {
-        if (LIGHT[name] !== undefined) val = LIGHT[name];
-        else { const c = parseColor(raw); val = c ? toCss(lightFlip(c)) : raw; }
-      }
       if (S.hue || S.tone || S.depth || S.chroma) {
         const c = parseColor(val);
         if (c) val = toCss(trim(rotateColor(c, S.hue), S));
@@ -251,18 +211,14 @@ const GrushSettings = (() => {
     const html = document.documentElement;
     const pal = resolvedPalette();
     for (const [name, val] of Object.entries(pal)) html.style.setProperty(name, val);
-    html.dataset.themeBase = S.base;
 
-    /* Pin color-scheme with `only`, judged by actual paper lightness:
-       browser UI follows the site, Android auto-darkening is blocked,
-       and OS theme flips change nothing mid-session. */
-    const paper = parseColor(pal['--paper'] || pal['--bg'] || '#2A2620');
-    const isLight = paper ? rgbToOklab(paper.r, paper.g, paper.b).L > 0.6 : false;
-    const scheme = isLight ? 'only light' : 'only dark';
-    html.style.colorScheme = scheme;
+    /* Both accents are dark grounds now, so this is no longer a live
+       question — pin it once rather than recompute every call. Browser
+       UI follows the site and Android auto-darkening stays blocked. */
+    html.style.colorScheme = 'only dark';
     let meta = document.querySelector('meta[name="color-scheme"]');
     if (!meta) { meta = document.createElement('meta'); meta.name = 'color-scheme'; document.head.appendChild(meta); }
-    meta.content = scheme;
+    meta.content = 'only dark';
 
     applyText();
   }
@@ -611,14 +567,6 @@ const GrushSettings = (() => {
     root.appendChild(head);
 
     const hue = hueKnob();
-
-    root.appendChild(slideSwitch({
-      label: null, compact: true, value: S.base,
-      positions: [['light', 'LIGHT'], ['dark', 'DARK']],
-      onDetent: v => { S.base = v; applyTheme(); hue._redraw(); play('detent'); },
-      onLand:   v => { S.base = v; save(); applyTheme(); hue._redraw(); play('toggle'); }
-    }));
-
     root.appendChild(hue);
 
     const trims = el('div', 'gs-trims');
