@@ -234,8 +234,15 @@
        Basemaps only and restricted to this domain by referrer URL. */
     map = L.map('map', { zoomControl: true, zoomSnap: 0.25, zoomDelta: 0.5, maxZoom: 22 })
       .setView([FARM_LAT, FARM_LNG], 20);
+    /* maxNativeZoom caps how deep this location actually has real
+       imagery for. Past that, Leaflet reuses (and upscales) the deepest
+       tile it has instead of requesting one that doesn't exist — a
+       request for a nonexistent tile comes back empty, which is what
+       was showing as solid black before this. maxZoom above stays higher
+       so pinch-zoom still keeps going, just blurrier past this point. */
     L.tileLayer('https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=' + encodeURIComponent(window.LFG_CONFIG.ARCGIS_API_KEY), {
       maxZoom: 22,
+      maxNativeZoom: 20,
       attribution: 'Imagery &copy; Esri'
     }).addTo(map);
     L.marker([FARM_LAT, FARM_LNG], { opacity: 0.5 }).addTo(map).bindPopup('Farm center point (from site config)');
