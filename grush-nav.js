@@ -180,10 +180,13 @@
      fourteen pages had none. Rendered here so there is one definition
      rather than five lookalikes drifting apart.
 
-     The burger sits on the RIGHT. It used to be bottom-left in a rail,
-     bottom-left floating, or top-left in a header, depending on the page;
-     and on learn.html it printed in the document flow, landing on top of
-     the footer text. One corner, every page. */
+     The burger sits on the LEFT, with Back and Home — same corner the
+     drawer itself opens from. It briefly lived on the right, one corner
+     for every page after years of it drifting between bottom-left in a
+     rail, bottom-left floating, and top-left in a header depending on
+     the page — but a control on the opposite side from the thing it
+     opens read as a mistake even with that consistency. Left, grouped
+     with the other navigation controls, is where it stays. */
   #grush-header{
     position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:11px;
     padding:9px 12px; background:var(--nav-bar, #221E19);
@@ -191,6 +194,15 @@
     box-shadow:inset 0 -4px 0 -3px var(--nav-accent, #7E9A6E);
   }
   #grush-header img{ width:34px; height:34px; border-radius:9px; flex:0 0 auto; display:block; }
+  #grush-header .gh-home{ flex:0 0 auto; display:block; -webkit-tap-highlight-color:transparent; }
+  #grush-header .gh-back{
+    flex:0 0 auto; width:40px; height:40px; margin:0; padding:0; border:none;
+    background:transparent; color:var(--nav-ink, #F0EDE2); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; border-radius:9px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #grush-header .gh-back:active{ background:rgba(255,255,255,.08); }
+  #grush-header .gh-back svg{ width:22px; height:22px; display:block; }
   #grush-header .gh-wrap{ min-width:0; flex:1; }
   #grush-header .gh-eb{
     font-family:ui-monospace,monospace; font-size:.58rem; font-weight:700;
@@ -203,7 +215,7 @@
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   /* 48px: the glove floor. The glyph is 26px; the target is not. */
-  #grush-header .grush-burger-hosted{ width:48px; height:48px; margin-left:auto; }
+  #grush-header .grush-burger-hosted{ width:48px; height:48px; }
 
   /* A page that carried its own header keeps the markup and loses the
      display, rather than being edited in eighteen places. */
@@ -489,17 +501,49 @@
     document.body.appendChild(drawer);
 
     /* ── the shared header ─────────────────────────────────────────────
-       Built on every page, ahead of everything else in <body>, and it
-       hosts the burger on its right. CFG.rail is now ignored: a bottom
-       rail on some pages and a header on others is exactly the
-       inconsistency this replaces. */
+       Built on every page, ahead of everything else in <body>. Burger,
+       Back, and Home all sit on the LEFT now, in that order, because the
+       drawer itself opens from the left — a control on the opposite
+       corner from the thing it opens read as a mistake even though it
+       wasn't one. Grouping the three navigation controls together also
+       means the eyebrow/title, which is what changes per page, gets the
+       calmer job of filling the remaining space rather than being
+       squeezed between icons on both sides.
+
+       Back calls history.back() when there's somewhere in THIS site's
+       history to return to (checked via document.referrer's origin, not
+       just history.length, since a fresh tab opened straight to a deep
+       link has history.length > 1 from the browser's own chrome but
+       nowhere on-site to go back to); otherwise it's simply omitted,
+       since Home covers that case. Home is the logo, tapping through to
+       the true site root. */
     var hdr = document.createElement('header');
     hdr.id = 'grush-header';
 
+    burger.className = 'grush-burger-hosted';
+    hdr.appendChild(burger);
+
+    var canGoBack = false;
+    try { canGoBack = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+    if (canGoBack) {
+      var backBtn = document.createElement('button');
+      backBtn.type = 'button';
+      backBtn.className = 'gh-back';
+      backBtn.setAttribute('aria-label', 'Back');
+      backBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+      backBtn.addEventListener('click', function () { history.back(); });
+      hdr.appendChild(backBtn);
+    }
+
+    var homeLink = document.createElement('a');
+    homeLink.href = CFG.home || 'index.html';
+    homeLink.className = 'gh-home';
+    homeLink.setAttribute('aria-label', 'Home');
     var logo = document.createElement('img');
     logo.src = CFG.logo || 'lfg-logo-192.webp';
     logo.alt = '';
-    hdr.appendChild(logo);
+    homeLink.appendChild(logo);
+    hdr.appendChild(homeLink);
 
     var hw = document.createElement('div');
     hw.className = 'gh-wrap';
@@ -510,9 +554,6 @@
       '<div class="gh-eb">' + (CFG.eyebrow || 'Lancer Farms &middot; Zone 9b') + '</div>' +
       '<div class="gh-ttl">' + (CFG.title || 'Lancer Farms &amp; Gardens') + '</div>';
     hdr.appendChild(hw);
-
-    burger.className = 'grush-burger-hosted';
-    hdr.appendChild(burger);
 
     document.body.insertBefore(hdr, document.body.firstChild);
     document.body.classList.add('grush-has-header');

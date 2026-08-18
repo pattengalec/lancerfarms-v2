@@ -148,7 +148,7 @@ body{
    Filled rather than outlined, so it reads as a different KIND of thing
    rather than a more important one. It also sits before the first tier
    label with a rule under it, which separates it from the menu proper. */
-.row-emergency{margin-top:12px; margin-bottom:16px; padding-bottom:16px;
+.row-emergency{margin-top:12px; margin-bottom:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom));
   border-bottom:1px solid var(--desk-line);}
 /* The colour rules for this row live in grush-theme.css, which loads after
    this <style> block and therefore wins every same-specificity tie against

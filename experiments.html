@@ -21,7 +21,7 @@
   body{
     font-family:'Source Sans 3',system-ui,sans-serif; font-size:16px; line-height:1.55;
     color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
-    padding-bottom:88px;
+    padding-bottom:calc(88px + env(safe-area-inset-bottom));
   }
   h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; line-height:1.15;}
   a{color:inherit;}

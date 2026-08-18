@@ -292,7 +292,7 @@ html, body {
 .stat-num{font-size:2rem !important;}
 .stat-label{font-size:0.9rem !important;text-transform:none !important;letter-spacing:0 !important;}
 .readonly-banner{display:none !important;}
-body{padding-bottom:96px;}
+body{padding-bottom:calc(96px + env(safe-area-inset-bottom));}
 </style>
 <link rel="stylesheet" href="grush-tokens.css?v=1">
 <link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">

@@ -21,7 +21,7 @@
   body{
     font-family:'Source Sans 3',system-ui,sans-serif; font-size:17px; line-height:1.6;
     color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
-    padding-bottom:88px; /* clears the rail-less drawer burger */
+    padding-bottom:calc(88px + env(safe-area-inset-bottom)); /* clears the rail-less drawer burger */
   }
   h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; line-height:1.12;}
   .wrap{max-width:640px; margin:0 auto; padding:0 22px;}
