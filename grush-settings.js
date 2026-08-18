@@ -130,19 +130,30 @@ const GrushSettings = (() => {
   const toCss = c => c.a < 1
     ? `rgba(${c.r},${c.g},${c.b},${+c.a.toFixed(3)})`
     : '#' + [c.r, c.g, c.b].map(v => v.toString(16).padStart(2, '0')).join('');
-
-  function rotateColor(color, deg) {
+  
+  /* Bounded trims applied on top of whichever accent is active. TONE
+     warms/cools the neutrals, CHROMA scales only the chromatic voices,
+     DEPTH nudges surface lightness in a small window while ink stays
+     put — bounds sized so no knob position can break readability. */
+    function rotateColor(color, deg) {
     if (!deg) return color;
     const o = rgbToOklab(color.r, color.g, color.b);
     const rad = deg * Math.PI / 180, cos = Math.cos(rad), sin = Math.sin(rad);
     const a = o.a * cos - o.b * sin, b = o.a * sin + o.b * cos;
     return { ...oklabToRgb(o.L, a, b), a: color.a };
   }
-  /* Bounded trims applied on top of whichever accent is active. TONE
-     warms/cools the neutrals, CHROMA scales only the chromatic voices,
-     DEPTH nudges surface lightness in a small window while ink stays
-     put — bounds sized so no knob position can break readability. */
-  function trim(color, s) {
+  /* Polar read of a color's OKLab position — hue in degrees (matches
+     the angle convention drawRing() already uses), chroma as the
+     (a,b) radius, plus lightness for stroke-contrast decisions. */
+  function hueChroma(color) {
+    const o = rgbToOklab(color.r, color.g, color.b);
+    const c = Math.hypot(o.a, o.b);
+    let h = Math.atan2(o.b, o.a) * 180 / Math.PI;
+    if (h < 0) h += 360;
+    return { h, c, L: o.L };
+  }
+
+   function trim(color, s) {
     const o = rgbToOklab(color.r, color.g, color.b);
     const C = Math.hypot(o.a, o.b);
     if (s.chroma && C >= 0.03) {
