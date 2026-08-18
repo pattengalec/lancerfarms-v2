@@ -1,0 +1,2523 @@
+<!DOCTYPE html>
+<!-- class="grush-shell" opts into the fixed-chrome / scrolling-middle
+     layout. Delete that one class to fall back to document scrolling. -->
+<html lang="en" class="grush-shell">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>Lancer Farms &amp; Gardens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="grush-shell.css?v=1">
+<style>
+  :root{
+    color-scheme:dark;
+    --ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+    --line:#45423A; --line-strong:#5A554A;
+    --green:#7E9A6E; --green-d:#2A2620; --leaf:#A8B89A;
+    --amber:#C9973F; --amber-bg:#4A3A22;
+    --red:#D15A48; --red-bg:#3E2723;
+    /* fixed plates — carry their own background AND ink, so they read the
+       same whichever way the page ground goes. Matches almanac/visitor. */
+    --bar-bg:#1F1C17; --bar-ink:#F0EDE2; --bar-accent:#D4A44E;
+    --bar-soft:#B6C4A9; --bar-line:#45423A;
+    --shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
+    --tap:60px;
+  }
+  select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=file]){background:var(--paper);color:var(--ink);border:1.5px solid var(--line-strong);border-radius:8px;padding:8px;font-size:14px;font-family:inherit;}
+  select option,select optgroup{background:var(--paper);color:var(--ink);}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink);
+    background:var(--paper); overscroll-behavior:none;
+    -webkit-font-smoothing:antialiased;
+    /* height + flex column + hidden overflow: the document itself never
+       scrolls. grush-nav.js's shared header is a sibling of #app, sized
+       to its own content (flex:0 0 auto is its default block behavior),
+       and #app takes flex:1 below it — so #app gets exactly "the rest",
+       whatever the header's actual rendered height turns out to be,
+       without hardcoding that number anywhere. main's own
+       overflow-y:auto inside #app is then the ONLY scrollable region on
+       the page. That's what actually fixes the "pull up, hold, snap
+       back, button re-buried" bug: the document was scrolling because
+       #app could grow taller than the viewport, so Safari's own chrome
+       joined in on the scroll gesture. A single contained scroll region
+       doesn't have that problem — it's not the document's scroll. */
+    height:100dvh; display:flex; flex-direction:column; overflow:hidden;
+  }
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; margin:0;}
+  button{font-family:inherit; cursor:pointer;}
+
+  /* ---------- app frame ---------- */
+  #app{max-width:520px; margin:0 auto; flex:1; min-height:0; width:100%; display:flex; flex-direction:column; position:relative; background:var(--paper);}
+
+  /* ---------- splash ---------- */
+  #splash{position:fixed; inset:0; background:var(--green-d); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; z-index:200; transition:opacity .6s ease; color:#f4f1e8;}
+  #splash.gone{opacity:0; pointer-events:none;}
+  #splash .mark{width:96px; height:96px; border-radius:24px; background:#f4f1e8; display:flex;
+    align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:600;
+    font-size:52px; color:var(--green); box-shadow:0 8px 30px rgba(0,0,0,.3);
+    animation:pop .6s cubic-bezier(.2,.9,.3,1.4);}
+  #splash .wm{margin-top:20px; font-family:'Fraunces',serif; font-size:22px; letter-spacing:.5px; opacity:0; animation:fadein .6s ease .3s forwards;}
+  #splash .wm small{display:block; text-align:center; font-family:'Source Sans 3'; font-size:13px; letter-spacing:3px; text-transform:uppercase; opacity:.7; margin-top:4px;}
+  @keyframes pop{0%{transform:scale(.4); opacity:0;}100%{transform:scale(1); opacity:1;}}
+  @keyframes fadein{to{opacity:1;}}
+
+  /* ---------- hero (role fork) ---------- */
+  #hero{position:fixed; inset:0; background:var(--paper); z-index:150; display:none;
+    flex-direction:column; align-items:center; justify-content:center; padding:32px; text-align:center;}
+  #hero.show{display:flex;}
+  #hero .mark{width:72px; height:72px; border-radius:18px; background:var(--green-d); color:#f4f1e8;
+    display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:600; font-size:38px; margin-bottom:8px;}
+  #hero h1{font-size:30px; margin:12px 0 2px;}
+  #hero p{color:var(--ink-soft); margin:0 0 36px; font-size:16px;}
+  .role-btn{width:100%; max-width:340px; min-height:76px; border-radius:18px; border:none;
+    display:flex; align-items:center; gap:16px; padding:0 22px; margin-bottom:16px; box-shadow:var(--shadow);
+    font-size:20px; font-weight:600; text-align:left; transition:transform .1s;}
+  .role-btn:active{transform:scale(.98);}
+  .role-btn .ic{font-size:30px;}
+  .role-btn small{display:block; font-weight:400; font-size:13px; opacity:.75; margin-top:2px;}
+  .role-staff{background:var(--green); color:#fff;}
+  .role-visitor{background:var(--card); color:var(--ink); border:1.5px solid var(--line-strong);}
+  #hero .langrow{margin-top:20px; display:flex; gap:8px;}
+  .lang-pill{border:1.5px solid var(--line-strong); background:var(--card); color:var(--ink-soft);
+    border-radius:999px; padding:8px 16px; font-size:14px; font-weight:600;}
+  .lang-pill.on{background:var(--green); color:#1B1B17; border-color:var(--green);}
+
+  /* ---------- site title bar (herbarium plate) ----------
+     A PLATE: it carries its own background AND ink, so it looks the same
+     whichever way the page ground goes. grush-nav puts the burger here
+     because this page runs rail-less. Nowrap + clamp so a long farm name
+     shrinks instead of wrapping and thickening the bar. */
+  .sitebar{flex:0 0 auto; background:var(--bar-bg); display:flex; align-items:center; gap:10px;
+    padding:9px 10px; position:sticky; top:0; z-index:40; flex-wrap:nowrap;
+    border-bottom:1px solid var(--bar-line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
+  .sitebar img{width:34px; height:34px; flex:none; object-fit:contain; border-radius:50%;
+    border:1px solid var(--bar-line); padding:2px;}
+  .sitebar .wrap{flex:1 1 auto; min-width:0; overflow:hidden;}
+  .sitebar .eb{font-family:ui-monospace,monospace; font-size:.58rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--bar-accent); margin-bottom:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sitebar .wm{font-family:'Fraunces',Georgia,serif; font-weight:700; line-height:1.05;
+    color:var(--bar-ink); letter-spacing:-.015em; font-size:clamp(.95rem, 4.4vw, 1.2rem);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sitebar .wm em{font-style:normal; font-weight:400; color:var(--bar-soft);}
+
+  /* flex:0 0 auto — a flex child with default shrink can be squeezed by
+     the scroll pane next to it. Pin the chrome. */
+  .screen-head{flex:0 0 auto; padding:14px 16px 0;}
+  .screen-head .title{font-family:'Fraunces',serif; font-weight:600; font-size:1.35rem; color:var(--ink); margin:0;}
+
+  .iconbtn{width:44px; height:44px; border:none; background:transparent; border-radius:12px; font-size:24px;
+    display:flex; align-items:center; justify-content:center; color:var(--ink);}
+  .iconbtn:active{background:rgba(0,0,0,.05);}
+
+  /* The hand-rolled #panel drawer is gone; grush-nav.js owns the drawer
+     now. Only the pieces the approval badge and admin gating still need
+     are kept. */
+  .grush-item .badge{margin-left:auto; background:var(--red); color:#fff; font-size:12px; font-weight:700;
+    min-width:22px; height:22px; border-radius:11px; display:flex; align-items:center; justify-content:center; padding:0 6px;}
+  .admin-only{display:none;}
+  body.is-admin .admin-only{display:flex;}
+
+  /* ---------- screens ---------- */
+  main{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:calc(96px + env(safe-area-inset-bottom));}
+  .screen{display:none; animation:screenin .2s ease;}
+  .screen.active{display:block;}
+  @keyframes screenin{from{opacity:0; transform:translateY(4px);}to{opacity:1; transform:none;}}
+  .pad{padding:16px;}
+  .screen-h{font-size:15px; color:var(--ink-soft); margin:0 0 14px;}
+
+  /* ---------- hub ---------- */
+  .hub-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .tile{border-radius:18px; padding:18px 16px; min-height:120px; border:none; display:flex;
+    flex-direction:column; justify-content:space-between; box-shadow:var(--shadow); text-align:left;}
+  .tile:active{transform:scale(.98);}
+  .tile .ic{font-size:32px;}
+  .tile .tname{font-family:'Fraunces',serif; font-weight:600; font-size:19px;}
+  .tile .tsub{font-size:12.5px; opacity:.8; margin-top:2px;}
+  .tile.primary{background:var(--green); color:#fff; grid-column:1 / -1; flex-direction:row; align-items:center; min-height:96px; gap:16px;}
+  .tile.primary .ic{font-size:40px;}
+  /* The primary tile lays out in a row, so its text wrapper must become its own
+     column — otherwise the name and subtitle are inline and read as one word. */
+  .tile.primary > span:last-child{display:flex; flex-direction:column;}
+  .tile.n{background:var(--card); color:var(--ink); border:1px solid var(--line);}
+
+  /* ---------- log ---------- */
+  .field{margin-bottom:20px;}
+  .field-label{display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.8px; color:var(--ink-soft); margin-bottom:9px;}
+  .field-label .ic{font-size:17px;}
+  .type-row{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}
+  .chip{min-height:var(--tap); border-radius:14px; border:1.5px solid var(--line-strong); background:var(--card);
+    color:var(--ink); font-size:15px; font-weight:600; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:2px; padding:6px;}
+  .chip .ic{font-size:22px;}
+  .chip:active{transform:scale(.97);}
+  .chip.on{background:var(--green); color:#fff; border-color:var(--green);}
+  .chip.on.warn{background:var(--amber); border-color:var(--amber); color:#3a2c08;}
+  .chip.on.bad{background:var(--red); border-color:var(--red); color:#fff;}
+  .btn-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .zone-h{font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft); margin:12px 0 6px;}
+  .whenbar{display:flex; align-items:center; justify-content:space-between; background:var(--card);
+    border:1px solid var(--line); border-radius:14px; padding:12px 16px; font-size:15px;}
+  .whenbar .edit{color:var(--green); font-weight:600; font-size:14px; background:none; border:none;}
+  .notebox{width:100%; min-height:52px; border:1.5px dashed var(--line-strong); border-radius:14px;
+    padding:13px 14px; font-size:15px; font-family:inherit; background:transparent; color:var(--ink); resize:vertical;}
+  .notebox:focus{outline:none; border-color:var(--green); border-style:solid;}
+
+  /* ---------- tasks ---------- */
+  .task-row{display:flex; align-items:center; gap:13px; min-height:var(--tap); padding:11px 14px;
+    border-radius:14px; margin-bottom:9px; background:var(--card); border:1px solid var(--line);}
+  .task-row.warn{background:var(--amber-bg); border-left:5px solid var(--amber);}
+  .task-row.bad{background:var(--red-bg); border-left:5px solid var(--red);}
+  .task-check{width:30px; height:30px; border-radius:50%; border:2.5px solid var(--line-strong);
+    flex:0 0 auto; background:transparent;}
+  .task-row.warn .task-check{border-color:var(--amber);}
+  .task-row.bad .task-check{border-color:var(--red);}
+  .task-body{flex:1; min-width:0;}
+  .task-title{font-size:16px; font-weight:600; color:var(--ink);}
+  .task-sub{font-size:12.5px; color:var(--ink-soft); margin-top:1px;}
+  .task-row.bad .task-sub{color:var(--red);}
+  /* Says out loud that steps exist. The old bare clipboard emoji gave no
+     clue it was tappable, or what it would do. */
+  .howto-flag{color:var(--leaf); font-weight:600;}
+  .howto-empty{font-size:12.5px;color:var(--ink-soft);line-height:1.4;margin:0 2px 10px;}
+  /* Suggestion appears only when an existing card looks like a match, so it
+     reads as help rather than as a permanent nag. */
+  .howto-sug{background:var(--card);border:1.5px dashed var(--leaf);border-radius:12px;
+    padding:11px 13px;margin-bottom:10px;font-size:13.5px;line-height:1.4;}
+  .howto-sug b{color:var(--leaf);}
+  .howto-sug .row{display:flex;gap:8px;margin-top:9px;}
+  .howto-sug button{flex:1;min-height:40px;border-radius:10px;font-size:14px;font-family:inherit;}
+  .howto-sug .yes{border:none;background:var(--green);color:#fff;font-weight:600;}
+  .howto-sug .no{border:1.5px solid var(--line-strong);background:transparent;color:var(--ink-soft);}
+  .task-edit{flex:0 0 auto; width:40px; height:40px; align-self:center; margin-right:4px;
+    border:1.5px solid var(--line-strong); background:transparent; color:var(--ink-soft);
+    border-radius:11px; font-size:17px; display:flex; align-items:center; justify-content:center;}
+  .task-edit:active{background:var(--paper);}
+
+  /* ---------- inventory ---------- */
+  .inv-row{display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px;
+    margin-bottom:9px; background:var(--card); border:1px solid var(--line);}
+  .inv-body{flex:1; min-width:0;}
+  .inv-name{font-size:16px; font-weight:600;}
+  .inv-cat{font-size:12px; color:var(--ink-soft);}
+  .stepper{display:flex; align-items:center; gap:2px;}
+  .step-btn{width:40px; height:40px; border-radius:11px; border:1.5px solid var(--line-strong);
+    background:var(--card); font-size:22px; color:var(--ink); display:flex; align-items:center; justify-content:center;}
+/* The approve control does two jobs at once: it saves whatever was set in
+   the card's dropdowns AND approves the item, in a single write. A bare
+   checkmark read as a tickbox rather than a finalise, so it says what it
+   does. Sized to the glove floor like everything else outdoors. */
+.ap-go{
+  width:auto; min-height:52px; padding:0 16px; flex:none;
+  color:var(--green); border-color:var(--green);
+  font-size:.82rem; font-weight:700; letter-spacing:.04em; white-space:nowrap;
+}
+.ap-go:active{ background:var(--green); color:var(--paper); }
+
+/* Deny sits beside Approve, weighted lower — it is the less common
+   answer and should not compete for the thumb. */
+.ap-no{
+  width:auto; min-height:52px; padding:0 14px; flex:none;
+  color:var(--ink-soft); border-color:var(--line-strong);
+  font-size:.8rem; font-weight:600; letter-spacing:.03em; white-space:nowrap;
+}
+.ap-no:active{ background:var(--line-strong); }
+
+/* The rejected group reads as an archive, not a queue. */
+.rejected-group{ opacity:.65; margin-top:26px; }
+.inv-row.is-rejected{ opacity:.72; border-style:dashed; }
+.ap-back{
+  width:auto; min-height:52px; padding:0 13px; flex:none;
+  font-size:.8rem; font-weight:600; white-space:nowrap; color:var(--ink-soft);
+}
+/* The only irreversible control in the tool, so it is the only one that
+   carries the warning colour. */
+.ap-kill{
+  width:auto; min-height:52px; padding:0 13px; flex:none;
+  font-size:.8rem; font-weight:700; white-space:nowrap;
+  color:#B4231F; border-color:#B4231F;
+}
+.ap-kill:active{ background:#B4231F; color:var(--paper); }
+#approve-list .ap-no, #approve-list .ap-back, #approve-list .ap-kill{
+  flex:1 1 auto; margin-top:10px; justify-content:center;
+}
+@media (min-width:620px){
+  #approve-list .ap-no, #approve-list .ap-back, #approve-list .ap-kill{
+    flex:none; margin-top:0;
+  }
+}
+
+/* Approval rows stack on a phone. They are the widest rows in the app —
+   a photo card carries three dropdowns AND the button — and a <select>
+   keeps an intrinsic minimum width that min-width:0 on its parent does
+   not fully override, so the row overflowed and pushed Approve off the
+   right edge. It was only reachable in landscape.
+
+   Adding a text label to that button is what tipped it over, so this is
+   the second half of that change rather than a separate fix.
+
+   Scoped to #approve-list: the same .inv-row class is used by inventory,
+   where the horizontal layout is correct and there is room for it. */
+#approve-list .inv-row{ flex-wrap:wrap; }
+#approve-list .inv-body{ flex:1 1 100%; min-width:0; }
+#approve-list .ap-go{
+  flex:1 0 100%; width:100%; margin-top:10px;
+  justify-content:center; min-height:54px;
+}
+@media (min-width:620px){
+  /* Room again: put it back beside the content. */
+  #approve-list .inv-row{ flex-wrap:nowrap; }
+  #approve-list .inv-body{ flex:1 1 auto; }
+  #approve-list .ap-go{ flex:none; width:auto; margin-top:0; }
+}
+  .step-btn:active{background:var(--paper);}
+  .qty{min-width:46px; text-align:center; font-size:17px; font-weight:700;}
+  .qty small{font-weight:400; font-size:12px; color:var(--ink-soft); display:block;}
+
+  /* ---------- bottom action ---------- */
+  .actionbar{position:fixed; left:0; right:0; bottom:0; max-width:520px; margin:0 auto; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top, var(--paper) 70%, transparent); z-index:30;}
+  .btn-primary{width:100%; min-height:58px; border-radius:16px; border:none; background:var(--green);
+    color:#fff; font-size:18px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:var(--shadow);}
+  .btn-primary:active{transform:scale(.99); background:var(--green-d);}
+  .btn-primary:disabled{background:var(--line-strong); color:#fff;}
+
+  /* ---------- misc ---------- */
+  .empty{text-align:center; color:var(--ink-soft); padding:48px 24px; font-size:15px;}
+  .approve-group{font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:var(--ink-soft); margin:18px 2px 8px; font-weight:700;}
+  .approve-group:first-child{margin-top:2px;}
+  .empty .ic{font-size:44px; display:block; margin-bottom:10px; opacity:.5;}
+  #toast{position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+    background:#3E3A32; color:#F5F2E8; border:1.5px solid var(--line-strong);
+    padding:14px 22px; border-radius:12px; font-size:16px; font-weight:600; z-index:1200;
+    box-shadow:0 6px 20px rgba(0,0,0,.45);
+    transition:all .3s; pointer-events:none; max-width:88%; text-align:center;}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .add-line{width:100%; min-height:54px; border-radius:14px; border:1.5px dashed var(--line-strong);
+    background:transparent; color:var(--ink-soft); font-size:16px; font-weight:600; display:flex;
+    align-items:center; justify-content:center; gap:6px; margin-top:4px;}
+  .add-line:active{background:var(--card);}
+
+  /* ---------- task editor sheet ---------- */
+  #sheet-scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:110; opacity:0; pointer-events:none; transition:opacity .25s;}
+  #sheet-scrim.show{opacity:1; pointer-events:auto;}
+  #task-sheet{position:fixed; left:0; right:0; bottom:0; max-width:520px; margin:0 auto; background:var(--paper);
+    z-index:120; border-radius:22px 22px 0 0; padding:12px 18px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(100%); transition:transform .3s cubic-bezier(.3,.7,.3,1); box-shadow:0 -4px 30px rgba(0,0,0,.2); max-height:88dvh; overflow-y:auto;}
+  #task-sheet.show{transform:translateY(0);}
+  .sheet-grip{width:44px; height:5px; border-radius:3px; background:var(--line-strong); margin:6px auto 14px;}
+  .text-in{width:100%; min-height:52px; border:1.5px solid var(--line-strong); border-radius:14px; padding:0 15px;
+    font-size:16px; font-family:inherit; background:var(--card); color:var(--ink);}
+  .text-in:focus{outline:none; border-color:var(--green);}
+  select.text-in{-webkit-appearance:none; appearance:none; padding-right:38px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a5442' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center;}
+  .recur-chip{min-height:52px; font-size:14px;}
+  .btn-danger{width:100%; min-height:52px; border-radius:14px; border:1.5px solid var(--red); background:transparent;
+    color:var(--red); font-size:16px; font-weight:600; margin-top:10px;}
+  .btn-danger:active{background:var(--red-bg);}
+  .btn-ghost{width:100%; min-height:48px; border:none; background:transparent; color:var(--ink-soft); font-size:16px; margin-top:6px;}
+  /* The plant editor reuses the bottom-sheet pattern of the task and
+     inventory sheets. Same layer (110/120) so it sits above the action bar
+     and below the toast, exactly like its siblings. */
+  #plant-scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:110; opacity:0; pointer-events:none; transition:opacity .25s;}
+  #plant-scrim.show{opacity:1; pointer-events:auto;}
+  /* svh, not dvh: svh is the SMALL viewport — the height with Safari's
+     toolbar showing. dvh tracks the current state, and for a sheet pinned to
+     the bottom that means the buttons can end up under the toolbar in
+     portrait. Landscape hid the toolbar, which is why it looked fine there.
+     The sheet is a flex column so the fields scroll and the buttons don't. */
+  #plant-sheet{position:fixed; left:0; right:0; bottom:0; max-width:520px; margin:0 auto; background:var(--paper);
+    z-index:120; border-radius:22px 22px 0 0; padding:12px 0 0;
+    transform:translateY(100%); transition:transform .3s cubic-bezier(.3,.7,.3,1);
+    max-height:85svh; display:flex; flex-direction:column;}
+  #plant-sheet.show{transform:translateY(0);}
+  #plant-body{flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain; padding:0 18px;}
+  /* Actions never scroll away, and clear the home indicator. */
+  #plant-actions{flex:0 0 auto; padding:10px 18px calc(14px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line); background:var(--paper);}
+  #plant-actions .btn-primary, #plant-actions .btn-ghost{margin-top:8px;}
+  #plant-actions .btn-primary:first-child{margin-top:0;}
+  #inv-scrim{position:fixed; inset:0; background:rgba(20,24,16,.45); z-index:110; opacity:0; pointer-events:none; transition:opacity .25s;}
+  #inv-scrim.show{opacity:1; pointer-events:auto;}
+  #inv-sheet{position:fixed; left:0; right:0; bottom:0; max-width:520px; margin:0 auto; background:var(--paper);
+    z-index:120; border-radius:22px 22px 0 0; padding:12px 18px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(100%); transition:transform .3s cubic-bezier(.3,.7,.3,1); box-shadow:0 -4px 30px rgba(0,0,0,.2); max-height:88dvh; overflow-y:auto;}
+  #inv-sheet.show{transform:translateY(0);}
+  .photo-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .photo-cell{aspect-ratio:1; border-radius:14px; overflow:hidden; background:var(--card); border:1px solid var(--line); position:relative;}
+  .photo-cell img{width:100%; height:100%; object-fit:cover; display:block;}
+  .photo-cell .cap{position:absolute; left:0; right:0; bottom:0; background:linear-gradient(transparent,rgba(0,0,0,.6)); color:#fff; font-size:12px; padding:16px 8px 6px;}
+  .photo-cell.pending::after{content:'Pending'; position:absolute; top:6px; right:6px; background:var(--amber); color:#3a2c08; font-size:11px; font-weight:700; padding:2px 7px; border-radius:8px;}
+
+  .pr-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-end;justify-content:center;}
+  .pr-sheet{background:var(--surface);width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;border:1px solid var(--line);}
+  .pr-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);}
+  .pr-title{font-family:Fraunces,serif;font-weight:600;font-size:17px;}
+  .pr-x{background:none;border:0;color:var(--ink-soft);font-size:26px;line-height:1;cursor:pointer;}
+  .pr-bulk{display:flex;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-soft);flex-wrap:wrap;}
+  .pr-bulk>span{flex:0 0 auto;}
+  #pr-list{overflow-y:auto;padding:4px 16px;flex:1;}
+  .pr-card{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .pr-card img{width:64px;height:64px;border-radius:10px;object-fit:cover;flex:0 0 auto;}
+  .pr-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+  /* Consent is a decision, not a field. Given room and a real tap target
+     rather than squeezed into the row of selects. */
+  .pr-consent{display:flex; align-items:flex-start; gap:9px; margin-top:2px;
+    padding:9px 10px; border-radius:10px; font-size:.88rem; line-height:1.35;
+    background:rgba(201,151,63,.10); border:1px solid rgba(201,151,63,.45);}
+  .pr-consent input{margin-top:2px; width:20px; height:20px; flex:0 0 auto;}
+  .pr-fields select,.pr-fields input,.pr-bulk select{background:var(--paper);color:var(--ink);border:1.5px solid var(--line-strong);border-radius:8px;padding:8px;font-size:14px;font-family:inherit;width:100%;min-width:0;}
+  .pr-actions{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line);}
+  .pr-btn{flex:1;border:none;border-radius:12px;padding:13px;font-weight:600;font-size:15px;cursor:pointer;font-family:inherit;}
+  .pr-btn.go{background:var(--green);color:var(--on-accent);}
+  .pr-btn.cancel{background:transparent;color:var(--ink);border:1.5px solid var(--line-strong);}
+
+  .ph-filters{display:flex;gap:8px;margin:0 0 12px;}
+  .ph-filters select{flex:1;min-width:0;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:9px;font-size:14px;font-family:inherit;}
+  .photo-cell .cap b{color:var(--accent-2);font-weight:600;}
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+<link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<script src="grush-settings.js?v=11"></script>
+</head>
+<body class="grush-surface">
+
+<div id="splash">
+  <div class="mark" style="background:none;box-shadow:none;border:none"><img src="lfg-logo-512.webp" alt="Lancer Farms" style="height:100%;width:auto;border-radius:50%"></div>
+  <div class="wm">Lancer Farms<small>&amp; Gardens</small></div>
+</div>
+
+<div id="hero">
+  <div class="mark">L</div>
+  <h1>Lancer Farms</h1>
+  <p>&amp; Gardens</p>
+  <button class="role-btn role-staff" onclick="chooseRole('staff')">
+    <span class="ic">&#127793;</span>
+    <span>Staff<small>Log work, check tasks &amp; supplies</small></span>
+  </button>
+  <button class="role-btn role-visitor" onclick="chooseRole('visitor')">
+    <span class="ic">&#128065;</span>
+    <span>Visitor<small>Explore the farm</small></span>
+  </button>
+  <div class="langrow">
+    <button class="lang-pill on" onclick="setLang('en',this)">English</button>
+    <button class="lang-pill" onclick="setLang('es',this)">Espa&ntilde;ol</button>
+    <button class="lang-pill" onclick="setLang('pt',this)">Portugu&ecirc;s</button>
+  </div>
+</div>
+
+<!-- The hand-rolled drawer that lived here is gone. grush-nav.js builds
+     the drawer from window.GRUSH_NAV at the bottom of this file. -->
+
+<div id="app" class="shell-frame">
+  <!-- grush-nav inserts its burger as the first child of .sitebar,
+       because this page runs rail:false. -->
+  <div class="sitebar">
+    <img src="lfg-logo-192.webp" alt="">
+    <div class="wrap">
+      <div class="eb">Staff tool &middot; Zone 9b</div>
+      <div class="wm">Lancer Farms <em>&amp; Gardens</em></div>
+    </div>
+  </div>
+
+  <div class="screen-head">
+    <h1 class="title" id="bar-title">Lancer Farms</h1>
+  </div>
+
+  <main class="shell-scroll" data-grush-seat>
+    <!-- HUB -->
+    <section class="screen active" id="screen-hub">
+      <div class="pad">
+        <p class="screen-h">What are you doing today?</p>
+        <div class="hub-grid">
+          <button class="tile primary" onclick="go('log')">
+            <span class="ic">&#9998;</span>
+            <span><span class="tname">Log</span><span class="tsub">Activity &middot; problem &middot; need</span></span>
+          </button>
+          <button class="tile n" onclick="go('tasks')">
+            <span class="ic">&#9745;</span>
+            <span class="tname">Tasks</span><span class="tsub" id="hub-task-sub">Loading&hellip;</span>
+          </button>
+          <button class="tile n" onclick="go('inventory')">
+            <span class="ic">&#128230;</span>
+            <span class="tname">Inventory</span><span class="tsub">Tools &amp; supplies</span>
+          </button>
+          <button class="tile n" onclick="go('photos')">
+            <span class="ic">&#128247;</span>
+            <span class="tname">Photos</span><span class="tsub">Farm album</span>
+          </button>
+          <button class="tile n" onclick="location.href='/triage.html'">
+            <span class="ic">&#129658;</span>
+            <span class="tname">Triage</span><span class="tsub">Something looks wrong</span>
+          </button>
+        <button class="tile n" onclick="location.href='data.html'">
+            <span class="ic">📊</span>
+            <div><div class="tname">Farm Data</div><div class="tsub">Live logs & records</div></div>
+          </button>
+          <button class="tile n" onclick="location.href='manual.html'">
+            <span class="ic">&#128214;</span>
+            <span class="tname">Manual</span><span class="tsub">Guides &amp; reference</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOG -->
+    <section class="screen" id="screen-log">
+      <div class="pad">
+        <div class="field">
+          <div class="field-label"><span class="ic">&#9781;</span> What kind?</div>
+          <div class="type-row">
+            <button class="chip on" data-type="activity" onclick="pickType(this,'activity')"><span class="ic">&#9998;</span>Activity</button>
+            <button class="chip" data-type="problem" onclick="pickType(this,'problem')"><span class="ic">&#9888;</span>Problem</button>
+            <button class="chip" data-type="need" onclick="pickType(this,'need')"><span class="ic">&#128230;</span>Need</button>
+            <button class="chip" data-type="report" onclick="pickType(this,'report')"><span class="ic">&#128203;</span>Report</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span class="ic">&#128340;</span> When</div>
+          <div class="whenbar"><span id="when-label">Now</span><button class="edit" onclick="toggleWhenPicker()">Change</button></div>
+          <div id="when-picker" style="display:none;padding:8px 0 4px"><input type="datetime-local" id="when-input" style="width:100%;padding:8px 10px;border-radius:10px;border:1.5px solid var(--line-strong);background:var(--card);color:var(--ink);font-size:15px;font-family:inherit" onchange="setWhen(this.value)"></div>
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span class="ic">&#128205;</span> Where</div>
+          <div id="where-groups"><div class="empty"><span class="ic">&#8987;</span>Loading areas&hellip;</div></div>
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span class="ic">&#128100;</span> Who</div>
+          <div class="btn-grid" id="who-grid"></div>
+        </div>
+
+        <div class="field" id="what-field">
+          <div class="field-label"><span class="ic">&#128296;</span> What</div>
+          <div class="btn-grid" id="what-grid"></div>
+          <!-- Appears only when a how-to exists for the action just chosen.
+               The procedure is most useful at the moment someone is about
+               to do the thing, not filed in a menu they would have to go
+               looking for. -->
+          <a id="what-howto" href="#" style="display:none;align-items:center;gap:9px;
+             margin-top:10px;padding:11px 14px;border-radius:11px;text-decoration:none;
+             background:rgba(126,154,110,.14);border:1.5px solid rgba(126,154,110,.45);
+             color:inherit;font-size:.9rem;min-height:52px">
+            <span style="font-size:1.15rem">&#128214;</span>
+            <span><b id="what-howto-t"></b><br>
+              <span style="opacity:.75;font-size:.82rem">How this is done here</span></span>
+          </a>
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span class="ic">&#9998;</span> Note <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
+          <textarea class="notebox" id="log-note" placeholder="Add detail if you want&hellip;"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- TASKS -->
+    <section class="screen" id="screen-tasks">
+      <div class="pad">
+        <p class="screen-h">Tasks needing attention float to the top. Tap a task to open its steps, the circle to complete it, or the pencil to edit.</p>
+        <div id="task-list"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
+        <button class="add-line" onclick="openTaskEditor()">&#43; Add task</button>
+      </div>
+    </section>
+
+    <!-- INVENTORY -->
+    <section class="screen" id="screen-inventory">
+      <div class="pad">
+        <p class="screen-h">Tap &minus; or + to adjust. Changes save right away.</p>
+        <div id="inv-list"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
+        <button class="add-line" onclick="addInventoryItem()">&#43; Add item</button>
+      </div>
+    </section>
+
+    <!-- PHOTOS -->
+    <section class="screen" id="screen-photos">
+      <div class="pad">
+        <p class="screen-h">Farm album. Add a photo &mdash; it posts after review.</p>
+        <input type="file" id="photo-file" accept="image/*" multiple style="display:none" onchange="reviewPhotos(this)">
+        <div id="photo-filters" class="ph-filters"></div>
+        <div id="photo-grid"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
+      </div>
+    </section>
+
+    <!-- LOCATIONS -->
+    <section class="screen" id="screen-areas">
+      <div class="pad">
+        <p class="screen-h">Farm locations. Anyone can add; admins can rename or archive.</p>
+        <div style="background:rgba(0,0,0,.04);border-radius:14px;padding:12px;margin-bottom:14px">
+          <input id="na-name" placeholder="New location name" autocomplete="off" style="width:100%;margin-bottom:8px">
+          <div style="display:flex;gap:8px">
+            <select id="na-type" style="flex:1">
+              <option value="landmark">Landmark</option>
+              <option value="raised_bed">Raised bed</option>
+              <option value="tree">Tree</option>
+              <option value="shrub">Shrub</option>
+              <option value="ground">Ground</option>
+              <option value="container">Container</option>
+              <option value="zone">Whole zone</option>
+              <option value="other">Other</option>
+            </select>
+            <input id="na-zone" list="zone-list" placeholder="Zone" autocomplete="off" style="flex:1">
+            <datalist id="zone-list"></datalist>
+          </div>
+          <button class="add-line" style="margin-top:8px" onclick="addAreaFromForm()">&#43; Add location</button>
+        </div>
+        <div id="areas-list"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
+      </div>
+    </section>
+
+    <!-- APPROVALS (admin) -->
+    <section class="screen" id="screen-approvals">
+      <div class="pad">
+        <p class="screen-h">Pending staff edits. Approve to make them public.</p>
+        <div id="approve-list"><div class="empty"><span class="ic">&#8987;</span>Loading&hellip;</div></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- TASK EDITOR SHEET -->
+  <div id="sheet-scrim" onclick="closeTaskEditor()"></div>
+  <div id="task-sheet">
+    <div class="sheet-grip"></div>
+    <h2 id="task-sheet-title" style="margin-bottom:16px">New task</h2>
+    <div class="field">
+      <div class="field-label">Task</div>
+      <input id="task-title-in" class="text-in" placeholder="e.g. Check drip line in Zone 2" autocomplete="off">
+    </div>
+    <div class="field">
+      <div class="field-label">How often?</div>
+      <div class="type-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+        <button class="chip recur-chip on" data-recur="one_time" onclick="pickRecur(this)">Once</button>
+        <button class="chip recur-chip" data-recur="daily" onclick="pickRecur(this)">Daily</button>
+        <button class="chip recur-chip" data-recur="weekly" onclick="pickRecur(this)">Weekly</button>
+        <button class="chip recur-chip" data-recur="monthly" onclick="pickRecur(this)">Monthly</button>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">When <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
+      <input id="task-due-in" class="text-in" type="date">
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-top:5px;line-height:1.35">
+        Leave blank for &ldquo;whenever&rdquo;. A date puts it on the Plan calendar.
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">Where <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
+      <select id="task-area-in" class="text-in"><option value="">Anywhere / whole farm</option></select>
+    </div>
+    <div class="field">
+      <div class="field-label">How-to steps <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional, in order)</span></div>
+      <div id="task-howto-suggest"></div>
+      <div id="task-howto-list"></div>
+      <div id="task-howto-empty" class="howto-empty">
+        No steps yet. Adding them means anyone can do this task without asking you how.
+      </div>
+      <select id="task-howto-add" class="text-in" onchange="addHowtoToTask()"><option value="">Add a how-to card&hellip;</option></select>
+    </div>
+    <button class="btn-primary" onclick="saveTask()" style="margin-top:8px">Save task</button>
+    <button id="task-delete-btn" class="btn-danger" onclick="deleteTask()" style="display:none">Remove task</button>
+    <button class="btn-ghost" onclick="closeTaskEditor()">Cancel</button>
+  </div>
+
+  <!-- INVENTORY EDITOR SHEET -->
+  <div id="inv-scrim" onclick="closeInvEditor()"></div>
+  <div id="inv-sheet">
+    <div class="sheet-grip"></div>
+    <h2 id="inv-sheet-title" style="margin-bottom:16px">New item</h2>
+    <div class="field">
+      <div class="field-label">Item</div>
+      <input id="inv-name-in" class="text-in" placeholder="e.g. Potting soil" autocomplete="off">
+    </div>
+    <div class="field" style="display:flex; gap:10px;">
+      <div style="flex:1"><div class="field-label">Quantity</div><input id="inv-qty-in" class="text-in" type="number" inputmode="decimal" value="0"></div>
+      <div style="flex:1"><div class="field-label">Unit</div><input id="inv-unit-in" class="text-in" placeholder="bag, ft, each" autocomplete="off"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">Category <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
+      <input id="inv-cat-in" class="text-in" placeholder="Tools, seeds, amendments&hellip;" autocomplete="off">
+    </div>
+    <button class="btn-primary" onclick="saveInv()" style="margin-top:8px">Save item</button>
+    <button id="inv-delete-btn" class="btn-danger" onclick="deleteInv()" style="display:none">Remove item</button>
+    <button class="btn-ghost" onclick="closeInvEditor()">Cancel</button>
+  </div>
+
+  <!-- PLANT EDITOR SHEET -->
+  <div id="plant-scrim" onclick="closePlantEditor()"></div>
+  <div id="plant-sheet">
+    <div class="sheet-grip"></div>
+    <div id="plant-body">
+    <h2 id="plant-sheet-title" style="margin-bottom:4px">Plant record</h2>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;line-height:1.4">
+      The first four fields make it visible in Learn and light up any photos
+      linked to it. The grower details below feed the calculators and can wait.
+    </p>
+
+    <div class="field">
+      <div class="field-label">Name</div>
+      <input id="pl-name" class="text-in" autocomplete="off">
+    </div>
+    <div class="field">
+      <div class="field-label">Category</div>
+      <select id="pl-category" class="text-in">
+        <option>Vegetable</option><option>Fruit</option><option>Herb</option>
+        <option>Flower</option><option>Tree</option><option>Shrub</option>
+        <option>Grain</option><option>Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <div class="field-label">Botanical name <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
+      <input id="pl-botanical" class="text-in" placeholder="e.g. Abelmoschus esculentus" autocomplete="off">
+    </div>
+    <div class="field">
+      <div class="field-label">Summary <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></div>
+      <textarea id="pl-summary" class="notebox" placeholder="A sentence or two for visitors&hellip;"></textarea>
+    </div>
+
+    <div class="field-label" style="margin-top:6px;opacity:.75">Grower details &mdash; all optional</div>
+    <div class="field" style="display:flex;gap:10px">
+      <div style="flex:1"><div class="field-label">Days to maturity</div>
+        <input id="pl-dtm" class="text-in" type="number" inputmode="numeric"></div>
+      <div style="flex:1"><div class="field-label">Spacing (in)</div>
+        <input id="pl-spacing" class="text-in" type="number" inputmode="decimal" step="0.5"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">Planting windows</div>
+      <input id="pl-windows" class="text-in" placeholder="e.g. Mar&ndash;May, Aug&ndash;Sep" autocomplete="off">
+    </div>
+    <div class="field">
+      <div class="field-label">Watering</div>
+      <input id="pl-water" class="text-in" placeholder="e.g. deep soak twice weekly" autocomplete="off">
+    </div>
+
+    </div><!-- /plant-body -->
+
+    <div id="plant-actions">
+      <button class="btn-primary" onclick="savePlant(true)">Save &amp; approve</button>
+      <button class="btn-ghost" onclick="savePlant(false)">Save, keep pending</button>
+      <button class="btn-ghost" onclick="closePlantEditor()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="actionbar" id="actionbar" style="display:none">
+    <button class="btn-primary" id="primary-action">Log it</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+<script>
+// Credentials come from lfg-config.js. Nothing is hardcoded on this page.
+const SUPABASE_URL = window.LFG_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON = window.LFG_CONFIG.SUPABASE_ANON_KEY;
+
+// Reuse the client grush-auth.js already built rather than making a second
+// one. Two clients would each hold their own auth state, so a sign-in on one
+// wouldn't reach the other and writes here would still go out anonymous.
+const sb = GRUSH.sb;
+
+/* Crew names come from grush_people, not a hardcoded array. That table was
+   seeded for exactly this and app.html never read it — which is why Fabio
+   could not attribute his own work. Adding or removing someone is now a
+   database row managed from the admin panel, not a code edit and deploy.
+
+   The fallback below only applies if the query fails outright; an empty
+   crew list would leave the Who field unusable. */
+let CREW = ['Guest'];
+async function loadCrew(){
+  try{
+    const names = (await GRUSH.crew()).map(p => p.display_name);
+    if(names.length) CREW = names.concat(names.includes('Guest') ? [] : ['Guest']);
+  }catch(e){ console.error('crew load failed', e); }
+}
+const ACTIONS = {
+  activity:['Watered','Weeded','Planted','Harvested','Pruned','Fertilized','Mulched','Observed','Repaired'],
+  problem:['Pest damage','Irrigation issue','Broken structure','Disease','Weather damage','Other'],
+  need:['Supplies','Repair','Tools','Water','Assistance','Other'],
+  report:['End of day','Weekly update','Incident','Visitor feedback','Yield count','Weather note','Other']
+};
+
+let state = { type:'activity', areaId:null, areaIds:[], areaLabel:null, who:null, what:null, areas:[], loggedAt:null, plantEvent:null };
+
+/* ---------- boot ---------- */
+/* No dev console on a phone. Surface uncaught errors as a toast so a
+   broken boot is visible instead of silent. */
+window.addEventListener('error', function(e){
+  if (typeof toast === 'function') toast('JS error: ' + (e.message || 'unknown'));
+});
+window.addEventListener('unhandledrejection', function(e){
+  var r = e.reason;
+  if (typeof toast === 'function') toast('Async error: ' + ((r && r.message) || r));
+});
+
+window.addEventListener('load', ()=>{
+  const lang = localStorage.getItem('lfg_lang') || null;
+  /* lfg_role is no longer consulted on load — see the enterStaff() call
+     below. chooseRole() still writes it for the hero's own buttons. */
+  if(localStorage.getItem('lfg_admin')==='1') document.body.classList.add('is-admin');
+  // The flag above is only a paint-flicker optimisation. refreshAdminMode()
+  // immediately re-checks it against is_operator() and drops it if the session
+  // is gone or the operator was revoked.
+  refreshAdminMode();
+  /* Five taps on the title = operator sign-in. DELEGATED from document
+     rather than bound to #bar-title directly: the previous version bound
+     once at load, so anything that replaced the element, or any listener
+     that swallowed the event, killed the gesture silently with no way to
+     tell from a phone. Delegation cannot miss.
+
+     It also now speaks on EVERY fifth tap. Before, an operator who was
+     already signed in got only a confirm() about signing out, which is
+     indistinguishable from a dead gesture if you cancel it. */
+  (function(){
+    var taps=0, timer=null;
+    document.addEventListener('click', async function(e){
+      /* Both titles count. There are two "Lancer Farms" on screen — the
+         wordmark in the dark bar and the screen heading below it — and the
+         bar is the one that LOOKS like a header, so that is what people
+         tap. Accepting either is cheaper than teaching anyone which. */
+      var t = e.target && e.target.closest
+            ? e.target.closest('#bar-title, .sitebar .wm, .sitebar .wrap')
+            : null;
+      if(!t) return;
+      taps++; clearTimeout(timer); timer=setTimeout(function(){ taps=0; }, 1500);
+      if(taps<5) return;
+      taps=0; clearTimeout(timer);
+      try {
+        if(document.body.classList.contains('is-admin')){
+          toast('Already signed in as operator');
+          if(confirm('Sign out of admin mode on this device?')){
+            await GRUSH.signOut(); setAdminMode(false); toast('Admin mode off');
+          }
+          return;
+        }
+        toast('Checking\u2026');
+        if(await GRUSH.isOperator()){
+          setAdminMode(true); toast('Admin mode on \u2014 open the menu for Approval queue'); return;
+        }
+        var email=prompt('Operator email \u2014 we\u2019ll send a one-time sign-in link');
+        if(email===null || !email.trim()){ toast('Cancelled'); return; }
+        toast('Sending\u2026');
+        var r = await GRUSH.sendLink(email);
+        toast(r.msg);
+      } catch(err){
+        toast('Sign-in error: ' + (err && err.message ? err.message : err));
+      }
+    });
+  })();
+  setTimeout(()=>{
+    document.getElementById('splash').classList.add('gone');
+    /* Straight in. This used to read localStorage.lfg_role and show a
+       Staff / Visitor picker when it was unset — a THIRD front door, after
+       index.html's and the desk's. desk.html is the console now, and
+       arriving here means someone already chose the staff side; asking
+       again is a question with one answer.
+
+       It also broke outright on Aug 8: index.html clears lfg_role as
+       cleanup from the old role fork, not knowing this page read the same
+       key, so every deep link from the desk landed on the picker instead
+       of the screen it asked for.
+
+       The hero markup and goHero() stay — the drawer's Home item still
+       uses them, and it is a reasonable place to land deliberately. */
+    enterStaff();
+  }, 1400);
+});
+
+/* ---------- operator mode ----------
+   'is-admin' on <body> reveals approve/rename/archive controls. It is a
+   CONVENIENCE ONLY — row-level security decides what actually succeeds.
+   The lfg_admin localStorage flag is kept in sync because howto.html reads
+   it to show its Archive card button. */
+function setAdminMode(on){
+  const was = document.body.classList.contains('is-admin');
+  if(on){ localStorage.setItem('lfg_admin','1'); document.body.classList.add('is-admin'); }
+  else  { localStorage.removeItem('lfg_admin'); document.body.classList.remove('is-admin'); }
+  // Only re-query when the mode actually flipped — otherwise every visitor
+  // load would fire a pointless count of the approval queue.
+  if(was!==on && typeof refreshApproveBadge==='function') refreshApproveBadge();
+}
+
+async function refreshAdminMode(){
+  const ok = await GRUSH.isOperator();
+  setAdminMode(ok);
+  if(ok && location.hash.includes('access_token')){
+    // Scrub the consumed token out of the address bar.
+    history.replaceState(null,'',location.pathname+location.search);
+    toast('Signed in — admin mode on');
+  }
+}
+
+// Catches the magic link resolving after the page has already loaded.
+document.addEventListener('grush:auth', e => {
+  if(e.detail==='SIGNED_IN' || e.detail==='SIGNED_OUT') refreshAdminMode();
+});
+
+function setLang(l, el){
+  localStorage.setItem('lfg_lang', l);
+  document.querySelectorAll('.lang-pill').forEach(p=>p.classList.remove('on'));
+  if(el) el.classList.add('on');
+}
+function cycleLang(){
+  const order=['en','es','pt']; const names={en:'English',es:'Espa\u00f1ol',pt:'Portugu\u00eas'};
+  let cur=localStorage.getItem('lfg_lang')||'en';
+  let next=order[(order.indexOf(cur)+1)%3];
+  localStorage.setItem('lfg_lang',next);
+  const ml=document.getElementById('menu-lang');
+  if(ml) ml.textContent=names[next];
+  toast('Language: '+names[next]);
+}
+function chooseRole(r){
+  localStorage.setItem('lfg_role', r);
+  document.getElementById('hero').classList.remove('show');
+  if(r==='staff') enterStaff(); else enterVisitor();
+}
+function goHero(){
+  closeMenu();
+  document.getElementById('hero').classList.add('show');
+}
+function enterVisitor(){
+ window.location.href='visitor.html';
+}
+function enterStaff(){
+  /* Honour ?s= if the desk sent us to a specific screen; otherwise the hub. */
+  if(!routeFromURL()) go('hub');
+  loadAreas(); loadTasks(); loadInventory(); refreshApproveBadge();
+}
+
+/* ---------- navigation ---------- */
+const TITLES={hub:'Lancer Farms',log:'Log activity',tasks:'Tasks',inventory:'Inventory',photos:'Photos',approvals:'Approvals'};
+/* ── screens are addressable ────────────────────────────────────────────
+   The five tools in this file — log, tasks, photos, inventory, areas —
+   were <section> elements swapped by go(), with no URL of their own. That
+   is why the desk could only offer "Field tool" and not "Log": there was
+   nothing to link to, so this page's hub had to exist as a second launcher
+   just to reach them.
+
+   go() now writes the screen into the address bar and the page reads it on
+   load, so app.html?s=log opens the log. Nothing about how the screens
+   work changed; they simply have addresses now. replaceState rather than
+   pushState so the back button still leaves the tool rather than walking
+   backwards through every screen someone tapped. */
+const SCREENS = ['hub','log','tasks','photos','inventory','areas','approvals'];
+
+function go(scr, silent){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById('screen-'+scr);
+  /* No such screen: stay where we are rather than clearing every panel and
+     leaving the tool blank with no way back. */
+  if(!el){ document.getElementById('screen-hub').classList.add('active'); return; }
+  el.classList.add('active');
+  document.getElementById('bar-title').textContent=TITLES[scr]||'Lancer Farms';
+  document.querySelector('main').scrollTop=0;
+  const ab=document.getElementById('actionbar');
+  if(scr==='log'){ ab.style.display='block'; document.getElementById('primary-action').textContent='Log it'; document.getElementById('primary-action').onclick=submitLog; }
+  else ab.style.display='none';
+
+  /* Re-seat on each screen change. go() swaps sections rather than loading
+     a page, so without this the signature would only ever play once, on
+     first arrival — and app.html is a tool people move around inside. */
+  if(window.GrushFeel) GrushFeel.seat();
+
+  if(!silent){
+    try{
+      const u=new URL(location.href);
+      if(scr==='hub') u.searchParams.delete('s'); else u.searchParams.set('s',scr);
+      history.replaceState(null,'',u);
+    }catch(e){ /* no history API; the screen still switched */ }
+  }
+}
+
+/* Open whatever the URL asked for. Runs after the screens exist. */
+function routeFromURL(){
+  let s=null;
+  try{ s=new URLSearchParams(location.search).get('s'); }catch(e){}
+  if(s && SCREENS.indexOf(s)!==-1 && s!=='hub'){ go(s, true); return true; }
+  return false;
+}
+/* The drawer is grush-nav's now. These two are kept as thin shims because
+   eleven call sites below still use them — and because grush-settings.js
+   calls window.closeMenu() before opening its console. */
+/* ── keyboard handling ───────────────────────────────────────────────
+   Two problems, one cause: the fixed bottom bar and the keyboard both eat
+   the bottom of the screen, and the field being typed into is underneath.
+
+   scrollIntoView alone was not enough, and it is worth writing down why:
+   it centres the field in its SCROLL CONTAINER, not in what you can
+   actually see. With the keyboard up, the visible part of that container
+   is only its top half — so "centred" put the field behind the keyboard.
+   Fabio hit exactly this writing a note and could not see what he typed.
+
+   So the action bar gets out of the way while typing. You do not need a
+   "Log it" button visible mid-sentence, and it comes straight back when
+   the field loses focus. */
+
+function actionbarHide(){
+  var ab = document.getElementById('actionbar');
+  if (ab && ab.style.display !== 'none') { ab.dataset.wasShown = '1'; ab.style.display = 'none'; }
+}
+function actionbarRestore(){
+  var ab = document.getElementById('actionbar');
+  if (ab && ab.dataset.wasShown) { delete ab.dataset.wasShown; ab.style.display = 'block'; }
+}
+
+document.addEventListener('focusin', function(e){
+  var el = e.target;
+  if (!el.matches || !el.matches('input, textarea')) return;
+  actionbarHide();
+  /* Scroll against the VISUAL viewport where the browser exposes it, since
+     that is the only thing that knows how tall the keyboard is. */
+  setTimeout(function(){
+    try {
+      var vv = window.visualViewport;
+      var r  = el.getBoundingClientRect();
+      if (vv && r.bottom > vv.height - 12) {
+        el.scrollIntoView({ block:'center', behavior:'smooth' });
+      } else if (!vv) {
+        el.scrollIntoView({ block:'center', behavior:'smooth' });
+      }
+    } catch(err){ /* never let this break typing */ }
+  }, 300);
+});
+
+/* Delayed, because focusout fires when moving BETWEEN fields — restoring
+   immediately would make the bar flash on every tab. */
+var _abT;
+document.addEventListener('focusout', function(){
+  clearTimeout(_abT);
+  _abT = setTimeout(function(){
+    var a = document.activeElement;
+    if (a && a.matches && a.matches('input, textarea')) return;   // still typing
+    actionbarRestore();
+  }, 200);
+});
+
+function openMenu(){ if (window.GrushNav) window.GrushNav.open(); }
+function closeMenu(){ if (window.GrushNav) window.GrushNav.close(); }
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2400); }
+
+/* ---------- LOG: build pickers ---------- */
+async function loadAreas(){
+  const {data,error}= await sb.from('lfg_growing_areas').select('id,name,zone,area_type').is('archived_at',null).order('zone').order('sort_order', {nullsFirst:false}).order('name');
+  if(error){ document.getElementById('where-groups').innerHTML='<div class="empty">Could not load areas</div>'; return; }
+  state.areas=data;
+  const groups={};
+  data.forEach(a=>{ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
+  let html='';
+  Object.keys(groups).forEach(z=>{
+    html+='<div class="zone-h">'+z+'</div><div class="btn-grid">';
+    groups[z].forEach(a=>{ html+='<button class="chip" style="min-height:52px" data-area="'+a.id+'" onclick="pickArea(this,\''+a.id+'\',\''+a.name.replace(/'/g,"")+'\')">'+a.name+'</button>'; });
+    html+='</div>';
+  });
+  document.getElementById('where-groups').innerHTML=html;
+  // who — names from grush_people, fetched before the grid is painted
+  await loadCrew();
+  document.getElementById('who-grid').innerHTML=CREW.map(n=>'<button class="chip" style="min-height:52px" onclick="pickWho(this,\''+n+'\')">'+n+'</button>').join('');
+  renderWhat();
+}
+function renderWhat(){
+  document.getElementById('what-grid').innerHTML=ACTIONS[state.type].map(a=>'<button class="chip" style="min-height:52px" onclick="pickWhat(this,\''+a+'\')">'+a+'</button>').join('');
+  state.what=null;
+}
+function pickType(el,t){
+  const wasOn=el.classList.contains('on');
+  document.querySelectorAll('[data-type]').forEach(c=>c.classList.remove('on','warn','bad'));
+  if(!wasOn){ el.classList.add('on'); if(t==='problem')el.classList.add('bad'); if(t==='need')el.classList.add('warn'); state.type=t; }
+  else { state.type=null; }
+  renderWhat();
+  showHowtoFor(state.type, null);
+}
+function pickArea(el,id,label){
+  el.classList.toggle('on');
+  if(!state.areaIds) state.areaIds=[];
+  if(el.classList.contains('on')){ if(!state.areaIds.find(a=>a.id===id)) state.areaIds.push({id,label}); }
+  else { state.areaIds=state.areaIds.filter(a=>a.id!==id); }
+  state.areaId=state.areaIds.length?state.areaIds[0].id:null;
+  state.areaLabel=state.areaIds.map(a=>a.label).join(', ');
+}
+function pickWho(el,n){ el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); state.who=n; }
+/* ── how-to cards, matched to the action ────────────────────────────────
+   Looked up by TITLE, not by a hardcoded id. A card recreated in the
+   editor gets a new uuid, and 26 uuids pasted into this file would go
+   stale silently — the link would simply stop appearing and nobody would
+   know why.
+
+   Most chips match a card title exactly. These are the ones that do not:
+   the Need chips are verbs on screen and nouns as titles, and each type
+   has its own "Other". */
+const HOWTO_ALIAS = {
+  'problem:Other'   : 'Other problem',
+  'need:Supplies'   : 'Supplies needed',
+  'need:Repair'     : 'Repair needed',
+  'need:Tools'      : 'Tools needed',
+  'need:Water'      : 'Water needed',
+  'need:Assistance' : 'Assistance needed',
+  'report:End of day': 'End of day report',
+  'report:Incident' : 'Incident report'
+};
+let HOWTO_BY_TITLE = null;
+
+async function ensureHowtoIndex(){
+  if(HOWTO_BY_TITLE) return HOWTO_BY_TITLE;
+  HOWTO_BY_TITLE = {};
+  try{
+    const {data} = await sb.from('lfg_howto_cards')
+      .select('id,title').is('archived_at', null);
+    (data||[]).forEach(function(c){ HOWTO_BY_TITLE[c.title] = c.id; });
+  }catch(e){ /* the log still works without the cards */ }
+  return HOWTO_BY_TITLE;
+}
+
+async function showHowtoFor(type, what){
+  const link = document.getElementById('what-howto');
+  if(!link) return;
+  if(!what){ link.style.display='none'; return; }
+
+  const map = await ensureHowtoIndex();
+  const title = HOWTO_ALIAS[type+':'+what] || what;
+  const id = map[title];
+  if(!id){ link.style.display='none'; return; }
+
+  document.getElementById('what-howto-t').textContent = title;
+  link.href = 'howto.html?id=' + encodeURIComponent(id);
+  link.style.display = 'flex';
+}
+
+function pickWhat(el,a){
+  const wasOn=el.classList.contains('on');
+  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  if(!wasOn){ el.classList.add('on'); state.what=a; } else { state.what=null; }
+  showHowtoFor(state.type, state.what);
+
+  /* Planted and Harvested carry data the log line cannot hold — which
+     plant, how much. Ask while the person is standing in the bed. */
+  if(state.what==='Planted' || state.what==='Harvested') openPlantEvent(state.what);
+  else state.plantEvent=null;
+}
+
+/* ── planting and harvest detail ───────────────────────────────────────── */
+async function openPlantEvent(kind){
+  const planting = kind==='Planted';
+  document.getElementById('pe-ev-title').textContent =
+    planting ? 'What was planted?' : 'What was harvested?';
+  document.getElementById('pe-ev-help').textContent = planting
+    ? 'This becomes the bed\u2019s planting record, so the farm can work out a harvest date without anyone typing one.'
+    : 'This becomes the yield record for the bed.';
+  document.getElementById('pe-ev-qty-label').textContent =
+    planting ? 'How many' : 'How much';
+  document.getElementById('pe-ev-qty').placeholder =
+    planting ? 'e.g. 12 starts, one flat, 30 seeds' : 'e.g. 3 lb, two baskets';
+  document.getElementById('pe-ev-qty').value   = state.plantEvent ? (state.plantEvent.quantity||'') : '';
+  document.getElementById('pe-ev-notes').value = state.plantEvent ? (state.plantEvent.notes||'')    : '';
+
+  await ensurePlants();
+  const sel=document.getElementById('pe-ev-plant');
+  sel.innerHTML=plantOptionsHTML(state.plantEvent ? state.plantEvent.plant_id : '');
+  /* stubPlant() is the one place a plant gets created. Reusing it means a
+     plant added from here behaves exactly like one added from the approval
+     queue — pending, and completed in the same place. */
+  sel.onchange=function(){ plantSelChange(sel, state.plantEvent ? state.plantEvent.plant_id : ''); };
+
+  document.getElementById('plant-event').style.display='flex';
+}
+
+function closePlantEvent(){
+  document.getElementById('plant-event').style.display='none';
+}
+
+function savePlantEvent(){
+  const sel=document.getElementById('pe-ev-plant');
+  const id=(sel.value && sel.value!=='__newplant') ? sel.value : null;
+  const label=id ? (sel.options[sel.selectedIndex].text || '').replace(/\s*\(pending\)$/,'') : null;
+  if(!id){ toast('Pick a plant, or add a new one'); return; }
+  state.plantEvent={
+    kind: state.what,
+    plant_id: id,
+    plant_name: label,
+    quantity: document.getElementById('pe-ev-qty').value.trim() || null,
+    notes: document.getElementById('pe-ev-notes').value.trim() || null
+  };
+  closePlantEvent();
+  toast(state.what+': '+label);
+}
+function toggleWhenPicker(){
+  const box=document.getElementById('when-picker');
+  const inp=document.getElementById('when-input');
+  if(box.style.display!=='none'){ box.style.display='none'; return; }
+  const d=state.loggedAt?new Date(state.loggedAt):new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  inp.value=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  box.style.display='block'; inp.focus();
+}
+async function addLocationInline(){
+  const name=prompt('New location name:'); if(!name||!name.trim()) return;
+  /* area_type is NOT NULL with no default and a CHECK constraint, so an
+     insert without it is refused every time. This has never once worked;
+     it just showed the toast below. 'other' is the neutral member of the
+     allowed set (raised_bed, tree, shrub, ground, container, other, zone,
+     landmark) — a quick add has no way to know which it is. */
+  const {data,error}=await sb.from('lfg_growing_areas')
+    .insert({name:name.trim(), zone:'Grounds', area_type:'other'})
+    .select().single();
+  if(error){ toast('Could not add location: ' + (error.message||'unknown')); return; }
+  state.areas=[...(state.areas||[]),data];
+  renderAreas();
+  const newBtn=document.querySelector('[data-area="'+data.id+'"]');
+  if(newBtn) pickArea(newBtn, data.id, data.name);
+  toast('Location added');
+}
+function openWhenPicker(){
+  const inp=document.getElementById('when-input');
+  const d=state.loggedAt?new Date(state.loggedAt):new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  inp.value=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  if(inp.showPicker){ try{ inp.showPicker(); return; }catch(e){} }
+  inp.style.pointerEvents='auto'; inp.style.opacity='0.01'; inp.focus(); inp.click();
+}
+function setWhen(v){
+  if(!v){ return; }
+  document.getElementById('when-picker').style.display='none';
+  state.loggedAt=new Date(v).toISOString();
+  const d=new Date(v);
+  const today=new Date(); const isToday=d.toDateString()===today.toDateString();
+  const t=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  document.getElementById('when-label').textContent = isToday? ('Today '+t) : (d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+t);
+}
+
+/* toISOString() converts to UTC first, so after 5pm Pacific it returns
+   TOMORROW. The first planting ever recorded — Borage in 2F, logged on the
+   evening of Aug 8 — went in dated Aug 9 because of this.
+
+   event_date is a DATE column holding a calendar day on this farm, not an
+   instant, so it has to be read off the local clock. Every harvest-date
+   calculation downstream depends on it being the day the person was
+   actually standing in the bed. */
+function localDate(d){
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+
+async function submitLog(){
+  if(!state.what){ toast('Tap what was done'); return; }
+  const btn=document.getElementById('primary-action'); btn.disabled=true; btn.textContent='Saving\u2026';
+  const noteParts=[];
+  noteParts.push('['+state.type.toUpperCase()+'] '+state.what);
+  const extra=document.getElementById('log-note').value.trim();
+  if(extra) noteParts.push(extra);
+  /* An operator's log goes straight in. The RLS policy enforces the same
+     rule — an approved row requires is_operator(), anyone else may only
+     write pending — so this is the UI agreeing with the database rather
+     than deciding on its own. */
+  let isOp=false;
+  try{ isOp = await GRUSH.isOperator(); }catch(e){}
+
+  const pe = state.plantEvent;
+  if(pe && pe.plant_name){
+    noteParts.push(pe.plant_name + (pe.quantity ? ' \u00b7 ' + pe.quantity : ''));
+  }
+
+  const row={
+    area_id: state.areaId,
+    location_label: state.areaLabel,
+    note: noteParts.join(' \u2014 '),
+    logged_by: state.who || 'Staff',
+    approval_status: isOp ? 'approved' : 'pending',
+    submitted_by: state.who || 'Staff'
+  };
+  if(state.loggedAt) row.logged_at = state.loggedAt;
+  const {error}= await sb.from('lfg_log').insert(row);
+  btn.disabled=false; btn.textContent='Log it';
+  if(error){
+    /* Three hard beats. A failed save is the one thing on this screen
+       worth looking up from the bed for. */
+    if(window.GrushFeel) GrushFeel.warn();
+    toast('Save failed \u2014 try again'); return;
+  }
+
+  /* The record, alongside the story. Written second on purpose: if this
+     fails the log line already survives, and a missing event is easier to
+     notice and re-enter than a missing narrative. */
+  let evOk=true;
+  if(pe && pe.plant_id){
+    const when = state.loggedAt ? new Date(state.loggedAt) : new Date();
+    const ev = {
+      area_id: state.areaId,
+      /* The column carries a CHECK constraint — planted | harvested |
+         pruned | treated | fruited | removed | observed | other. The first
+         version of this wrote 'planting' and 'harvest', which are not in
+         that list, so every insert was rejected while the log line saved
+         fine. The table already had a vocabulary; I should have read it. */
+      event_type: pe.kind === 'Harvested' ? 'harvested' : 'planted',
+      plant_id: pe.plant_id,
+      plant_name: pe.plant_name,
+      quantity: pe.quantity,
+      notes: pe.notes,
+      event_date: localDate(when),
+      performed_by: state.who || 'Staff',
+      approval_status: isOp ? 'approved' : 'pending',
+      submitted_by: state.who || 'Staff'
+    };
+    const r2 = await sb.from('lfg_area_events').insert(ev);
+    if(r2.error){
+      evOk=false;
+      /* Say what went wrong. The first version of this reported only that
+         the record failed, which told nobody that event_type had violated
+         a CHECK constraint — the one fact that would have fixed it. */
+      console.error('[area_events]', r2.error);
+      toast('Planting record failed: ' + (r2.error.message || 'unknown'));
+    }
+  }
+
+  toast(pe && pe.plant_id
+    ? (evOk ? 'Logged \u2014 ' + pe.kind.toLowerCase() + ' recorded'
+            : 'Logged, but the ' + pe.kind.toLowerCase() + ' record failed')
+    : (isOp ? 'Logged' : 'Logged \u2014 pending review'));
+  // reset lightly
+  document.getElementById('log-note').value='';
+  state.what=null; state.loggedAt=null; state.areaIds=[]; state.areaId=null; state.areaLabel=null;
+  state.plantEvent=null;
+  showHowtoFor(null, null);
+  document.querySelectorAll('[data-area]').forEach(c=>c.classList.remove('on'));
+  document.getElementById('when-picker').style.display='none';
+  document.getElementById('when-label').textContent='Now';
+  document.querySelectorAll('#what-grid .chip').forEach(c=>c.classList.remove('on'));
+  refreshApproveBadge();
+  /* Two beats: written down. The toast says it, but a toast is a thing you
+     have to be looking at, and the person logging this is usually looking
+     at a plant. */
+  if(window.GrushFeel){
+    var _card = document.querySelector('#screen-log .pad');
+    if(_card) GrushFeel.settle(_card); else GrushFeel.confirm();
+  }
+
+  /* Stay on the log. Logging is repetitive — someone walking the beds
+     enters several things in a row — and bouncing to the hub after each
+     save charged a tap to get back, which is why it felt like being dumped
+     somewhere. The form is already cleared above, so it is ready for the
+     next entry, and the toast is the confirmation that it saved. */
+  document.querySelector('main').scrollTop = 0;
+}
+
+/* ---------- TASKS with color aging ---------- */
+async function loadTasks(){
+  const {data:tasks,error}= await sb.from('lfg_tasks').select('*').is('archived_at',null);
+  if(error){ document.getElementById('task-list').innerHTML='<div class="empty">Could not load tasks</div>'; return; }
+  // completions -> which tasks done, and visit history
+  const {data:comps}= await sb.from('lfg_task_completions').select('task_id,visit_date');
+  const completedTaskIds=new Set((comps||[]).map(c=>c.task_id));
+  // distinct visit days across the farm (any activity) — use log + completions dates
+  const {data:logs}= await sb.from('lfg_log').select('logged_at');
+  const visitDays=new Set();
+  (logs||[]).forEach(l=>{ if(l.logged_at) visitDays.add(l.logged_at.slice(0,10)); });
+  (comps||[]).forEach(c=>{ if(c.visit_date) visitDays.add(c.visit_date); });
+  const sortedVisits=[...visitDays].sort();
+  const pending=tasks.filter(t=>!completedTaskIds.has(t.id));
+  // aging: count visit-days since created (excluding creation day)
+  pending.forEach(t=>{
+    const created=(t.created_at||'').slice(0,10);
+    const missed=sortedVisits.filter(d=>d>created).length;
+    t._missed=missed;
+    t._color = missed>=3?'flag':missed>=2?'bad':missed>=1?'warn':'ok';
+  });
+  const rank={flag:0,bad:1,warn:2,ok:3};
+  pending.sort((a,b)=> rank[a._color]-rank[b._color] || (a.sort_order||99)-(b.sort_order||99));
+  renderTasks(pending);
+  document.getElementById('hub-task-sub').textContent = pending.length? (pending.filter(t=>t._color!=='ok').length+' need attention') : 'All clear';
+}
+function renderTasks(list){
+  window._tasks = list;
+  const el=document.getElementById('task-list');
+  if(!list.length){ el.innerHTML='<div class="empty"><span class="ic">&#9745;</span>No pending tasks. Nice.</div>'; return; }
+  el.innerHTML=list.map(t=>{
+    const cls=t._color==='bad'||t._color==='flag'?'bad':t._color==='warn'?'warn':'';
+    let sub;
+    if(t._color==='flag') sub='Flagged \u2014 missed 3+ visits';
+    else if(t._color==='bad') sub='Overdue \u2014 2 visits missed';
+    else if(t._color==='warn') sub='Carried forward \u2014 1 missed';
+    else sub=recurLabel(t);
+    /* A task with instructions attached: tapping the row OPENS THE STEPS,
+       not the editor. Doing the task is why someone taps it; renaming it is
+       an occasional admin act. The row also says so in words — a bare
+       clipboard emoji does not announce itself as "instructions here".
+       Editing moves to its own small button so it stays reachable. */
+    const hasHowto = (t.howto_ids && t.howto_ids.length) || t.howto_id;
+    const rowTap = hasHowto ? 'openHowtoTask' : 'openTaskEditor';
+    if (hasHowto) sub = 'Step-by-step guide \u2014 tap to start';
+
+    return '<div class="task-row '+cls+'">'
+      + '<button class="task-check" onclick="event.stopPropagation();completeTask(\''+t.id+'\',\''+(t.title||'').replace(/\x27/g,'')+'\')"></button>'
+      + '<div class="task-body" onclick="'+rowTap+'(\''+t.id+'\')">'
+      +   '<div class="task-title">'+esc(t.title||'Untitled')+'</div>'
+      +   '<div class="task-sub">'+(hasHowto?'<span class="howto-flag">&#128203; ':'')+sub+(hasHowto?'</span>':'')+'</div>'
+      + '</div>'
+      + '<button class="task-edit" onclick="event.stopPropagation();openTaskEditor(\''+t.id+'\')" aria-label="Edit task">&#9998;</button>'
+      + '</div>';
+  }).join('');
+}
+function recurLabel(t){ const m={visit:'Every visit',daily:'Daily',weekly:'Weekly',biweekly:'Every 2 weeks',monthly:'Monthly',interval:'Recurring',one_time:'One time',seasonal:'Seasonal'}; return m[t.recurrence_type]||'Pending'; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+async function completeTask(id,title){
+  const {error}= await sb.from('lfg_task_completions').insert({task_id:id, completed_by:'staff', task_title:title});
+  if(error){ toast('Could not complete'); return; }
+  toast('Done \u2713'); loadTasks();
+}
+
+/* ---------- TASK EDITOR (add / edit / remove + recurrence) ---------- */
+let editingTaskId=null, editRecur='one_time';
+function fillTaskAreaSelect(){
+  const sel=document.getElementById('task-area-in');
+  if(sel.options.length>1) return; // already filled
+  (state.areas||[]).forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=a.name; sel.appendChild(o); });
+}
+async function openTaskEditor(id){
+  fillTaskAreaSelect();
+  await ensureHowtos();
+  editingTaskId = (typeof id==='string') ? id : null;
+  const t = editingTaskId ? (window._tasks||[]).find(x=>x.id===editingTaskId) : null;
+  document.getElementById('task-sheet-title').textContent = t? 'Edit task' : 'New task';
+  document.getElementById('task-title-in').value = t? (t.title||'') : '';
+  document.getElementById('task-area-in').value = t? (t.area_id||'') : '';
+  document.getElementById('task-due-in').value = t? (t.due_date||'') : '';
+  editHowtos = t? ((t.howto_ids&&t.howto_ids.length)? t.howto_ids.slice() : (t.howto_id?[t.howto_id]:[])) : [];
+  renderHowtoConfig();
+  editRecur = t? (t.recurrence_type||'one_time') : 'one_time';
+  document.querySelectorAll('.recur-chip').forEach(c=>c.classList.toggle('on', c.dataset.recur===editRecur));
+  document.getElementById('task-delete-btn').style.display = t? 'block':'none';
+  suggestDismissed = false;
+  document.getElementById('task-howto-suggest').innerHTML = '';
+  suggestHowto();
+  document.getElementById('task-sheet').classList.add('show');
+  document.getElementById('sheet-scrim').classList.add('show');
+}
+function closeTaskEditor(){
+  document.getElementById('task-sheet').classList.remove('show');
+  document.getElementById('sheet-scrim').classList.remove('show');
+  editingTaskId=null;
+}
+function pickRecur(el){ document.querySelectorAll('.recur-chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); editRecur=el.dataset.recur; }
+/* Debounced so the suggestion does not flicker on every keystroke. */
+let _sugT;
+document.addEventListener('input', function(e){
+  if(e.target && e.target.id === 'task-title-in' && !suggestDismissed){
+    clearTimeout(_sugT); _sugT = setTimeout(suggestHowto, 400);
+  }
+});
+
+async function saveTask(){
+  const title=document.getElementById('task-title-in').value.trim();
+  if(!title){ toast('Give the task a name'); return; }
+  const area=document.getElementById('task-area-in').value || null;
+  /* Empty string must become NULL, not ''. due_date is a date column, and a
+     blank string is not a valid date — Postgres would reject the whole row.
+     NULL is the honest value for "whenever". */
+  const due=document.getElementById('task-due-in').value || null;
+  const howto=editHowtos.length? editHowtos[0] : null;
+  const row={ title, recurrence_type:editRecur, area_id:area, due_date:due, howto_id:howto, howto_ids:editHowtos, created_by:'staff' };
+  let error;
+  if(editingTaskId){ ({error}= await sb.from('lfg_tasks').update({title, recurrence_type:editRecur, area_id:area, due_date:due, howto_id:howto, howto_ids:editHowtos}).eq('id',editingTaskId)); }
+  else { ({error}= await sb.from('lfg_tasks').insert(row)); }
+  if(error){ toast('Could not save: ' + (error.message||'unknown')); return; }
+  toast(editingTaskId?'Task updated':'Task added'); closeTaskEditor(); loadTasks();
+}
+async function deleteTask(){
+  if(!editingTaskId) return;
+  if(!confirm('Remove this task?')) return;
+  const {error}= await sb.from('lfg_tasks').update({archived_at:new Date().toISOString()}).eq('id',editingTaskId);
+  if(error){ toast('Could not remove'); return; }
+  toast('Task removed'); closeTaskEditor(); loadTasks();
+}
+
+/* ---------- INVENTORY (immediate) ---------- */
+let invData=[];
+async function loadInventory(){
+  const {data,error}= await sb.from('lfg_inventory').select('*').is('archived_at',null).order('item_name');
+  if(error){ document.getElementById('inv-list').innerHTML='<div class="empty">Could not load</div>'; return; }
+  invData=data; renderInventory();
+}
+function renderInventory(){
+  const el=document.getElementById('inv-list');
+  const isAdmin=document.body.classList.contains('is-admin');
+  if(!invData.length){ el.innerHTML='<div class="empty"><span class="ic">&#128230;</span>No items yet. Add your first below.</div>'; return; }
+  el.innerHTML=invData.map(function(i){
+    const thumb=i.image_url?'<img src="'+esc(i.image_url)+'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin-right:10px;flex:none">':'';
+    const cam=isAdmin?'<button class="step-btn" style="width:auto;padding:0 10px;margin-right:6px" onclick="event.stopPropagation();setItemImage(\''+i.id+'\')">&#128247;</button>':'';
+    return '<div class="inv-row">'+thumb+'<div class="inv-body" onclick="openInvEditor(\''+i.id+'\')"><div class="inv-name">'+esc(i.item_name)+'</div>'+
+    (i.category?'<div class="inv-cat">'+esc(i.category)+'</div>':'')+'</div>'+cam+
+    '<div class="stepper"><button class="step-btn" onclick="event.stopPropagation();stepQty(\''+i.id+'\',-1)">&minus;</button>'+
+    '<div class="qty" onclick="event.stopPropagation();typeQty(\''+i.id+'\')">'+ (i.quantity??0) +'<small>'+esc(i.unit||'')+'</small></div>'+
+    '<button class="step-btn" onclick="event.stopPropagation();stepQty(\''+i.id+'\',1)">&#43;</button></div></div>';
+  }).join('');
+}
+async function setItemImage(id){
+  const item=invData.find(function(x){return x.id===id;});
+  const url=prompt('Image URL for "'+(item?item.item_name:'item')+'" (empty to remove)', item&&item.image_url?item.image_url:'');
+  if(url===null) return;
+  let credit=null;
+  if(url.trim()){
+    const c=prompt('Image credit (only if the license requires attribution \u2014 leave empty for CC0/own photos)', item&&item.image_credit?item.image_credit:'');
+    if(c===null) return;
+    credit=c.trim()||null;
+  }
+  const {error}= await sb.from('lfg_inventory').update({image_url:url.trim()||null, image_credit:url.trim()?credit:null}).eq('id',id);
+  if(error){ toast('Could not save image'); return; }
+  toast(url.trim()?'Image saved':'Image removed'); loadInventory();
+}
+async function stepQty(id,delta){
+  const item=invData.find(x=>x.id===id); if(!item) return;
+  const newQ=Math.max(0,(Number(item.quantity)||0)+delta);
+  item.quantity=newQ; renderInventory();
+  const {error}= await sb.from('lfg_inventory').update({quantity:newQ, updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('Save failed'); loadInventory(); }
+}
+async function typeQty(id){
+  const item=invData.find(x=>x.id===id); if(!item) return;
+  const v=prompt('Set quantity for '+item.item_name+':', item.quantity??0);
+  if(v===null) return;
+  const n=Math.max(0,Number(v)||0);
+  item.quantity=n; renderInventory();
+  const {error}= await sb.from('lfg_inventory').update({quantity:n, updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('Save failed'); loadInventory(); }
+}
+let editingInvId=null;
+function openInvEditor(id){
+  editingInvId = (typeof id==='string') ? id : null;
+  const i = editingInvId ? invData.find(x=>x.id===editingInvId) : null;
+  document.getElementById('inv-sheet-title').textContent = i? 'Edit item':'New item';
+  document.getElementById('inv-name-in').value = i? (i.item_name||'') : '';
+  document.getElementById('inv-qty-in').value = i? (i.quantity??0) : 0;
+  document.getElementById('inv-unit-in').value = i? (i.unit||'') : '';
+  document.getElementById('inv-cat-in').value = i? (i.category||'') : '';
+  document.getElementById('inv-delete-btn').style.display = i? 'block':'none';
+  document.getElementById('inv-sheet').classList.add('show');
+  document.getElementById('inv-scrim').classList.add('show');
+}
+function closeInvEditor(){
+  document.getElementById('inv-sheet').classList.remove('show');
+  document.getElementById('inv-scrim').classList.remove('show');
+  editingInvId=null;
+}
+async function saveInv(){
+  const name=document.getElementById('inv-name-in').value.trim();
+  if(!name){ toast('Name the item'); return; }
+  const qty=Math.max(0,Number(document.getElementById('inv-qty-in').value)||0);
+  const unit=document.getElementById('inv-unit-in').value.trim()||null;
+  const cat=document.getElementById('inv-cat-in').value.trim()||null;
+  let error;
+  if(editingInvId){ ({error}= await sb.from('lfg_inventory').update({item_name:name, quantity:qty, unit:unit, category:cat, updated_at:new Date().toISOString()}).eq('id',editingInvId)); }
+  else { ({error}= await sb.from('lfg_inventory').insert({item_name:name, quantity:qty, unit:unit, category:cat})); }
+  if(error){ toast('Could not save'); return; }
+  toast(editingInvId?'Item updated':'Item added'); closeInvEditor(); loadInventory();
+}
+async function deleteInv(){
+  if(!editingInvId) return;
+  if(!confirm('Remove this item?')) return;
+  const {error}= await sb.from('lfg_inventory').delete().eq('id',editingInvId);
+  if(error){ toast('Could not remove'); return; }
+  toast('Item removed'); closeInvEditor(); loadInventory();
+}
+function addInventoryItem(){ openInvEditor(); }
+
+/* ---------- APPROVALS ---------- */
+async function refreshApproveBadge(){
+  const [logs,comments,photos]= await Promise.all([
+    sb.from('lfg_log').select('*',{count:'exact',head:true}).eq('approval_status','pending'),
+    sb.from('lfg_comments').select('*',{count:'exact',head:true}).eq('status','new'),
+    sb.from('lfg_photos').select('*',{count:'exact',head:true}).eq('approval_status','pending')
+  ]);
+  const total=(logs.count||0)+(comments.count||0)+(photos.count||0);
+  /* The badge lives inside a drawer item that grush-nav builds, so it may
+     not exist yet on an early call. Guard rather than throw. */
+  const b=document.getElementById('approve-badge');
+  if(!b) return;
+  if(total>0){ b.style.display='flex'; b.textContent=total; } else b.style.display='none';
+}
+function _escA(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+async function loadApprovals(){
+  const el=document.getElementById('approve-list');
+  await ensurePlants();
+  /* Rejected items are fetched too. A queue that hides what you turned
+     down cannot be corrected, and the second deny — the permanent one —
+     has to live somewhere you can find it deliberately. */
+  const [logsR,commentsR,photosR,rlogR,rphotoR]= await Promise.all([
+    sb.from('lfg_log').select('*').eq('approval_status','pending').order('logged_at',{ascending:false}),
+    sb.from('lfg_comments').select('*').eq('status','new').order('submitted_at',{ascending:false}),
+    sb.from('lfg_photos').select('*').eq('approval_status','pending').order('uploaded_at',{ascending:false}),
+    sb.from('lfg_log').select('*').eq('approval_status','rejected').order('logged_at',{ascending:false}),
+    sb.from('lfg_photos').select('*').eq('approval_status','rejected').order('uploaded_at',{ascending:false})
+  ]);
+  if(logsR.error&&commentsR.error&&photosR.error){ el.innerHTML='<div class="empty">Could not load</div>'; return; }
+  const logs=logsR.data||[], comments=commentsR.data||[], photos=photosR.data||[];
+  const rlogs=rlogR.data||[], rphotos=rphotoR.data||[];
+  /* A rejected plant stub is still a stub — filter it out of both groups
+     by status rather than lumping everything not-approved together. */
+  const stubs=(staffPlants||[]).filter(function(p){return p.approval_status==='pending';});
+  const rstubs=(staffPlants||[]).filter(function(p){return p.approval_status==='rejected';});
+  const nRejected = rlogs.length + rphotos.length + rstubs.length;
+  if(!logs.length && !comments.length && !photos.length && !stubs.length && !nRejected){
+    el.innerHTML='<div class="empty"><span class="ic">&#9989;</span>Nothing waiting. All caught up.</div>'; return;
+  }
+  let html='';
+  if(logs.length){
+    html+='<div class="approve-group">Field logs</div>';
+    html+=logs.map(r=>(
+      '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(r.location_label||'\u2014')+'</div><div class="inv-cat">'+_escA(r.note)+' &middot; '+_escA(r.submitted_by||'?')+'</div></div>'+
+      '<button class="step-btn ap-go" onclick="approveItem(\'log\',\''+r.id+'\')">&#10003; Approve</button><button class="step-btn ap-no" onclick="denyItem(\'log\',\''+r.id+'\')">Deny</button></div>'
+    )).join('');
+  }
+  if(comments.length){
+    html+='<div class="approve-group">Visitor notes</div>';
+    html+=comments.map(c=>(
+      '<div class="inv-row"><div class="inv-body"><div class="inv-name">'+_escA(c.commenter_name||'Visitor')+'</div><div class="inv-cat">'+_escA(c.message)+'</div></div>'+
+      '<button class="step-btn ap-go" onclick="approveItem(\'comment\',\''+c.id+'\')">&#10003; Approve</button><button class="step-btn ap-no" onclick="denyItem(\'comment\',\''+c.id+'\')">Deny</button></div>'
+    )).join('');
+  }
+  if(photos.length){
+    html+='<div class="approve-group">Photos</div>';
+    const _apSel='flex:1;min-width:0;font-size:13px;padding:6px;background:var(--paper);color:var(--ink);border:1px solid var(--line-strong);border-radius:6px';
+    html+=photos.map(p=>(
+      '<div class="inv-row" style="align-items:flex-start"><div class="inv-body">'+
+        '<div style="display:flex;align-items:center;gap:8px"><img src="'+_escA(p.thumbnail_url||p.cloudinary_url)+'" style="width:44px;height:44px;border-radius:8px;object-fit:cover"><span class="inv-cat">'+_escA(p.caption||'(no caption)')+'</span></div>'+
+        '<div style="display:flex;gap:6px;margin-top:8px"><select class="ap-area" data-id="'+p.id+'" style="'+_apSel+'">'+areaOptionsHTML(p.area_id)+'</select>'+
+        '<select class="ap-type" data-id="'+p.id+'" style="'+_apSel+'">'+typeOptionsHTML(p.subject_type)+'</select>'+
+        '<select class="ap-plant" data-id="'+p.id+'" style="'+_apSel+'">'+plantOptionsHTML(p.plant_id)+'</select></div>'+
+      '</div>'+
+      '<button class="step-btn ap-go" onclick="approveItem(\'photo\',\''+p.id+'\')">&#10003; Approve</button><button class="step-btn ap-no" onclick="denyItem(\'photo\',\''+p.id+'\')">Deny</button></div>'
+    )).join('');
+  }
+  if(stubs.length){
+    let pcounts={};
+    try{ const pr=await sb.from('lfg_photos').select('plant_id'); (pr.data||[]).forEach(function(x){ if(x.plant_id) pcounts[x.plant_id]=(pcounts[x.plant_id]||0)+1; }); }catch(e){}
+    html+='<div class="approve-group">Plants to complete</div>';
+    html+='<div style="font-size:.8rem;opacity:.65;margin:2px 0 8px">Name-only stubs. Fill in the plant record, then set it approved \u2014 linked photos light up automatically.</div>';
+    stubs.forEach(function(p){
+      const n=pcounts[p.id]||0;
+      html+='<div class="inv-row" style="cursor:pointer" onclick="openPlantEditor(\''+p.id+'\')">'
+        +'<div class="inv-body"><span class="inv-cat">'+esc(p.plant_name)+'</span>'
+        +'<div style="font-size:.78rem;opacity:.6">'+n+' photo'+(n===1?'':'s')+' waiting on this plant</div></div>'
+        +'<button class="chip" style="min-height:40px">Fill in</button></div>';
+    });
+  }
+  /* ── Rejected ──────────────────────────────────────────────────────
+     Last, and visually quieter than the queue above it. These are not
+     waiting on anyone; they are here so a mistake can be undone and so
+     the permanent delete has a deliberate home rather than sitting next
+     to the approve button. */
+  if(nRejected){
+    html+='<div class="approve-group rejected-group">Rejected \u00b7 '+nRejected+'</div>';
+    var rrow = function(kind, id, title, sub){
+      return '<div class="inv-row is-rejected"><div class="inv-body">'+
+        '<div class="inv-name">'+_escA(title)+'</div>'+
+        '<div class="inv-cat">'+_escA(sub)+'</div></div>'+
+        '<button class="step-btn ap-back" onclick="restoreItem(\''+kind+'\',\''+id+'\')">Restore</button>'+
+        '<button class="step-btn ap-kill" onclick="purgeItem(\''+kind+'\',\''+id+'\')">Delete</button></div>';
+    };
+    rlogs.forEach(function(r){ html+=rrow('log', r.id, r.location_label||'\u2014',
+      (r.note||'')+' \u00b7 '+(r.submitted_by||'?')); });
+    rphotos.forEach(function(r){ html+=rrow('photo', r.id, r.caption||'(no caption)', 'Photo'); });
+    rstubs.forEach(function(r){ html+=rrow('plant', r.id, r.plant_name||'(unnamed)', 'Plant'); });
+  }
+
+  el.innerHTML=html;
+  el.querySelectorAll('.ap-plant').forEach(function(s){
+    const prev=s.value;
+    s.addEventListener('change', function(){ plantSelChange(s, prev); });
+  });
+}
+/* ---------- plant editor ----------
+   The "Plants to complete" queue used to be a to-do list with no way to do
+   the to-dos: the cards were plain divs and nothing anywhere on the site
+   could edit or approve a plant record. Supabase's table editor was the only
+   route, which is a 27-column desktop form.
+
+   This asks for the four fields that make a plant LINKABLE AND VISIBLE, then
+   the grower fields that feed the calculators. Everything else in the schema
+   stays blank on purpose — no invented values. */
+let editingPlantId = null;
+
+window.openPlantEditor = async function(id){
+  editingPlantId = id;
+  const {data,error} = await sb.from('lfg_master_plants').select('*').eq('id',id).single();
+  if(error||!data){ toast('Could not open plant: '+((error&&error.message)||'not found')); return; }
+  document.getElementById('plant-sheet-title').textContent = data.plant_name || 'Plant record';
+  document.getElementById('pl-name').value      = data.plant_name || '';
+  document.getElementById('pl-category').value  = data.category || 'Other';
+  document.getElementById('pl-botanical').value = data.botanical_name || '';
+  document.getElementById('pl-summary').value   = data.summary || '';
+  document.getElementById('pl-dtm').value       = data.days_to_maturity ?? '';
+  document.getElementById('pl-spacing').value   = data.spacing_inches ?? '';
+  document.getElementById('pl-windows').value   = data.planting_windows || '';
+  document.getElementById('pl-water').value     = data.watering_plans || '';
+  document.getElementById('plant-scrim').classList.add('show');
+  document.getElementById('plant-sheet').classList.add('show');
+};
+
+window.closePlantEditor = function(){
+  editingPlantId = null;
+  document.getElementById('plant-scrim').classList.remove('show');
+  document.getElementById('plant-sheet').classList.remove('show');
+};
+
+window.savePlant = async function(approve){
+  if(!editingPlantId) return;
+  const name = document.getElementById('pl-name').value.trim();
+  if(!name){ toast('Give the plant a name'); return; }
+  /* Empty strings must become NULL. days_to_maturity is integer and
+     spacing_inches is numeric — '' is not a number and Postgres would
+     reject the whole row, not just the field. */
+  const num = el => { const v = document.getElementById(el).value.trim(); return v===''? null : Number(v); };
+  const txt = el => document.getElementById(el).value.trim() || null;
+  const row = {
+    plant_name:       name,
+    category:         document.getElementById('pl-category').value,
+    botanical_name:   txt('pl-botanical'),
+    summary:          txt('pl-summary'),
+    days_to_maturity: num('pl-dtm'),
+    spacing_inches:   num('pl-spacing'),
+    planting_windows: txt('pl-windows'),
+    watering_plans:   txt('pl-water')
+  };
+  if(approve){ row.approval_status = 'approved'; row.approved_at = new Date().toISOString(); }
+  const {error} = await sb.from('lfg_master_plants').update(row).eq('id',editingPlantId);
+  if(error){ toast('Could not save: '+(error.message||'unknown')); return; }
+  toast(approve ? 'Approved \u2014 linked photos are live' : 'Saved, still pending');
+  closePlantEditor();
+  staffPlants = null;          // force the dropdown cache to rebuild
+  loadApprovals();
+};
+
+async function approveItem(kind,id){
+  let error;
+  if(kind==='log'){ ({error}= await sb.from('lfg_log').update({approval_status:'approved'}).eq('id',id)); }
+  else if(kind==='comment'){ ({error}= await sb.from('lfg_comments').update({status:'reviewed'}).eq('id',id)); }
+  else if(kind==='photo'){
+    const _ar=document.querySelector('.ap-area[data-id="'+id+'"]'), _ty=document.querySelector('.ap-type[data-id="'+id+'"]');
+    const _upd={approval_status:'approved'}; if(_ar) _upd.area_id=_ar.value||null; if(_ty) _upd.subject_type=_ty.value||null;
+    const _pl=document.querySelector('.ap-plant[data-id="'+id+'"]'); if(_pl && _pl.value!=='__newplant') _upd.plant_id=_pl.value||null;
+    ({error}= await sb.from('lfg_photos').update(_upd).eq('id',id));
+  }
+  if(error){ toast('Failed'); return; }
+  toast('Approved'); loadApprovals(); refreshApproveBadge();
+}
+
+/* ── deny, in two stages ────────────────────────────────────────────────
+   First deny moves an item to Rejected. A second deny from there removes
+   it for good. Two stages because approving is reversible by editing and
+   deleting is not, and the person doing this is on a phone, outdoors,
+   with a gloved thumb.
+
+   The rule is enforced in Postgres, not here: the DELETE policies added
+   Aug 2026 permit an operator to delete a row ONLY when it is already
+   rejected. A bug in this file cannot destroy something in one step. */
+const DENY_TABLE = { log:'lfg_log', photo:'lfg_photos', plant:'lfg_master_plants', event:'lfg_area_events' };
+
+async function denyItem(kind, id){
+  if(kind === 'comment'){
+    const { error } = await sb.from('lfg_comments').update({ status:'rejected' }).eq('id', id);
+    if(error){ toast('Failed'); return; }
+  } else {
+    const t = DENY_TABLE[kind]; if(!t) return;
+    const { error } = await sb.from(t).update({ approval_status:'rejected' }).eq('id', id);
+    if(error){ toast('Failed'); return; }
+  }
+  if(window.GrushFeel) GrushFeel.tap();
+  toast('Moved to Rejected'); loadApprovals(); refreshApproveBadge();
+}
+
+async function purgeItem(kind, id){
+  /* The only irreversible control in this tool. It asks, and it says what
+     it is going to do rather than "Are you sure?" */
+  if(!confirm('Delete this permanently? It cannot be recovered.')) return;
+  const t = DENY_TABLE[kind]; if(!t) return;
+  const { error } = await sb.from(t).delete().eq('id', id);
+  if(error){ toast('Could not delete: ' + (error.message||'refused')); return; }
+  if(window.GrushFeel) GrushFeel.warn();
+  toast('Deleted'); loadApprovals(); refreshApproveBadge();
+}
+
+async function restoreItem(kind, id){
+  const t = DENY_TABLE[kind]; if(!t) return;
+  const { error } = await sb.from(t).update({ approval_status:'pending' }).eq('id', id);
+  if(error){ toast('Failed'); return; }
+  toast('Back in the queue'); loadApprovals(); refreshApproveBadge();
+}
+// wire approvals screen load
+const _go=go; go=function(s){ _go(s); if(s==='approvals') loadApprovals(); if(s==='areas') loadAreasScreen(); if(s==='tasks') loadTasks(); if(s==='inventory') loadInventory(); if(s==='photos') loadPhotos(); };
+
+/* ---------- PHOTOS ---------- */
+const CLOUD_NAME=window.LFG_CONFIG.CLOUDINARY_CLOUD, UPLOAD_PRESET=window.LFG_CONFIG.CLOUDINARY_PRESET;
+async function loadPhotos(){
+  const ab=document.getElementById('actionbar');
+  ab.style.display='block';
+  const btn=document.getElementById('primary-action'); btn.textContent='\uD83D\uDCF7  Add photo'; btn.onclick=()=>document.getElementById('photo-file').click();
+  const {data,error}= await sb.from('lfg_photos').select('*').order('uploaded_at',{ascending:false});
+  const el=document.getElementById('photo-grid');
+  if(error){ el.innerHTML='<div class="empty">Could not load photos</div>'; return; }
+  const isAdmin=document.body.classList.contains('is-admin');
+  albumPhotos=(data||[]).filter(p=>isAdmin || p.approval_status==='approved');
+  if(!state.areas||!state.areas.length){ try{ const r=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null).order('zone').order('sort_order',{nullsFirst:false}).order('name'); state.areas=r.data||[]; }catch(e){} }
+  albumAreaMap={}; (state.areas||[]).forEach(function(a){ albumAreaMap[a.id]=a.name; });
+  buildAlbumFilters(); applyAlbumFilter();
+}
+let albumPhotos=[], albumAreaMap={};
+function _capW(x){ x=String(x||''); return x?x.charAt(0).toUpperCase()+x.slice(1):''; }
+function buildAlbumFilters(){
+  const fb=document.getElementById('photo-filters'); if(!fb) return;
+  const cnt={}; let nNone=0;
+  (albumPhotos||[]).forEach(function(p){ if(p.area_id) cnt[p.area_id]=(cnt[p.area_id]||0)+1; else nNone++; });
+  const total=(albumPhotos||[]).length;
+  let ao='<option value="">All areas \u00b7 '+total+'</option>';
+  if(nNone) ao+='<option value="__none__">General / whole farm \u00b7 '+nNone+'</option>';
+  const g={}; (state.areas||[]).forEach(function(a){ if(!cnt[a.id]) return; const z=a.zone||'Other'; (g[z]=g[z]||[]).push(a); });
+  Object.keys(g).forEach(function(z){
+    ao+='<optgroup label="'+esc(z)+'">';
+    g[z].forEach(function(a){ ao+='<option value="'+a.id+'">'+esc(a.name)+' \u00b7 '+cnt[a.id]+'</option>'; });
+    ao+='</optgroup>';
+  });
+  fb.innerHTML='<select id="pf-area" onchange="applyAlbumFilter()">'+ao+'</select><select id="pf-type" onchange="applyAlbumFilter()"><option value="">All types</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option></select>';
+}
+function applyAlbumFilter(){
+  const fa=(document.getElementById('pf-area')||{}).value||'', ft=(document.getElementById('pf-type')||{}).value||'';
+  let list=albumPhotos;
+  if(fa==='__none__') list=list.filter(function(p){return !p.area_id;}); else if(fa) list=list.filter(function(p){return p.area_id===fa;});
+  if(ft) list=list.filter(function(p){return p.subject_type===ft;});
+  const el=document.getElementById('photo-grid'); el.className='photo-grid';
+  if(!list.length){ el.innerHTML='<div class="empty">No photos match.</div>'; return; }
+  el.innerHTML=list.map(function(p){
+    const area=p.area_id?(albumAreaMap[p.area_id]||''):'General';
+    const meta=[area, p.subject_type?_capW(p.subject_type):''].filter(Boolean).join(' · ');
+    const capLine=(meta||p.caption)?'<div class="cap">'+(meta?'<b>'+esc(meta)+'</b>':'')+(p.caption?(meta?'<br>':'')+esc(p.caption):'')+'</div>':'';
+    const adminTap=document.body.classList.contains('is-admin')?' onclick="openPhotoEdit(\''+p.id+'\')" style="cursor:pointer"':'';
+    return '<div class="photo-cell'+(p.approval_status==='pending'?' pending':'')+'"'+adminTap+'><img src="'+esc(p.thumbnail_url||p.cloudinary_url)+'" loading="lazy">'+capLine+'</div>';
+  }).join('');
+}
+/* ---------- LOCATIONS MANAGER ---------- */
+async function loadAreasScreen(){
+  const el=document.getElementById('areas-list');
+  const [ar, ph, tk] = await Promise.all([
+    sb.from('lfg_growing_areas').select('id,name,zone,area_type,archived_at').order('zone').order('sort_order', {nullsFirst:false}).order('name'),
+    sb.from('lfg_photos').select('area_id'),
+    sb.from('lfg_tasks').select('area_id').is('archived_at',null)
+  ]);
+  if(ar.error){ el.innerHTML='<div class="empty">Could not load locations</div>'; return; }
+  const pc={}, tc={};
+  (ph.data||[]).forEach(function(p){ if(p.area_id) pc[p.area_id]=(pc[p.area_id]||0)+1; });
+  (tk.data||[]).forEach(function(t){ if(t.area_id) tc[t.area_id]=(tc[t.area_id]||0)+1; });
+  window._areaCounts={p:pc,t:tc};
+  const isAdmin=document.body.classList.contains('is-admin');
+  const zones=[...new Set((ar.data||[]).map(function(a){return a.zone||'Other';}))];
+  document.getElementById('zone-list').innerHTML=zones.map(function(z){return '<option value="'+esc(z)+'">';}).join('');
+  const live=(ar.data||[]).filter(function(a){return !a.archived_at;});
+  const dead=(ar.data||[]).filter(function(a){return a.archived_at;});
+  const groups={};
+  live.forEach(function(a){ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
+  let h='';
+  Object.keys(groups).forEach(function(z){
+    h+='<div class="zone-h">'+esc(z)+'</div>';
+    groups[z].forEach(function(a){
+      const np=pc[a.id]||0, nt=tc[a.id]||0;
+      h+='<div style="display:flex;align-items:center;gap:8px;min-height:48px;padding:4px 2px;border-bottom:1px solid rgba(0,0,0,.08)">'
+        +'<div style="flex:1"><div>'+esc(a.name)+'</div><div style="font-size:.75rem;opacity:.6">'+esc(a.area_type||'')+' &middot; '+np+' photo'+(np===1?'':'s')+', '+nt+' task'+(nt===1?'':'s')+'</div></div>'
+        +(isAdmin? '<button class="chip" style="min-height:40px" onclick="renameArea(\''+a.id+'\')">Rename</button>'
+        +'<button class="chip" style="min-height:40px" onclick="archiveArea(\''+a.id+'\')">Archive</button>' : '')
+        +'</div>';
+    });
+  });
+  if(isAdmin && dead.length){
+    h+='<div class="zone-h" style="margin-top:16px">Archived</div>';
+    dead.forEach(function(a){
+      h+='<div style="display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 2px;opacity:.6;border-bottom:1px solid rgba(0,0,0,.08)">'
+        +'<div style="flex:1">'+esc(a.name)+'</div>'
+        +'<button class="chip" style="min-height:40px" onclick="restoreArea(\''+a.id+'\')">Restore</button></div>';
+    });
+  }
+  h+='<button class="chip" style="min-height:52px;border-style:dashed;opacity:.7" onclick="addLocationInline()">&#43; New location</button>';
+  el.innerHTML=h||'<button class="chip" style="min-height:52px;border-style:dashed" onclick="addLocationInline()">&#43; New location</button>';
+  window._areasCache=ar.data||[];
+}
+function _areaById(id){ return (window._areasCache||[]).find(function(a){return a.id===id;})||{}; }
+async function addAreaFromForm(){
+  const name=document.getElementById('na-name').value.trim();
+  const type=document.getElementById('na-type').value;
+  const zone=document.getElementById('na-zone').value.trim()||'Grounds';
+  if(!name){ toast('Name required'); return; }
+  const {error}= await sb.from('lfg_growing_areas').insert({name:name, zone:zone, area_type:type});
+  if(error){ toast('Could not add'); return; }
+  document.getElementById('na-name').value='';
+  toast('Location added'); loadAreas(); loadAreasScreen();
+}
+async function renameArea(id){
+  const nn=prompt('Rename location', _areaById(id).name||''); if(nn===null) return;
+  const name=nn.trim(); if(!name) return;
+  const {error}= await sb.from('lfg_growing_areas').update({name:name}).eq('id',id);
+  if(error){ toast('Rename failed'); return; }
+  toast('Renamed'); loadAreas(); loadAreasScreen();
+}
+async function archiveArea(id){
+  const c=window._areaCounts||{p:{},t:{}};
+  const np=c.p[id]||0, nt=c.t[id]||0;
+  const msg='Archive "'+(_areaById(id).name||'this location')+'"? It leaves all pickers. '+np+' photo(s) and '+nt+' task(s) keep their history.';
+  if(!confirm(msg)) return;
+  const {error}= await sb.from('lfg_growing_areas').update({archived_at:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('Archive failed'); return; }
+  toast('Archived'); loadAreas(); loadAreasScreen();
+}
+async function restoreArea(id){
+  const {error}= await sb.from('lfg_growing_areas').update({archived_at:null}).eq('id',id);
+  if(error){ toast('Restore failed'); return; }
+  toast('Restored'); loadAreas(); loadAreasScreen();
+}
+async function quickAddArea(){
+  const name=prompt('New location name'); if(name===null||!name.trim()) return null;
+  const zone=prompt('Zone (e.g. Grounds, Zone 2)','Grounds'); if(zone===null) return null;
+  const {data,error}= await sb.from('lfg_growing_areas').insert({name:name.trim(), zone:(zone.trim()||'Grounds'), area_type:'landmark'}).select().single();
+  if(error){ toast('Could not add'); return null; }
+  toast('Location added'); await loadAreas();
+  return data;
+}
+async function peAreaChange(){
+  const sel=document.getElementById('pe-area');
+  if(sel.value!=='__addnew') return;
+  const p=(typeof albumPhotos!=='undefined'&&albumPhotos.find(function(x){return x.id===peId;}))||{};
+  const added=await quickAddArea();
+  sel.innerHTML=areaOptionsHTML(added? added.id : (p.area_id||''))+'<option value="__addnew">&#65291; New location&hellip;</option>';
+}
+
+/* ---------- HOW-TO CARDS ---------- */
+let howtoCards=null;
+async function ensureHowtos(){
+  if(howtoCards) return howtoCards;
+  const {data,error}= await sb.from('lfg_howto_cards').select('*').is('archived_at',null).order('title');
+  howtoCards = error? [] : (data||[]);
+  return howtoCards;
+}
+function howtoOptionsHTML(sel){
+  let h='<option value=""'+(sel?'':' selected')+'>No how-to card</option>';
+  (howtoCards||[]).forEach(function(c){ h+='<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.title)+'</option>'; });
+  h+='<option value="__newhowto">&#65291; New how-to&hellip;</option>';
+  return h;
+}
+let editHowtos=[];
+function _htTitle(id){ const c=(howtoCards||[]).find(function(x){return x.id===id;}); return c? c.title : '(missing card)'; }
+/* ── suggesting an existing card ──────────────────────────────
+   Matches the task title against the titles of cards you already have.
+   The point is to stop a second "Rake debris" card being written because
+   nobody remembered the first one — that is how a card library rots.
+
+   Deliberately conservative: stopwords are dropped, a word must be 4+
+   characters to count, and one shared word is not enough unless it is a
+   long distinctive one. A suggestion that is usually wrong gets ignored,
+   and then the right one gets ignored too. */
+const HOWTO_STOP = new Set(['the','and','for','with','from','into','onto','this','that',
+  'all','any','out','off','get','put','use','zone','bed','beds','farm','area','plant','plants']);
+
+function howtoWords(str){
+  return String(str||'').toLowerCase().split(/[^a-z0-9]+/)
+    .filter(w => w.length >= 4 && !HOWTO_STOP.has(w))
+    /* Crude stemming so "trellises" matches a card called "Trellis vine
+       crops". Without it the most useful suggestions are the ones that
+       miss, because people rarely phrase a task the way the card is
+       titled. Not linguistics — just enough to catch plurals. */
+    .map(w => w.replace(/ies$/, 'y').replace(/(ses|xes|ches|shes)$/, m => m.slice(0, -2))
+                .replace(/([^s])s$/, '$1'));
+}
+
+function suggestHowto(){
+  const box = document.getElementById('task-howto-suggest');
+  if(!box) return;
+  box.innerHTML = '';
+  const title = (document.getElementById('task-title-in').value || '').trim();
+  if(title.length < 4 || !(howtoCards||[]).length) return;
+
+  const want = howtoWords(title);
+  if(!want.length) return;
+
+  let best = null, bestScore = 0;
+  (howtoCards||[]).forEach(function(c){
+    if(editHowtos.indexOf(c.id) !== -1) return;      // already attached
+    const have = howtoWords(c.title);
+    const shared = want.filter(w => have.indexOf(w) !== -1);
+    if(!shared.length) return;
+    /* Two shared words is a real match. One is only enough if it is long
+       and distinctive — "trellises" yes, "clean" no. */
+    const score = shared.length > 1 ? shared.length
+                : (shared[0].length >= 6 ? 1 : 0);
+    if(score > bestScore){ bestScore = score; best = c; }
+  });
+  if(!best) return;
+
+  box.innerHTML =
+    '<div class="howto-sug">You already have a card that looks like this: '
+    + '<b>' + esc(best.title) + '</b>'
+    + '<div class="row">'
+    +   '<button class="yes" onclick="acceptSuggestion(\'' + best.id + '\')">Use it</button>'
+    +   '<button class="no" onclick="dismissSuggestion()">Not this one</button>'
+    + '</div></div>';
+}
+
+function acceptSuggestion(id){
+  if(editHowtos.indexOf(id) === -1) editHowtos.push(id);
+  renderHowtoConfig();
+}
+function dismissSuggestion(){
+  document.getElementById('task-howto-suggest').innerHTML = '';
+  suggestDismissed = true;
+}
+let suggestDismissed = false;
+
+function renderHowtoConfig(){
+  const list=document.getElementById('task-howto-list');
+  list.innerHTML=editHowtos.map(function(id,i){
+    return '<div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px">'
+      +'<span style="min-width:20px;font-weight:700;color:var(--leaf)">'+(i+1)+'</span>'
+      +'<span style="flex:1;font-size:.95rem">'+esc(_htTitle(id))+'</span>'
+      +'<button class="chip" style="min-height:36px;padding:0 10px" onclick="moveHowto('+i+',-1)">&#8593;</button>'
+      +'<button class="chip" style="min-height:36px;padding:0 10px" onclick="moveHowto('+i+',1)">&#8595;</button>'
+      +'<button class="chip" style="min-height:36px;padding:0 10px" onclick="removeHowto('+i+')">&#10005;</button>'
+      +'</div>';
+  }).join('');
+  const empty=document.getElementById('task-howto-empty');
+  if(empty) empty.style.display = editHowtos.length ? 'none' : 'block';
+
+  const add=document.getElementById('task-howto-add');
+  let opts='<option value="">Add a how-to card&hellip;</option>';
+  (howtoCards||[]).forEach(function(c){ if(editHowtos.indexOf(c.id)===-1) opts+='<option value="'+c.id+'">'+esc(c.title)+'</option>'; });
+  opts+='<option value="__newhowto">&#65291; New how-to&hellip;</option>';
+  add.innerHTML=opts;
+}
+function moveHowto(i,d){
+  const j=i+d; if(j<0||j>=editHowtos.length) return;
+  const t=editHowtos[i]; editHowtos[i]=editHowtos[j]; editHowtos[j]=t;
+  renderHowtoConfig();
+}
+function removeHowto(i){ editHowtos.splice(i,1); renderHowtoConfig(); }
+function addHowtoToTask(){
+  const sel=document.getElementById('task-howto-add');
+  if(!sel.value) return;
+  if(sel.value==='__newhowto'){ sel.value=''; openHowtoCreate(); return; }
+  editHowtos.push(sel.value);
+  renderHowtoConfig();
+}
+let hcMats=[], invPick=null;
+async function ensureInvPick(){
+  const {data,error}= await sb.from('lfg_inventory').select('id,item_name').is('archived_at',null).order('item_name');
+  invPick = error? [] : (data||[]);
+  return invPick;
+}
+function _invName(id){ const x=(invPick||[]).find(function(v){return v.id===id;}); return x? x.item_name : '(missing item)'; }
+function renderMatList(){
+  document.getElementById('hc-mat-list').innerHTML=hcMats.map(function(id,i){
+    return '<div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 10px;margin-bottom:5px">'
+      +'<span style="flex:1;font-size:.95rem">'+esc(_invName(id))+'</span>'
+      +'<button class="chip" style="min-height:34px;padding:0 10px" onclick="removeMat('+i+')">&#10005;</button></div>';
+  }).join('');
+  const add=document.getElementById('hc-mat-add');
+  let opts='<option value="">Add item from inventory&hellip;</option>';
+  (invPick||[]).forEach(function(v){ if(hcMats.indexOf(v.id)===-1) opts+='<option value="'+v.id+'">'+esc(v.item_name)+'</option>'; });
+  opts+='<option value="__newitem">&#65291; New inventory item&hellip;</option>';
+  add.innerHTML=opts;
+}
+function removeMat(i){ hcMats.splice(i,1); renderMatList(); }
+async function addMatToCard(){
+  const sel=document.getElementById('hc-mat-add');
+  if(!sel.value) return;
+  if(sel.value==='__newitem'){
+    sel.value='';
+    const name=prompt('New inventory item name'); if(name===null||!name.trim()) return;
+    const {data,error}= await sb.from('lfg_inventory').insert({item_name:name.trim(), quantity:0}).select().single();
+    if(error){ toast('Could not add item'); return; }
+    toast('Item added to inventory');
+    await ensureInvPick(); hcMats.push(data.id); renderMatList(); invData=[];
+    return;
+  }
+  hcMats.push(sel.value); renderMatList();
+}
+let _tsWasOpen=false;
+function openHowtoCreate(){
+  _tsWasOpen=document.getElementById('task-sheet').classList.contains('show');
+  if(_tsWasOpen){ document.getElementById('task-sheet').classList.remove('show'); document.getElementById('sheet-scrim').classList.remove('show'); }
+  document.getElementById('hc-title').value='';
+  document.getElementById('hc-steps').value='';
+  document.getElementById('hc-materials').value='';
+  document.getElementById('hc-safety').value='';
+  hcMats=[]; ensureInvPick().then(renderMatList);
+  document.getElementById('howto-create').style.display='flex';
+}
+function closeHowtoCreate(){
+  document.getElementById('howto-create').style.display='none';
+  if(_tsWasOpen){ document.getElementById('task-sheet').classList.add('show'); document.getElementById('sheet-scrim').classList.add('show'); _tsWasOpen=false; }
+}
+async function saveHowtoCard(){
+  const title=document.getElementById('hc-title').value.trim();
+  if(!title){ toast('Give the card a title'); return; }
+  const steps=document.getElementById('hc-steps').value.split('\n').map(function(s){return s.trim();}).filter(Boolean).map(function(s){return {text:s};});
+  if(!steps.length){ toast('Add at least one step'); return; }
+  const row={ title:title, steps:steps,
+    materials:document.getElementById('hc-materials').value.trim()||null,
+    material_ids:hcMats,
+    safety_note:document.getElementById('hc-safety').value.trim()||null,
+    created_by:'staff' };
+  const {data,error}= await sb.from('lfg_howto_cards').insert(row).select().single();
+  if(error){ toast('Could not save card'); return; }
+  toast('How-to card saved');
+  howtoCards=null; await ensureHowtos();
+  if(Array.isArray(editHowtos)){ editHowtos.push(data.id); renderHowtoConfig(); }
+  closeHowtoCreate();
+}
+async function openHowtoView(id){ location.href='howto.html?id='+id; }
+function openHowtoTask(id){ location.href='howto.html?task='+id; }
+async function _openHowtoViewLegacy(id){
+  await ensureHowtos();
+  const c=(howtoCards||[]).find(function(x){return x.id===id;});
+  if(!c){ toast('Card not found'); return; }
+  document.getElementById('hv-title').textContent=c.title;
+  let h='';
+  if(c.materials) h+='<div style="margin-bottom:12px"><b>You need:</b> '+esc(c.materials)+'</div>';
+  if(c.safety_note) h+='<div style="margin-bottom:12px;padding:10px;border-radius:10px;background:var(--amber-bg);color:var(--amber)"><b>&#9888; Safety:</b> '+esc(c.safety_note)+'</div>';
+  (c.steps||[]).forEach(function(s,i){
+    h+='<div style="display:flex;gap:12px;margin-bottom:14px"><div style="min-width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">'+(i+1)+'</div><div style="padding-top:3px">'+esc(s.text||'')+'</div></div>';
+  });
+  document.getElementById('hv-body').innerHTML=h||'<div class="empty">No steps yet</div>';
+  const act=document.getElementById('hv-actions');
+  act.innerHTML='<button class="pr-btn cancel" onclick="closeHowtoView()">Close</button>'
+    +(document.body.classList.contains('is-admin')?'<button class="pr-btn cancel" onclick="archiveHowto(\''+c.id+'\')">Archive card</button>':'');
+  document.getElementById('howto-view').style.display='flex';
+}
+function closeHowtoView(){ document.getElementById('howto-view').style.display='none'; }
+async function archiveHowto(id){
+  if(!confirm('Archive this how-to card? Tasks keep their link; it leaves the picker.')) return;
+  const {error}= await sb.from('lfg_howto_cards').update({archived_at:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('Archive failed'); return; }
+  toast('Card archived'); howtoCards=null; closeHowtoView(); loadTasks();
+}
+
+/* ---------- PLANT LINKS ---------- */
+let staffPlants=null;
+async function ensurePlants(){
+  if(staffPlants) return staffPlants;
+  const {data,error}= await sb.from('lfg_master_plants').select('id,plant_name,approval_status').order('plant_name');
+  staffPlants = error? [] : (data||[]);
+  return staffPlants;
+}
+function plantOptionsHTML(sel){
+  let h='<option value=""'+(sel?'':' selected')+'>No plant link</option>';
+  (staffPlants||[]).forEach(function(p){
+    const lbl=esc(p.plant_name)+(p.approval_status==='approved'?'':' (pending)');
+    h+='<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lbl+'</option>';
+  });
+  h+='<option value="__newplant">&#65291; New plant&hellip;</option>';
+  return h;
+}
+async function stubPlant(){
+  const name=prompt('New plant name'); if(name===null||!name.trim()) return null;
+  const {data,error}= await sb.from('lfg_master_plants').insert({plant_name:name.trim(), approval_status:'pending'}).select().single();
+  if(error){ toast('Could not add plant'); return null; }
+  toast('Plant stub added \u2014 complete it in the approval queue');
+  staffPlants=null; await ensurePlants();
+  return data;
+}
+async function plantSelChange(sel, prev){
+  if(sel.value!=='__newplant') return;
+  const added=await stubPlant();
+  sel.innerHTML=plantOptionsHTML(added? added.id : (prev||''));
+}
+
+let peId=null;
+async function openPhotoEdit(id){
+  const p=albumPhotos.find(function(x){return x.id===id;}); if(!p) return;
+  peId=id;
+  document.getElementById('pe-img').src=p.thumbnail_url||p.cloudinary_url;
+  document.getElementById('pe-caption').value=p.caption||'';
+  document.getElementById('pe-area').innerHTML=areaOptionsHTML(p.area_id||'')+'<option value="__addnew">&#65291; New location&hellip;</option>'; document.getElementById('pe-area').onchange=peAreaChange;
+  document.getElementById('pe-type').innerHTML=typeOptionsHTML(p.subject_type||'');
+  await ensurePlants();
+  document.getElementById('pe-plant').innerHTML=plantOptionsHTML(p.plant_id||'');
+  /* The per-photo consent control was removed with the selfie pipeline.
+     Consent is now acknowledged once per upload session and recorded in
+     lfg_photo_acks. */
+  document.getElementById('pe-plant').onchange=function(){ plantSelChange(this, p.plant_id||''); };
+  document.getElementById('pe-status').value=(p.approval_status==='approved')?'approved':'pending';
+  document.getElementById('photo-edit').style.display='flex';
+}
+function closePhotoEdit(){ document.getElementById('photo-edit').style.display='none'; peId=null; }
+async function savePhotoEdit(){
+  if(!peId) return;
+  const upd={
+    caption: document.getElementById('pe-caption').value.trim()||null,
+    area_id: (function(v){return (v&&v!=='__addnew')?v:null;})(document.getElementById('pe-area').value),
+    subject_type: document.getElementById('pe-type').value||null,
+    plant_id: (function(v){return (v&&v!=='__newplant')?v:null;})(document.getElementById('pe-plant').value),
+    approval_status: document.getElementById('pe-status').value
+  };
+  const {error}= await sb.from('lfg_photos').update(upd).eq('id',peId);
+  if(error){ toast('Save failed'); return; }
+  closePhotoEdit(); toast('Photo updated'); loadPhotos(); refreshApproveBadge();
+}
+
+let reviewFiles=[], reviewURLs=[];
+function _selA(v,sel){ return (String(sel==null?'':sel)===String(v))?' selected':''; }
+function areaOptionsHTML(sel){
+  let h='<option value=""'+_selA('',sel)+'>General / whole farm</option>';
+  const groups={};
+  (state.areas||[]).forEach(function(a){ const z=a.zone||'Other'; (groups[z]=groups[z]||[]).push(a); });
+  Object.keys(groups).forEach(function(z){
+    h+='<optgroup label="'+esc(z)+'">';
+    groups[z].forEach(function(a){ h+='<option value="'+a.id+'"'+_selA(a.id,sel)+'>'+esc(a.name)+'</option>'; });
+    h+='</optgroup>';
+  });
+  return h;
+}
+function typeOptionsHTML(sel){
+  return '<option value=""'+_selA('',sel)+'>Type…</option>'+
+    '<option value="plant"'+_selA('plant',sel)+'>Plant</option>'+
+    '<option value="creature"'+_selA('creature',sel)+'>Creature</option>'+
+    /* Selfie was removed Aug 2026. It meant photographs of identifiable
+       people on a public site, governed by one uploader's checkbox on
+       behalf of everyone in frame — real consent, but unverifiable, and
+       deleting the row never removed the image from Cloudinary, so a
+       withdrawal did not actually withdraw anything.
+
+       Replaced by an acknowledgement that covers EVERY upload rather
+       than one category. See ackGate(). */
+    '<option value="feature"'+_selA('feature',sel)+'>Feature (nonliving)</option>';
+}
+async function reviewPhotos(input){
+  const files=input.files; if(!files||!files.length) return;
+  reviewFiles=Array.prototype.slice.call(files);
+  if(!state.areas || !state.areas.length){
+    try{ const r=await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at',null).order('zone').order('sort_order', {nullsFirst:false}).order('name'); state.areas=r.data||[]; }catch(e){ state.areas=state.areas||[]; }
+  }
+  /* The plant list is needed here as well as in the approval queue. Tagging
+     a photo to a plant used to happen only AFTER upload — in approvals or
+     the edit sheet — which is why 9 of 42 plant photos were never tagged at
+     all. The person holding the camera knows what they photographed; an
+     approver a week later is guessing. Ask at the moment of knowing. */
+  /* plantOptionsHTML reads staffPlants, which ensurePlants() fills and
+     caches. Call it rather than fetching separately, or the upload sheet
+     and the approval queue drift apart on what counts as a plant. */
+  await ensurePlants();
+  const areaOpts=areaOptionsHTML(), typeOpts=typeOptionsHTML(), plantOpts=plantOptionsHTML('');
+  reviewURLs.forEach(function(u){ URL.revokeObjectURL(u); }); reviewURLs=[];
+  let html='';
+  reviewFiles.forEach(function(f,i){
+    const u=URL.createObjectURL(f); reviewURLs.push(u);
+    html+='<div class="pr-card"><img src="'+u+'"><div class="pr-fields">'+
+      '<select class="pr-area" data-i="'+i+'">'+areaOpts+'</select>'+
+      '<select class="pr-type" data-i="'+i+'" onchange="prTypeChange(this)">'+typeOpts+'</select>'+
+      /* Hidden until Type is Plant. A creature or a bench does not need a
+         species, and four permanent selects on a phone card is a wall. */
+      '<select class="pr-plant" data-i="'+i+'" style="display:none">'+plantOpts+'</select>'+
+      '<input class="pr-cap" data-i="'+i+'" placeholder="Caption (optional)" autocomplete="off"></div></div>';
+  });
+  document.getElementById('pr-list').innerHTML=html;
+  document.getElementById('pr-all-area').innerHTML=areaOpts;
+  document.getElementById('pr-all-plant').innerHTML=plantOpts;
+  document.getElementById('pr-all-plant').style.display='none';
+  document.getElementById('pr-title').textContent='Categorize '+reviewFiles.length+' photo'+(reviewFiles.length===1?'':'s');
+  document.getElementById('photo-review').style.display='flex';
+}
+function applyAllArea(v){ document.querySelectorAll('#pr-list .pr-area').forEach(function(sel){ sel.value=v; }); }
+function applyAllType(v){
+  if(!v) return;
+  document.querySelectorAll('#pr-list .pr-type').forEach(function(sel){ sel.value=v; prTypeChange(sel); });
+}
+function applyAllPlant(v){
+  document.querySelectorAll('#pr-list .pr-plant').forEach(function(sel){
+    if(sel.style.display!=='none') sel.value=v;
+  });
+}
+/* Show the plant select only where it means something. Several shots of the
+   same tomato in one batch is the common case, so it is worth being quick. */
+function prTypeChange(sel){
+  const card=sel.closest('.pr-card'); if(!card) return;
+  const pl=card.querySelector('.pr-plant');
+  const on = sel.value==='plant';
+  if(pl){ pl.style.display = on ? '' : 'none'; if(!on) pl.value=''; }
+
+  if(!pl) return;
+  /* The bulk plant select appears once any card is asking for a plant. */
+  const bulk=document.getElementById('pr-all-plant');
+  if(bulk){
+    let any=false;
+    document.querySelectorAll('#pr-list .pr-type').forEach(function(t){ if(t.value==='plant') any=true; });
+    bulk.style.display = any ? '' : 'none';
+    if(!any) bulk.value='';
+  }
+}
+function closeReview(){
+  document.getElementById('photo-review').style.display='none';
+  reviewURLs.forEach(function(u){ URL.revokeObjectURL(u); }); reviewURLs=[]; reviewFiles=[];
+  const inp=document.getElementById('photo-file'); if(inp) inp.value='';
+}
+
+/* ── the photo acknowledgement ──────────────────────────────────────────
+   Every upload, not one category. The selfie flow asked one person to
+   tick a box on behalf of everyone in frame, which is the wrong shape:
+   the risk is not confined to photos labelled selfie, and a plant photo
+   with a student in the background carries it too.
+
+   ONCE PER SESSION. Asking on every photo trains people to dismiss it,
+   which is worse than not asking. sessionStorage, not localStorage —
+   ephemeral by the tool contract, and an acknowledgement that outlives
+   the visit is an acknowledgement nobody made today.
+
+   RECORDED IN FULL. lfg_photo_acks stores the policy TEXT, not a version
+   number pointing at wording that may since have changed. An
+   acknowledgement is only worth having if you can show exactly what was
+   agreed to. */
+const PHOTO_POLICY_VERSION = '2026-08-1';
+const PHOTO_POLICY_TEXT = [
+  'I took these photographs at Lancer Farms, or have the right to upload them.',
+  'If anyone is identifiable in them, I have their permission to publish the photograph on a public website.',
+  'They contain nothing that identifies a person who did not agree to be photographed \u2014 including in the background.',
+  'I understand these photographs may be published publicly and may be difficult to remove once shared.'
+].join('\n');
+
+function ackKey(){ return 'lfg_photo_ack_' + PHOTO_POLICY_VERSION; }
+
+function ackDone(){
+  try { return sessionStorage.getItem(ackKey()) === '1'; } catch(e){ return false; }
+}
+
+/* Resolves true if the person acknowledged, false if they backed out.
+   Nothing uploads until this resolves true. */
+function ackGate(count){
+  return new Promise(function(resolve){
+    if(ackDone()){ resolve(true); return; }
+
+    var scrim = document.createElement('div');
+    scrim.className = 'pr-overlay';
+    scrim.style.display = 'flex';
+    scrim.innerHTML =
+      '<div class="pr-sheet"><div class="pr-head">'+
+        '<span class="pr-title">Before you upload</span></div>'+
+      '<div style="padding:16px 18px;overflow-y:auto">'+
+        '<p style="margin:0 0 14px;font-size:.92rem;line-height:1.5;color:var(--ink-soft)">'+
+          'These photographs will be published on lancerfarms.com once approved. '+
+          'Read this once \u2014 it will not be asked again until you close the tool.</p>'+
+        '<ul style="margin:0 0 16px;padding-left:20px;font-size:.96rem;line-height:1.55">'+
+          PHOTO_POLICY_TEXT.split('\n').map(function(l){
+            return '<li style="margin-bottom:9px">'+_escA(l)+'</li>'; }).join('')+
+        '</ul>'+
+        '<label style="display:flex;align-items:flex-start;gap:11px;padding:12px 13px;'+
+          'border-radius:11px;background:rgba(201,151,63,.10);'+
+          'border:1px solid rgba(201,151,63,.45);font-size:.95rem;line-height:1.4">'+
+          '<input type="checkbox" id="ack-box" style="margin-top:2px;width:22px;height:22px;flex:none">'+
+          '<span>I have read this and it is true of the photographs I am uploading.</span></label>'+
+      '</div>'+
+      '<div class="pr-actions">'+
+        '<button class="pr-btn cancel" id="ack-no">Cancel</button>'+
+        '<button class="pr-btn go" id="ack-yes" disabled style="opacity:.45">Continue</button>'+
+      '</div></div>';
+    document.body.appendChild(scrim);
+
+    var box = scrim.querySelector('#ack-box');
+    var yes = scrim.querySelector('#ack-yes');
+    /* Continue stays dead until the box is ticked. A dialog you can dismiss
+       without reading is decoration. */
+    box.addEventListener('change', function(){
+      yes.disabled = !box.checked;
+      yes.style.opacity = box.checked ? '1' : '.45';
+    });
+
+    var close = function(ok){ scrim.remove(); resolve(ok); };
+    scrim.querySelector('#ack-no').addEventListener('click', function(){ close(false); });
+    yes.addEventListener('click', async function(){
+      if(!box.checked) return;
+      try { sessionStorage.setItem(ackKey(), '1'); } catch(e){}
+      /* Recorded before the upload runs. If the record fails we do not
+         block the upload — but we do say so, because an unrecorded
+         acknowledgement is the thing this whole change exists to have. */
+      try {
+        var who = 'Staff';
+        try { var w = GRUSH.who(); if(w && w.display_name) who = w.display_name; } catch(e){}
+        var r = await sb.from('lfg_photo_acks').insert({
+          acknowledged_by: who,
+          policy_version: PHOTO_POLICY_VERSION,
+          policy_text: PHOTO_POLICY_TEXT,
+          photo_count: count || 0
+        });
+        if(r.error) toast('Acknowledgement not recorded: ' + (r.error.message||'refused'));
+      } catch(e){ toast('Acknowledgement not recorded'); }
+      if(window.GrushFeel) GrushFeel.confirm();
+      close(true);
+    });
+  });
+}
+
+async function uploadReviewed(){
+  if(!reviewFiles.length) return;
+  /* Nothing leaves the phone until this is acknowledged. */
+  var _acked = await ackGate(reviewFiles.length);
+  if(!_acked) return;
+  const areas=document.querySelectorAll('#pr-list .pr-area');
+  const types=document.querySelectorAll('#pr-list .pr-type');
+  const caps=document.querySelectorAll('#pr-list .pr-cap');
+  const plants=document.querySelectorAll('#pr-list .pr-plant');
+  const btn=document.getElementById('pr-upload'); btn.disabled=true;
+  const rows=[]; let ok=0, fail=0;
+  for(let i=0;i<reviewFiles.length;i++){
+    toast('Uploading '+(i+1)+' of '+reviewFiles.length+'\u2026');
+    const fd=new FormData(); fd.append('file',reviewFiles[i]); fd.append('upload_preset',UPLOAD_PRESET);
+    try{
+      const res=await fetch('https://api.cloudinary.com/v1_1/'+CLOUD_NAME+'/image/upload',{method:'POST',body:fd});
+      const j=await res.json();
+      if(!j.secure_url) throw new Error('no url');
+      const url=j.secure_url, thumb=url.replace('/upload/','/upload/w_400,h_400,c_fill/');
+      /* plant_id only where Type is Plant. "__newplant" is the sentinel the
+         approval queue uses for "not in the list yet"; it is not an id and
+         must never reach the column. */
+      const _pv = (types[i].value==='plant' && plants[i]) ? plants[i].value : '';
+      rows.push({cloudinary_url:url, thumbnail_url:thumb,
+        caption:(caps[i].value.trim()||null),
+        area_id:(areas[i].value||null),
+        subject_type:(types[i].value||null),
+        plant_id:((_pv && _pv!=='__newplant') ? _pv : null),
+        uploaded_by:'staff', approval_status:'pending', submitted_by:'staff'});
+      ok++;
+    }catch(e){ fail++; }
+  }
+  btn.disabled=false;
+  if(!rows.length){ toast('Upload failed'); return; }
+  const {error}= await sb.from('lfg_photos').insert(rows);
+  closeReview();
+  if(error){ toast('Saved to cloud but not linked'); return; }
+  let msg=ok+' photo'+(ok===1?'':'s')+' added \u2014 pending review'; if(fail) msg+=' ('+fail+' failed)';
+  toast(msg); loadPhotos();
+}
+</script>
+<!-- ═══ PLANTING / HARVEST DETAIL ═══════════════════════════════════════
+     Opened when the action is Planted or Harvested. Those two are not
+     narrative — they are the farm's record of what is in a bed and what
+     came out of it. lfg_area_events has held that shape since it was
+     built and had zero rows, because nothing ever wrote to it: bed.html
+     shows a planting history nobody was recording, and do.html asks for a
+     planting date the farm should already know.
+
+     A log line still gets written as well. The line is the story; the
+     event is the record. -->
+<div id="plant-event" class="pr-overlay" style="display:none">
+  <div class="pr-sheet">
+    <div class="pr-head">
+      <span class="pr-title" id="pe-ev-title">What was planted?</span>
+      <button class="pr-x" onclick="closePlantEvent()">&times;</button>
+    </div>
+    <div style="padding:14px 16px;overflow-y:auto">
+      <div style="font-size:.86rem;color:var(--ink-soft);line-height:1.45;margin-bottom:12px" id="pe-ev-help"></div>
+      <label style="display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-bottom:5px">Plant</label>
+      <select id="pe-ev-plant" style="width:100%;margin-bottom:12px"></select>
+      <label style="display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-bottom:5px" id="pe-ev-qty-label">How many</label>
+      <input id="pe-ev-qty" placeholder="e.g. 12 starts, 3 lb, one flat" autocomplete="off" style="width:100%;margin-bottom:12px">
+      <input id="pe-ev-notes" placeholder="Note about this planting (optional)" autocomplete="off" style="width:100%">
+    </div>
+    <div class="pr-actions">
+      <button class="pr-btn cancel" onclick="closePlantEvent()">Skip</button>
+      <button class="pr-btn go" onclick="savePlantEvent()">Use this</button>
+    </div>
+  </div>
+</div>
+
+<div id="photo-review" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="pr-title">Categorize photos</span><button class="pr-x" onclick="closeReview()">&times;</button></div><div class="pr-bulk"><span>Apply to all:</span><select id="pr-all-area" onchange="applyAllArea(this.value)"></select><select id="pr-all-type" onchange="applyAllType(this.value)"><option value="">Type\u2026</option><option value="plant">Plant</option><option value="creature">Creature</option><option value="feature">Feature</option></select><select id="pr-all-plant" onchange="applyAllPlant(this.value)" style="display:none"></select></div><div id="pr-list"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeReview()">Cancel</button><button class="pr-btn go" id="pr-upload" onclick="uploadReviewed()">Upload all</button></div></div></div>
+
+<div id="howto-create" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">New how-to card</span><button class="pr-x" onclick="closeHowtoCreate()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><input id="hc-title" placeholder="Title, e.g. Trellis vine crops off the ground" autocomplete="off" style="width:100%;margin-bottom:10px"><textarea id="hc-steps" rows="7" placeholder="Steps — one per line" style="width:100%;margin-bottom:10px"></textarea><div id="hc-mat-list" style="margin-bottom:8px"></div><select id="hc-mat-add" style="width:100%;margin-bottom:10px" onchange="addMatToCard()"><option value="">Add item from inventory&hellip;</option></select><input id="hc-materials" placeholder="Other materials (free text, optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><input id="hc-safety" placeholder="Safety note (optional)" autocomplete="off" style="width:100%"></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closeHowtoCreate()">Cancel</button><button class="pr-btn go" onclick="saveHowtoCard()">Save card</button></div></div></div>
+<div id="howto-view" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title" id="hv-title">How-to</span><button class="pr-x" onclick="closeHowtoView()">&times;</button></div><div id="hv-body" style="padding:14px 16px;overflow-y:auto;font-size:1.05rem;line-height:1.6"></div><div class="pr-actions" id="hv-actions"><button class="pr-btn cancel" onclick="closeHowtoView()">Close</button></div></div></div>
+<div id="photo-edit" class="pr-overlay" style="display:none"><div class="pr-sheet"><div class="pr-head"><span class="pr-title">Edit photo</span><button class="pr-x" onclick="closePhotoEdit()">&times;</button></div><div style="padding:14px 16px;overflow-y:auto"><img id="pe-img" src="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px"><input id="pe-caption" placeholder="Caption (optional)" autocomplete="off" style="width:100%;margin-bottom:10px"><select id="pe-area" style="width:100%;margin-bottom:10px"></select><select id="pe-type" style="width:100%;margin-bottom:10px"></select><select id="pe-plant" style="width:100%;margin-bottom:10px"></select><label id="pe-consent-wrap" style="display:none;align-items:flex-start;gap:8px;margin-bottom:10px;font-size:.92rem;line-height:1.35"><input type="checkbox" id="pe-consent" style="margin-top:3px"><span>Everyone shown agreed to appear on the public site. <b>Unticking this removes it from public view immediately.</b></span></label><select id="pe-status" style="width:100%"><option value="approved">Approved (public)</option><option value="pending">Pending (hidden)</option></select></div><div class="pr-actions"><button class="pr-btn cancel" onclick="closePhotoEdit()">Cancel</button><button class="pr-btn go" onclick="savePhotoEdit()">Save</button></div></div></div>
+<a id="grush-mark" href="about-grush.html" title="managed by grush" style="position:fixed;bottom:12px;right:14px;z-index:50;font-family:'Yellowtail',cursive;font-size:22px;line-height:1;color:#C34044;text-decoration:none;opacity:.92">grush</a>
+
+<script>
+/* ── Navigation config for grush-nav.js ────────────────────────────────
+   rail:false is the important line. app.html already owns the bottom of
+   the screen — .actionbar (fixed, z30), #task-sheet and #inv-sheet, the
+   #toast pinned at bottom:90px, and a full-screen #splash. A bottom rail
+   would sit on top of every one of them, and would draw over the splash
+   for the 1.4s before it fades. So the burger goes in .sitebar instead
+   and the drawer opens from there.
+
+   The Admin group is appended by grush-nav only when is_operator()
+   returns true — the database decides, not a localStorage flag. */
+window.GRUSH_NAV = {
+  eyebrow: 'Staff tool · Zone 9b',
+  title: 'Lancer Farms & Gardens',
+  rail: false,
+  /* This page now uses a height-constrained flex shell (body -> header,
+     #app, [footer would go here]) so that #app's own scroll region stays
+     genuinely contained instead of the whole document scrolling — see
+     the #app/main/body comments in this file's <style> for why that
+     matters. A body-level footer in that shell would end up pinned
+     permanently visible above the home indicator rather than appearing
+     once at the end of scrolled content, eating into screen space this
+     page can't spare. The drawer already carries the same links. */
+  footer: false,
+
+  /* groups: removed Aug 2026 — grush-menu.js is the single list now.
+     Eleven pages each carried their own, and six had drifted apart. */
+
+};
+</script>
+<!-- The menu, defined once in grush-menu.js and extended by the Grush
+     overlay. Both load before grush-nav, which reads the result. -->
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+<!-- The feel layer: arrival animation, write confirmation, haptics.
+     Grush overlay, removable with the rest. -->
+<script src="grush-feel.js?v=1"></script>
+<script>
+/* Two drawer items carry state that grush-nav does not model: the approval
+   count badge and the current language name. Re-attach the ids the existing
+   code already looks for, rather than rewriting that code. Runs after
+   grush-nav has mounted; the staff group arrives asynchronously once
+   is_operator() resolves, so watch for it. */
+(function(){
+  function enhance(){
+    var items = document.querySelectorAll('#grush-drawer .grush-item');
+    for (var i=0;i<items.length;i++){
+      var t = items[i].textContent.trim();
+      if (t.indexOf('Approval queue') === 0 && !document.getElementById('approve-badge')) {
+        var b = document.createElement('span');
+        b.className = 'badge'; b.id = 'approve-badge';
+        b.style.display = 'none'; b.textContent = '0';
+        items[i].appendChild(b);
+        if (typeof refreshApproveBadge === 'function') refreshApproveBadge();
+      }
+      if (t.indexOf('English') === 0 || t.indexOf('Espa') === 0 || t.indexOf('Portug') === 0) {
+        if (!document.getElementById('menu-lang')) {
+          var names = {en:'English', es:'Espa\u00f1ol', pt:'Portugu\u00eas'};
+          var cur = localStorage.getItem('lfg_lang') || 'en';
+          var sp = document.createElement('span');
+          sp.id = 'menu-lang'; sp.textContent = names[cur] || 'English';
+          /* grush-nav renders items as <span class="ic">…</span><span>label</span>,
+             so the label is an ELEMENT, not a text node. The old check tested
+             for nodeType 3, never matched, and appended a second label —
+             the item read "English English". */
+          var last = items[i].lastElementChild;
+          if (last && !last.classList.contains('ic')) items[i].replaceChild(sp, last);
+          else items[i].appendChild(sp);
+        }
+      }
+    }
+  }
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(enhance,0); });
+  else setTimeout(enhance, 0);
+  /* the Admin group only appears after is_operator() resolves */
+  document.addEventListener('grush:auth', function(){ setTimeout(enhance, 300); });
+  setTimeout(enhance, 1200);
+})();
+</script>
+</body>
+</html>
