@@ -190,7 +190,23 @@ const GrushSettings = (() => {
     '--accent': '#5E7A50', '--accent-2': '#8AA07A',
     '--green-d': '#3D4A3E', /* stays deep: splash paints light text on it */
     '--shadow': '0 1px 0 rgba(32,38,28,.05), 0 2px 8px rgba(32,38,28,.08)',
-    '--card-shadow': '0 1px 0 rgba(32,38,28,.05), 0 2px 8px rgba(32,38,28,.08)'
+    '--card-shadow': '0 1px 0 rgba(32,38,28,.05), 0 2px 8px rgba(32,38,28,.08)',
+    /* Everything below was manual.html's own alias layer, sitting on top
+       of the standard variable names above. Each entry either duplicated
+       a name this table already covers via var() indirection (in which
+       case it's just made explicit here rather than trusted to resolve
+       through the reference chain) or introduced a name this table had
+       never heard of. --green-deep and --terra are the two that actually
+       broke: both are solid pill/button backgrounds paired with light or
+       hardcoded-white text that doesn't itself flip, so light-flipping
+       the background alone collapsed the contrast — same failure shape
+       as --green-d above, just not caught when this table was written. */
+    '--cream': '#2A2620', '--cream-dim': '#6E675A',
+    '--forest': '#8AA07A', '--forest-mid': '#5E7A50',
+    '--lime': '#5E7A50', '--lime-pale': '#8AA07A',
+    '--orange': '#A87A2F',
+    '--green-deep': '#3E5C42', /* stays deep — badge text sits on it directly */
+    '--terra': '#8A4A18' /* stays deep — one caller pairs it with hardcoded white text */
   };
   const SKIP = /^--font|^--radius|^--border-w|^--border-s$/;
 
