@@ -33,25 +33,19 @@
     font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink);
     background:var(--paper); overscroll-behavior:none;
     -webkit-font-smoothing:antialiased;
-    /* height + flex column + hidden overflow: the document itself never
-       scrolls. grush-nav.js's shared header is a sibling of #app, sized
-       to its own content (flex:0 0 auto is its default block behavior),
-       and #app takes flex:1 below it — so #app gets exactly "the rest",
-       whatever the header's actual rendered height turns out to be,
-       without hardcoding that number anywhere. main's own
-       overflow-y:auto inside #app is then the ONLY scrollable region on
-       the page. That's what actually fixes the "pull up, hold, snap
-       back, button re-buried" bug: the document was scrolling because
-       #app could grow taller than the viewport, so Safari's own chrome
-       joined in on the scroll gesture. A single contained scroll region
-       doesn't have that problem — it's not the document's scroll. */
-    height:100dvh; display:flex; flex-direction:column; overflow:hidden;
+    /* height:100dvh / flex column / overflow:hidden used to be set here
+       by hand. grush-shell.css already provides exactly that — this page
+       has carried class="grush-shell" on <html> since before tonight —
+       so the duplicate was redundant, not a second fix. Removed rather
+       than left in: two rules setting the same properties to the same
+       values is still two places to update if either ever needs to
+       change, and only one of them is the actual documented system. */
   }
   h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; margin:0;}
   button{font-family:inherit; cursor:pointer;}
 
   /* ---------- app frame ---------- */
-  #app{max-width:520px; margin:0 auto; flex:1; min-height:0; width:100%; display:flex; flex-direction:column; position:relative; background:var(--paper);}
+  #app{max-width:520px; margin:0 auto; width:100%; position:relative; background:var(--paper);}
 
   /* ---------- splash ---------- */
   #splash{position:fixed; inset:0; background:var(--green-d); display:flex; flex-direction:column;
@@ -124,7 +118,7 @@
   body.is-admin .admin-only{display:flex;}
 
   /* ---------- screens ---------- */
-  main{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:calc(96px + env(safe-area-inset-bottom));}
+  main{padding-bottom:calc(96px + env(safe-area-inset-bottom));} /* extra clearance for the fixed actionbar some views show; grush-shell.css's own shell-scroll rule handles the rest */
   .screen{display:none; animation:screenin .2s ease;}
   .screen.active{display:block;}
   @keyframes screenin{from{opacity:0; transform:translateY(4px);}to{opacity:1; transform:none;}}

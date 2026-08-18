@@ -99,7 +99,7 @@
      The staff difference here is persistence, not access, and no tier
      persists anything yet. */
   D.addTier({
-    id: 'tools', label: 'Tools', color: 'var(--tier-visitor)', locked: false,
+    id: 'tools', label: 'Tools', color: 'var(--tier-staff)', locked: false,
     items: [
       { label: 'Plant triage', icon: '\u{1FA7A}', href: 'triage.html' },
       { label: 'Mix bench',    icon: '\u{2697}',  href: 'mixbench.html' },
