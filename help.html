@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>Help — Lancer Farms &amp; Gardens</title>
+<meta name="description" content="Step-by-step instructions for everything on the Lancer Farms & Gardens site — the free visitor side and the staff side.">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@300;400;600;700&family=Courier+Prime&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#1C2117; --card:#252B1F; --line:#3A4131; --line-strong:#4C5540;
+    --ink:#EAE6D6; --soft:#A9B79C; --green:#4F9142; --leaf:#7FBE5E;
+    --font-mono:'Courier Prime',monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{min-height:100%;}
+  body{
+    font-family:'Source Sans 3',system-ui,sans-serif; font-size:16px; line-height:1.6;
+    color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
+    padding-bottom:60px;
+  }
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; line-height:1.2;}
+  .wrap{max-width:640px; margin:0 auto; padding:0 20px;}
+  a{color:var(--leaf);}
+
+  .top{padding:40px 0 26px; border-bottom:1px solid var(--line);}
+  .kick{font-family:var(--font-mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--leaf); margin-bottom:12px;}
+  h1{font-size:clamp(26px,7vw,34px); margin-bottom:10px;}
+  .top p{color:var(--soft); font-size:15.5px; max-width:52ch;}
+
+  .toc{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:22px 0 28px;}
+  .toc-h{font-size:11px; font-family:var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
+    color:var(--soft); margin-bottom:10px;}
+  .toc-cols{display:grid; grid-template-columns:1fr 1fr; gap:4px 16px;}
+  .toc a{display:block; font-size:13.5px; padding:4px 0; text-decoration:none; color:var(--ink);}
+  .toc a:active{color:var(--leaf);}
+  .toc .grp{font-size:11px; font-family:var(--font-mono); letter-spacing:.1em; text-transform:uppercase;
+    color:var(--soft); margin:10px 0 2px;}
+  .toc .grp:first-child{margin-top:0;}
+
+  .side{padding:34px 0 8px;}
+  .side-h{display:flex; align-items:center; gap:10px; margin-bottom:4px;}
+  .side-h .badge{font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    padding:3px 10px; border-radius:999px; background:rgba(79,145,66,.22); color:var(--leaf);}
+  .side-h.staff .badge{background:rgba(200,128,26,.22); color:#E3A63C;}
+  .side h2{font-size:22px;}
+  .side-note{color:var(--soft); font-size:14px; margin:8px 0 4px; max-width:56ch;}
+
+  .task{margin-top:26px; padding-top:22px; border-top:1px solid var(--line); scroll-margin-top:16px;}
+  .task h3{font-size:17px; margin-bottom:4px;}
+  .task .where{font-size:12px; font-family:var(--font-mono); color:var(--soft); margin-bottom:12px;}
+  .task .where code{color:var(--leaf);}
+  .task ol{margin:0 0 4px 20px;}
+  .task li{margin-bottom:7px; font-size:14.5px;}
+  .task li b{color:var(--ink); font-weight:600;}
+  .task .also{margin-top:10px; font-size:13px; color:var(--soft); font-style:italic;}
+  .task .req{display:inline-block; margin-top:2px; font-size:11.5px; color:#E3A63C;
+    background:rgba(200,128,26,.14); padding:2px 9px; border-radius:999px;}
+
+  .backtop{position:fixed; right:14px; bottom:14px; width:42px; height:42px; border-radius:50%;
+    background:var(--card); border:1px solid var(--line-strong); color:var(--ink); font-size:16px;
+    display:flex; align-items:center; justify-content:center; text-decoration:none; opacity:.85;}
+
+  footer{padding:36px 20px 10px; text-align:center; font-size:11.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--line-strong);}
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+</head>
+<body>
+
+<div class="wrap" id="top">
+
+  <div class="top">
+    <div class="kick">Help</div>
+    <h1>How to use this site</h1>
+    <p>Step by step, for everything the site does — the free visitor side and the staff side. If you're looking for a plain description of what exists rather than how to do it, that's <a href="features.html">the feature guide</a> instead.</p>
+  </div>
+
+  <div class="toc">
+    <div class="toc-h">Jump to a task</div>
+    <div class="toc-cols">
+      <div>
+        <div class="grp">Visitor</div>
+        <a href="#v-request">Request staff access</a>
+        <a href="#v-learn">Learn what grows here</a>
+        <a href="#v-soil">Calculate soil for a bed</a>
+        <a href="#v-ready">Estimate when a crop is ready</a>
+        <a href="#v-photos">Browse farm photos</a>
+        <a href="#v-note">Leave a note</a>
+        <a href="#v-watch">Watch the farm film</a>
+        <a href="#v-grush">Learn what Grush is</a>
+        <a href="#v-donate">Support the developer</a>
+        <a href="#v-fund">Donate supplies to the farm</a>
+      </div>
+      <div>
+        <div class="grp">Staff</div>
+        <a href="#s-signin">Sign in as staff</a>
+        <a href="#s-log">Log farm activity</a>
+        <a href="#s-tasks">Manage tasks</a>
+        <a href="#s-photos">Upload &amp; approve photos</a>
+        <a href="#s-inventory">Manage inventory</a>
+        <a href="#s-areas">Manage growing areas</a>
+        <a href="#s-triage">Diagnose a sick plant</a>
+        <a href="#s-mix">Calculate a mix or spray</a>
+        <a href="#s-irrigation">Plan an irrigation run</a>
+        <a href="#s-manual">Use the field manual</a>
+        <a href="#s-map">Place a pin on the map</a>
+        <a href="#s-howto">Use how-to cards</a>
+        <a href="#s-experiments">Build a research experiment</a>
+        <a href="#s-admin">Approve requests &amp; manage crew</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ VISITOR ══════════════════ -->
+  <div class="side">
+    <div class="side-h"><span class="badge">Visitor</span></div>
+    <h2>Free, no sign-in needed</h2>
+    <p class="side-note">Anyone can do everything in this section — no account, no login.</p>
+  </div>
+
+  <div class="task" id="v-request">
+    <h3>Request staff access</h3>
+    <div class="where">On <code>index.html</code>, the homepage</div>
+    <ol>
+      <li>Tap the button to request access (near the top of the homepage).</li>
+      <li>Fill in your name and email.</li>
+      <li>Choose the role you're requesting and add a short reason.</li>
+      <li>Submit. An admin reviews requests from the <a href="#s-admin">admin panel</a> — you'll be approved there before staff features unlock for your account.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="v-learn">
+    <h3>Learn what grows here</h3>
+    <div class="where"><code>learn.html</code>, from the Visitor menu</div>
+    <ol>
+      <li>Open the drawer (the lines icon, top left) and tap <b>Learn</b> under Visitor.</li>
+      <li>Browse what's currently growing and what each crop needs.</li>
+      <li>The page supports multiple languages — check the language switch if English isn't your first choice.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="v-soil">
+    <h3>Calculate how much soil a bed needs</h3>
+    <div class="where"><code>do.html</code>, from the Visitor menu</div>
+    <ol>
+      <li>Open <b>Do</b> from the drawer.</li>
+      <li>Pick the bed you're filling.</li>
+      <li>Enter the fill depth in inches.</li>
+      <li>Pick your bag size.</li>
+      <li>Read the result in cubic feet, already converted to bags for you.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="v-ready">
+    <h3>Estimate when a crop will be ready</h3>
+    <div class="where"><code>do.html</code>, second calculator</div>
+    <ol>
+      <li>On the same <b>Do</b> page, scroll to "When will it be ready?"</li>
+      <li>Pick the plant.</li>
+      <li>Enter the date it was planted.</li>
+      <li>Read the estimated ready date.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="v-photos">
+    <h3>Browse farm photos</h3>
+    <div class="where"><code>see.html</code>, from the Visitor menu</div>
+    <ol>
+      <li>Open <b>See</b> from the drawer.</li>
+      <li>Use the filter to narrow photos to a specific zone or bed, if you're looking for one spot in particular.</li>
+      <li>Tap any photo to open it full-screen; swipe or tap the arrows to step through the rest.</li>
+    </ol>
+    <p class="also">Every photo here has already been reviewed by staff — see <a href="#s-photos">Upload &amp; approve photos</a> for how that pipeline works.</p>
+  </div>
+
+  <div class="task" id="v-note">
+    <h3>Leave a note for the farm</h3>
+    <div class="where"><code>share.html</code>, from the Visitor menu</div>
+    <ol>
+      <li>Open <b>Share</b> from the drawer.</li>
+      <li>Type your note and submit it.</li>
+      <li>The same page shows how many people have visited the site.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="v-watch">
+    <h3>Watch the farm film</h3>
+    <div class="where"><code>watch.html</code></div>
+    <ol>
+      <li>Open <b>Watch</b> from the footer or a direct link.</li>
+      <li>Play the short film about the farm.</li>
+      <li>Use the share button to copy a link or open your device's native share sheet if you want to send it to someone.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="v-grush">
+    <h3>Learn what Grush is</h3>
+    <div class="where"><code>about-grush.html</code></div>
+    <ol>
+      <li>Open <b>About Grush</b> from the footer's feature guide, or a direct link.</li>
+      <li>Read what the software is and why the farm runs on it.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="v-donate">
+    <h3>Support the developer</h3>
+    <div class="where"><code>donate.html</code>, under Support in the drawer</div>
+    <ol>
+      <li>Open the drawer, tap <b>Support the Developer</b> under Support.</li>
+      <li>Read the notice — this supports the site's developer personally, not the farm itself, and it's not tax-deductible.</li>
+      <li>Tap a preset amount, or <b>Other</b> to enter a custom one. This opens Venmo with the amount already filled in.</li>
+      <li>Send it in Venmo.</li>
+      <li>Back on the site, optionally fill in the receipt form and tap <b>Generate receipt</b> for your own records — then <b>Print / Save as PDF</b> if you want a copy.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="v-fund">
+    <h3>Donate supplies to the farm</h3>
+    <div class="where"><code>fund-the-farm.html</code>, under Support in the drawer</div>
+    <ol>
+      <li>Open the drawer, tap <b>Fund the Farm</b> under Support.</li>
+      <li>Check the list of what's currently needed — seeds, tools, equipment, growing supplies.</li>
+      <li>Fill in your name, email, and what you'd like to give.</li>
+      <li>Tap <b>Send offer</b>. Someone from the farm will reach out to arrange it.</li>
+    </ol>
+    <p class="also">A dedicated way to give money directly to the farm is marked coming soon on the same page. Until then, mention it in the offer form and the farm will follow up.</p>
+  </div>
+
+  <!-- ══════════════════ STAFF ══════════════════ -->
+  <div class="side">
+    <div class="side-h staff"><span class="badge">Staff</span></div>
+    <h2>Sign-in required</h2>
+    <p class="side-note">Everything below needs an approved account. If you don't have one yet, see <a href="#v-request">Request staff access</a> above.</p>
+  </div>
+
+  <div class="task" id="s-signin">
+    <h3>Sign in as staff</h3>
+    <div class="where">Any staff page — the sign-in prompt appears automatically</div>
+    <ol>
+      <li>Open any staff page (mustard-colored, e.g. <code>app.html</code>).</li>
+      <li>Enter your email address at the sign-in prompt.</li>
+      <li>Check your email for a sign-in link and tap it.</li>
+      <li>You'll be returned to the page, signed in. This carries across every staff page — you won't need to sign in again per page.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-log">
+    <h3>Log farm activity</h3>
+    <div class="where"><code>app.html?s=log</code> — Log activity, under Staff in the drawer</div>
+    <span class="req">Sign-in required</span>
+    <ol>
+      <li>Open the drawer, tap <b>Log activity</b> under Staff.</li>
+      <li>Fill in what you did, where, and any notes.</li>
+      <li>Submit — it's recorded immediately under your account.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-tasks">
+    <h3>Manage tasks</h3>
+    <div class="where"><code>app.html?s=tasks</code> — Tasks, under Staff in the drawer</div>
+    <span class="req">Sign-in required</span>
+    <ol>
+      <li>Open the drawer, tap <b>Tasks</b> under Staff.</li>
+      <li>Tap <b>+</b> to add a new task — give it a title, a bed/area if relevant, and set it to repeat if it's recurring.</li>
+      <li>Tap an existing task to edit or remove it.</li>
+      <li>Tap the checkmark to mark a task complete.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-photos">
+    <h3>Upload &amp; approve photos</h3>
+    <div class="where"><code>app.html?s=photos</code> — Photos, under Staff in the drawer</div>
+    <span class="req">Sign-in required</span>
+    <ol>
+      <li>Open the drawer, tap <b>Photos</b> under Staff.</li>
+      <li>Take or choose a photo, tag the bed or area it's from, and upload.</li>
+      <li>It enters the moderation queue — it will not appear on the public <a href="#v-photos">See</a> page until an operator approves it from the admin panel.</li>
+    </ol>
+    <p class="also">This is deliberate: nothing reaches visitors unreviewed.</p>
+  </div>
+
+  <div class="task" id="s-inventory">
+    <h3>Manage inventory</h3>
+    <div class="where"><code>app.html?s=inventory</code> — Inventory, under Staff in the drawer</div>
+    <span class="req">Sign-in required</span>
+    <ol>
+      <li>Open the drawer, tap <b>Inventory</b> under Staff.</li>
+      <li>Use the <b>+</b> / <b>−</b> buttons on any item to adjust quantity on the spot.</li>
+      <li>Tap the camera icon on an item to attach or update its photo.</li>
+      <li>Scroll to the bottom and tap <b>+ Add item</b> for anything not already listed.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-areas">
+    <h3>Manage growing areas &amp; locations</h3>
+    <div class="where"><code>app.html?s=areas</code> — Locations, under Staff in the drawer</div>
+    <span class="req">Sign-in required</span>
+    <ol>
+      <li>Open the drawer, tap <b>Locations</b> under Staff.</li>
+      <li>Add, rename, or archive beds and other growing areas.</li>
+      <li>These are the same areas that appear throughout the site — in Tasks, Inventory, the <a href="#s-map">Garden Map</a>, and bed lookup.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-triage">
+    <h3>Diagnose a sick plant</h3>
+    <div class="where"><code>triage.html</code>, Plant triage under Tools in the drawer</div>
+    <ol>
+      <li>Open the drawer, tap <b>Plant triage</b> under Tools.</li>
+      <li>Answer the prompts about what you're seeing on the plant — leaf color, pattern, location of the symptom, and so on.</li>
+      <li>Read the likely cause and the recommended next action.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-mix">
+    <h3>Calculate a mix, spray, or water demand</h3>
+    <div class="where"><code>mixbench.html</code>, Mix bench under Tools in the drawer</div>
+    <ol>
+      <li>Open the drawer, tap <b>Mix bench</b> under Tools.</li>
+      <li>Use the <b>Chemical stock</b> tab to work out soil amendment, spray, or treatment quantities for a given bed size.</li>
+      <li>Switch to the <b>Water demand</b> tab to calculate irrigation volume for a zone.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-irrigation">
+    <h3>Plan an irrigation run</h3>
+    <div class="where"><code>irrigation-bom.html</code>, Irrigation under Tools in the drawer</div>
+    <ol>
+      <li>Open the drawer, tap <b>Irrigation</b> under Tools.</li>
+      <li>Enter your measured supply and system settings.</li>
+      <li>Lay out your bed groups.</li>
+      <li>Read the priced parts list per zone, per bed, and garden-wide. Prices are editable — replace the defaults with your own invoice figures before treating the total as official.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-manual">
+    <h3>Use the field manual</h3>
+    <div class="where"><code>manual.html</code>, Farm manual under Tools in the drawer</div>
+    <ol>
+      <li>Open the drawer, tap <b>Farm manual</b> under Tools.</li>
+      <li>Tap a topic card — Soil &amp; Amendments, Concrete &amp; Hardscape, Irrigation &amp; Water, Pest &amp; Disease, Planting &amp; Crops, or Tools &amp; Equipment.</li>
+      <li>Each topic opens its own calculator, reference guide, or checklist, depending on what it's marked as on the card.</li>
+    </ol>
+    <p class="also">Live bed-by-bed planting data lives on a separate page — see <a href="data.html">Farm data</a>.</p>
+  </div>
+
+  <div class="task" id="s-map">
+    <h3>Place a pin on the garden map</h3>
+    <div class="where"><code>garden-map.html</code>, Garden Map under Staff in the drawer</div>
+    <span class="req">Sign-in required</span>
+    <ol>
+      <li>Open the drawer, tap <b>Garden Map</b> under Staff.</li>
+      <li>Tap a name from the "Not yet placed" list at the bottom.</li>
+      <li>Tap that spot on the satellite map.</li>
+      <li>The pin is saved immediately — no separate save step.</li>
+      <li>To reposition an existing pin, tap it, then <b>Move</b>, drag it, and tap it again to lock in the new spot.</li>
+      <li>To add something not already in the list, tap <b>+ New point not in this list</b>, fill in a name and type, then tap the map.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-howto">
+    <h3>Use how-to cards</h3>
+    <div class="where"><code>howto.html</code>, How-to cards under Staff in the drawer</div>
+    <ol>
+      <li>Open the drawer, tap <b>How-to cards</b> under Staff.</li>
+      <li>Browse or search for the task you need.</li>
+      <li>Open a card to see its numbered steps, written to be read standing up with dirty hands.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-experiments">
+    <h3>Build a research experiment</h3>
+    <div class="where"><code>experiments.html</code>, reached through Faculty &amp; Research</div>
+    <span class="req">Faculty sign-in required</span>
+    <ol>
+      <li>Open the drawer, tap <b>Faculty &amp; Research</b> under Staff, then <b>Experiments</b>.</li>
+      <li>Tap <b>+ New template</b> and fill in the research question, background, design, materials, hypothesis, and procedure steps.</li>
+      <li>Inside a template, tap <b>+ New section</b> to create one semester or team's actual run of it — give it a label, term, and dates.</li>
+      <li>Inside a section, add students, assign beds or bench areas, and log data readings as the experiment runs.</li>
+      <li>Use <b>Assign again</b> on a finished section to carry the same areas forward into a new section next semester, without rebuilding the template.</li>
+      <li>Export data as CSV or use <b>Print report</b> for a formal writeup.</li>
+    </ol>
+  </div>
+
+  <div class="task" id="s-admin">
+    <h3>Approve requests &amp; manage crew</h3>
+    <div class="where"><code>admin.html</code>, Admin panel under Admin in the drawer</div>
+    <span class="req">Admin sign-in required</span>
+    <ol>
+      <li>Open the drawer, tap <b>Admin panel</b> under Admin.</li>
+      <li>Review pending access requests (see <a href="#v-request">Request staff access</a>) and approve or decline each one.</li>
+      <li>Review the photo queue and approve or reject submissions before they go public.</li>
+      <li>Manage the crew roster — add, rename, or deactivate accounts.</li>
+      <li>Review submitted activity logs, and print activity logs when needed.</li>
+    </ol>
+  </div>
+
+</div>
+
+<footer>Lancer Farms &amp; Gardens · CBU Environmental Science</footer>
+<a class="backtop" href="#top" aria-label="Back to top">&#8593;</a>
+
+<script>
+window.GRUSH_NAV = { eyebrow: 'Help', rail: false, title: 'Lancer Farms & Gardens' };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+<script src="i18n.js?v=2"></script>
+
+</body>
+</html>

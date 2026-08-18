@@ -97,10 +97,14 @@
     ]
   });
 
-  /* An index of everything the site does. After every tier, because it
-     describes the whole menu above it rather than being another
-     destination in it. */
+  /* An index of everything the site does, and how to actually do it.
+     Both after every tier, because they describe the whole menu above
+     them rather than being another destination in it. Everything here
+     is WHAT exists; Help is HOW to use it — different questions, so a
+     visitor or a crew member looking for one doesn't have to read
+     through the other to find it. */
   M.footer = [
-    { label: 'Everything here', icon: '\u{1F5C3}', href: 'features.html' }
+    { label: 'Everything here', icon: '\u{1F5C3}', href: 'features.html' },
+    { label: 'Help',            icon: '\u{2753}', href: 'help.html' }
   ];
 })();
