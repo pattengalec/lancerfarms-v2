@@ -80,7 +80,7 @@
 
      Any tier defined in desk.html needs a rank here, or the gate denies
      it silently. */
-  var RANK = { emergency: 0, visitor: 0, tools: 0, staff: 1, admin: 2 };
+  var RANK = { emergency: 0, visitor: 0, tools: 0, staff: 1, instructor: 1, admin: 2, faculty: 2, owner: 2 };
   var role = 'visitor';
 
   /* ── the tiers this overlay owns ─────────────────────────────────────
