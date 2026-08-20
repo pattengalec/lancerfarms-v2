@@ -2138,24 +2138,30 @@ function reviewSimpleCard(kind,id,title,body){
 async function loadReview(){
   const el=document.getElementById('review-list'); if(!el) return;
   if(!el._wired){ el._wired=1; el.addEventListener('click', reviewClick); }
-  let photos=[], notes=[], logs=[], areas=[];
+  let photos=[], notes=[], logs=[], areas=[], proposals=[];
   try{
     const r=await Promise.all([
       sbGet('lfg_photos','approval_status=eq.pending&order=uploaded_at.desc'),
       sbGet('lfg_comments','status=eq.new&order=submitted_at.desc'),
       sbGet('lfg_log','approval_status=eq.pending&order=logged_at.desc'),
-      sbGet('lfg_growing_areas','select=id,name,zone&archived_at=is.null&order=zone.asc,sort_order.asc.nullslast,name.asc')
+      sbGet('lfg_growing_areas','select=id,name,zone&archived_at=is.null&order=zone.asc,sort_order.asc.nullslast,name.asc'),
+      sbGet('lfg_experiments','approval_status=eq.pending&kind=eq.proposal&order=created_at.desc')
     ]);
-    photos=r[0]||[]; notes=r[1]||[]; logs=r[2]||[]; areas=r[3]||[];
+    photos=r[0]||[]; notes=r[1]||[]; logs=r[2]||[]; areas=r[3]||[]; proposals=r[4]||[];
   }catch(e){ el.innerHTML='<div class="empty-state">Could not load review queue</div>'; return; }
   reviewAreas=areas;
-  const total=photos.length+notes.length+logs.length;
+  const total=photos.length+notes.length+logs.length+proposals.length;
   const badge=document.getElementById('review-count'); if(badge){ badge.textContent=total||''; badge.style.display=total?'inline-flex':'none'; }
   if(!total){ el.innerHTML='<div class="empty-state">✅ Nothing waiting — all caught up.</div>'; return; }
   let html='';
   if(photos.length){ html+='<div class="section-label">Photos ('+photos.length+')</div>'+photos.map(reviewPhotoCard).join(''); }
   if(notes.length){ html+='<div class="section-label">Visitor notes ('+notes.length+')</div>'+notes.map(function(c){ return reviewSimpleCard('comment',c.id,c.commenter_name||'Visitor',c.message||''); }).join(''); }
   if(logs.length){ html+='<div class="section-label">Field logs ('+logs.length+')</div>'+logs.map(function(x){ return reviewSimpleCard('log',x.id,x.location_label||'—',(x.note||'')+' · '+(x.submitted_by||'?')); }).join(''); }
+  if(proposals.length){
+    html+='<div class="section-label">Lab proposals ('+proposals.length+')</div>'+proposals.map(function(p){
+      return reviewSimpleCard('proposal',p.id,p.title||'Untitled',(p.submitted_by||'?')+' · sponsor '+(p.sponsor_name||'unassigned')+' · backup approval — normally handled by the sponsor\u2019s emailed link');
+    }).join('');
+  }
   el.innerHTML=html;
 }
 function _rvPhotoFields(id){
@@ -2176,6 +2182,9 @@ async function reviewClick(e){
     } else if(kind==='log'){
       if(act==='approve'){ await sbPatch('lfg_log',{id},{approval_status:'approved'}); showToast('Approved'); }
       if(act==='delete'){ if(!confirm('Remove this log?')) return; await sbPatch('lfg_log',{id},{approval_status:'rejected'}); showToast('Removed'); }
+    } else if(kind==='proposal'){
+      if(act==='approve'){ await sbPatch('lfg_experiments',{id},{approval_status:'approved'}); showToast('Approved'); }
+      if(act==='delete'){ if(!confirm('Reject this proposal?')) return; await sbPatch('lfg_experiments',{id},{approval_status:'rejected'}); showToast('Rejected'); }
     }
     loadReview();
   }catch(x){ showToast('Action failed'); }

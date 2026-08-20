@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>Assessments &mdash; Lancer Farms &amp; Gardens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<style>
+:root{
+color-scheme:dark;
+--ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+--line:#45423A; --line-strong:#5A554A;
+--green:#7E9A6E; --green-d:#2A2620;
+--amber:#C9973F; --amber-bg:#4A3A22;
+--red:#D15A48;
+--bar-bg:#1F1C17; --bar-ink:#F0EDE2; --bar-accent:#D4A44E;
+--shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;}
+h1,h2{font-family:'Fraunces',Georgia,serif; font-weight:600; margin:0;}
+button{font-family:inherit; cursor:pointer;}
+#app{max-width:520px; margin:0 auto; width:100%;}
+.sitebar{display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bar-bg);
+  border-bottom:1px solid var(--line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
+.sitebar img{width:34px; height:34px; border-radius:50%; border:1px solid var(--line); padding:2px;}
+.sitebar .eb{font-family:ui-monospace,monospace; font-size:.58rem; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--bar-accent); margin-bottom:2px;}
+.sitebar .wm{font-family:'Fraunces',Georgia,serif; font-weight:700; font-size:1.1rem; color:var(--bar-ink);}
+.sitebar .who{margin-left:auto; font-size:12px; color:var(--ink-soft); text-align:right;}
+.sitebar .who button{background:none; border:none; color:var(--amber); font-size:12px; padding:0; text-decoration:underline;}
+.pad{padding:16px 16px 40px;}
+.screen-h{font-size:15px; color:var(--ink-soft); margin:0 0 18px; line-height:1.4;}
+.order-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:12px;}
+.order-card .otitle{font-family:'Fraunces',serif; font-weight:600; font-size:16px; margin-bottom:2px;}
+.order-card .osub{font-size:13px; color:var(--ink-soft); margin-bottom:10px;}
+.order-card .odue{display:inline-block; font-size:12px; font-weight:700; padding:3px 9px; border-radius:8px; background:var(--amber-bg); color:var(--amber); margin-bottom:10px;}
+.order-card button{width:100%; min-height:48px; border-radius:12px; border:1.5px solid var(--green); background:transparent; color:var(--green); font-size:15px; font-weight:600;}
+.order-card button:active{background:var(--green); color:#fff;}
+.empty{text-align:center; color:var(--ink-soft); padding:48px 24px; font-size:15px;}
+.field{margin-bottom:18px;}
+.field-label{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+  color:var(--ink-soft); margin-bottom:8px;}
+.field-label .opt{font-weight:400; text-transform:none; letter-spacing:0; opacity:.7;}
+.text-in{width:100%; min-height:52px; border:1.5px solid var(--line-strong); border-radius:14px;
+  padding:0 15px; font-size:16px; font-family:inherit; background:var(--card); color:var(--ink);}
+.text-in:focus{outline:none; border-color:var(--green);}
+select.text-in{-webkit-appearance:none; appearance:none; padding-right:38px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B0A99C' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center;}
+.notebox{width:100%; min-height:60px; border:1.5px solid var(--line-strong); border-radius:14px;
+  padding:13px 14px; font-size:15px; font-family:inherit; background:var(--card); color:var(--ink); resize:vertical;}
+.note{font-size:12.5px; color:var(--ink-soft); margin-top:6px; line-height:1.4;}
+.instr-box{background:rgba(126,154,110,.10); border:1.5px solid rgba(126,154,110,.45); border-radius:14px; padding:14px 16px; margin-bottom:22px; font-size:14px; line-height:1.5;}
+.metric-row{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+.metric-row .mlabel{flex:0 0 42%; font-size:14px; color:var(--ink); line-height:1.3;}
+.metric-row input{flex:1; min-width:0;}
+.metric-row .munit{flex:0 0 auto; font-size:13px; color:var(--ink-soft); min-width:36px;}
+.btn-primary{width:100%; min-height:58px; border-radius:16px; border:none; background:var(--green);
+  color:#fff; font-size:17px; font-weight:700; box-shadow:var(--shadow); margin-top:8px;}
+.btn-primary:active{transform:scale(.99); background:var(--green-d);}
+.btn-primary:disabled{background:var(--line-strong);}
+.btn-ghost{width:100%; min-height:48px; border:1.5px solid var(--line-strong); background:transparent;
+  color:var(--ink-soft); font-size:15px; font-weight:600; border-radius:14px; margin-top:10px;}
+.err{font-size:13px; color:var(--red); margin-top:6px; display:none;}
+.err.show{display:block;}
+#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:#3E3A32; color:#F5F2E8; border:1.5px solid var(--line-strong); padding:14px 22px;
+  border-radius:12px; font-size:16px; font-weight:600; z-index:200; box-shadow:0 6px 20px rgba(0,0,0,.45);
+  transition:all .3s; pointer-events:none; max-width:88%; text-align:center;}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+#success{display:none; text-align:center; padding:60px 24px;}
+#success .ic{font-size:48px; margin-bottom:12px;}
+#success h1{font-size:22px; margin-bottom:8px;}
+#success p{color:var(--ink-soft); font-size:15px; line-height:1.5;}
+.backlink{background:none; border:none; color:var(--ink-soft); font-size:14px; margin-bottom:16px; padding:0;}
+.signin-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:20px; text-align:center;}
+.signin-card .ic{font-size:32px; margin-bottom:8px;}
+.signin-card h2{font-size:17px; margin-bottom:6px;}
+.signin-card p{font-size:14px; color:var(--ink-soft); margin-bottom:16px; line-height:1.4;}
+.signin-sent{display:none; font-size:14px; color:var(--green); margin-top:12px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sitebar">
+    <img src="lfg-logo-192.webp" alt="">
+    <div>
+      <div class="eb">Assessments</div>
+      <div class="wm">Lancer Farms &amp; Gardens</div>
+    </div>
+    <div class="who" id="who-box" style="display:none">
+      <div id="who-email"></div>
+      <button onclick="doSignOut()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="pad" id="list-screen">
+    <p class="screen-h">Active tests assigned by faculty. Find your class or your name below, then follow the instructions to record your results.</p>
+    <div id="order-list"><div class="empty">Loading&hellip;</div></div>
+  </div>
+
+  <div class="pad" id="signin-screen" style="display:none">
+    <button class="backlink" onclick="backToList()">&larr; Back to assessments</button>
+    <div class="signin-card">
+      <div class="ic">&#128231;</div>
+      <h2>Sign in to submit results</h2>
+      <p>Use your CBU email. We'll send a one-time link &mdash; no password needed.</p>
+      <input class="text-in" id="signin-email" type="email" placeholder="you@calbaptist.edu" style="margin-bottom:10px" autocomplete="email">
+      <button class="btn-primary" id="signin-btn" style="margin-top:0">Email me a sign-in link</button>
+      <div class="signin-sent" id="signin-sent">Check your email for the link, then come back to this page.</div>
+      <div class="err" id="err-signin-email">Enter a valid @calbaptist.edu email.</div>
+    </div>
+  </div>
+
+  <div class="pad" id="form-screen" style="display:none">
+    <button class="backlink" onclick="backToList()">&larr; Back to assessments</button>
+    <h1 id="f-order-title" style="font-size:19px; margin-bottom:4px"></h1>
+    <p class="screen-h" id="f-order-sub" style="margin-bottom:14px"></p>
+    <div class="instr-box" id="f-instructions"></div>
+
+    <div class="field">
+      <div class="field-label">Your name</div>
+      <input class="text-in" id="f-student-name" autocomplete="name" placeholder="Full name">
+      <div class="err" id="err-student-name">Enter your name.</div>
+    </div>
+
+    <div class="field" id="area-field">
+      <div class="field-label">Bed / area</div>
+      <select class="text-in" id="f-area"></select>
+      <div class="err" id="err-area">Choose which bed you tested.</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Results</div>
+      <div id="metric-inputs"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Notes <span class="opt">(optional)</span></div>
+      <textarea class="notebox" id="f-note" placeholder="Anything worth flagging&hellip;"></textarea>
+    </div>
+
+    <button class="btn-primary" id="submit-btn">Submit results</button>
+  </div>
+
+  <div id="success">
+    <div class="ic">&#10003;</div>
+    <h1>Results submitted</h1>
+    <p>Your results are recorded under your name for this assessment.</p>
+    <button class="btn-ghost" onclick="backToList()">Submit another</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+<script>
+const sb = GRUSH.sb;
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+let ORDERS = [];
+let BEDS = [];
+let currentOrder = null;
+let currentSession = null;
+
+async function refreshWhoBox(){
+  currentSession = await GRUSH.session();
+  const box = document.getElementById('who-box');
+  if(currentSession && currentSession.user){
+    document.getElementById('who-email').textContent = currentSession.user.email;
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+async function doSignOut(){
+  await GRUSH.signOut();
+  await refreshWhoBox();
+  toast('Signed out');
+  backToList();
+}
+document.addEventListener('grush:auth', refreshWhoBox);
+
+async function loadBeds(){
+  try{
+    const { data, error } = await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at', null).order('sort_order', { ascending: true });
+    if(error) throw error;
+    BEDS = data || [];
+  }catch(e){ console.error(e); }
+}
+
+async function loadOrders(){
+  try{
+    const { data, error } = await sb
+      .from('lfg_assessment_orders')
+      .select('id,assigned_scope,assigned_label,due_date,area_id,catalog_id,section_id,lfg_test_catalog(name,category,instructions,metrics), lfg_growing_areas(name,zone)')
+      .eq('status', 'active')
+      .order('due_date', { ascending: true, nullsFirst: false });
+    if(error) throw error;
+    ORDERS = data || [];
+    renderList();
+  }catch(e){
+    document.getElementById('order-list').innerHTML = '<div class="empty">Could not load assessments.</div>';
+    console.error(e);
+  }
+}
+
+function renderList(){
+  const el = document.getElementById('order-list');
+  if(!ORDERS.length){
+    el.innerHTML = '<div class="empty">No active assessments right now. Check back, or ask your instructor.</div>';
+    return;
+  }
+  el.innerHTML = ORDERS.map(o => {
+    const cat = o.lfg_test_catalog || {};
+    const area = o.lfg_growing_areas;
+    const bedText = area ? (area.zone ? area.zone + ' \u2014 ' + area.name : area.name) : 'Any bed';
+    const dueText = o.due_date ? `<span class="odue">Due ${escapeHtml(o.due_date)}</span>` : '';
+    return `<div class="order-card">
+      <div class="otitle">${escapeHtml(cat.name || 'Test')}</div>
+      <div class="osub">${escapeHtml(o.assigned_label)} \u00b7 ${bedText}</div>
+      ${dueText}
+      <button onclick="openOrder('${o.id}')">Do this assessment</button>
+    </div>`;
+  }).join('');
+}
+
+async function openOrder(id){
+  currentOrder = ORDERS.find(o => o.id === id);
+  if(!currentOrder) return;
+
+  await refreshWhoBox();
+  if(!currentSession){
+    document.getElementById('list-screen').style.display = 'none';
+    document.getElementById('signin-screen').style.display = 'block';
+    document.getElementById('form-screen').style.display = 'none';
+    document.getElementById('success').style.display = 'none';
+    window.scrollTo(0,0);
+    return;
+  }
+  showResultsForm();
+}
+
+function showResultsForm(){
+  const cat = currentOrder.lfg_test_catalog || {};
+
+  document.getElementById('f-order-title').textContent = cat.name || 'Test';
+  document.getElementById('f-order-sub').textContent = currentOrder.assigned_label;
+  document.getElementById('f-instructions').textContent = cat.instructions || '';
+
+  const areaField = document.getElementById('area-field');
+  const areaSel = document.getElementById('f-area');
+  if(currentOrder.area_id){
+    const a = currentOrder.lfg_growing_areas;
+    areaSel.innerHTML = `<option value="${currentOrder.area_id}">${escapeHtml(a && a.zone ? a.zone + ' \u2014 ' + a.name : (a ? a.name : 'Assigned bed'))}</option>`;
+    areaField.style.display = 'none';
+  } else {
+    areaSel.innerHTML = '<option value="">Choose the bed you tested&hellip;</option>' +
+      BEDS.map(b => `<option value="${b.id}">${escapeHtml(b.zone ? b.zone + ' \u2014 ' + b.name : b.name)}</option>`).join('');
+    areaField.style.display = 'block';
+  }
+
+  const metricsEl = document.getElementById('metric-inputs');
+  metricsEl.innerHTML = (cat.metrics || []).map(m => `
+    <div class="metric-row">
+      <div class="mlabel">${escapeHtml(m.label)}</div>
+      <input class="text-in" type="number" step="any" inputmode="decimal" data-metric-key="${escapeHtml(m.key)}" data-metric-label="${escapeHtml(m.label)}" data-metric-unit="${escapeHtml(m.unit || '')}">
+      <div class="munit">${escapeHtml(m.unit || '')}</div>
+    </div>`).join('');
+
+  document.getElementById('list-screen').style.display = 'none';
+  document.getElementById('signin-screen').style.display = 'none';
+  document.getElementById('form-screen').style.display = 'block';
+  document.getElementById('success').style.display = 'none';
+  window.scrollTo(0,0);
+}
+
+function backToList(){
+  document.getElementById('form-screen').style.display = 'none';
+  document.getElementById('signin-screen').style.display = 'none';
+  document.getElementById('success').style.display = 'none';
+  document.getElementById('list-screen').style.display = 'block';
+  currentOrder = null;
+}
+
+document.getElementById('signin-btn').addEventListener('click', async function(){
+  const emailEl = document.getElementById('signin-email');
+  const email = emailEl.value.trim();
+  const errEl = document.getElementById('err-signin-email');
+  errEl.classList.remove('show');
+
+  if(!/^[^\s@]+@calbaptist\.edu$/i.test(email)){
+    errEl.classList.add('show');
+    return;
+  }
+
+  const btn = document.getElementById('signin-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending\u2026';
+
+  const result = await GRUSH.sendLink(email);
+  if(result.ok){
+    document.getElementById('signin-sent').style.display = 'block';
+  } else {
+    toast(result.msg || 'Could not send link');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Email me a sign-in link';
+});
+
+function clearErrors(){
+  document.querySelectorAll('.err').forEach(e => e.classList.remove('show'));
+}
+function showError(id){
+  const el = document.getElementById(id);
+  if(el) el.classList.add('show');
+}
+
+async function ensureRosterRow(sectionId, studentName, studentEmail){
+  // Upsert-by-hand: check for an existing row first, since a plain insert
+  // would create a duplicate every time the same student submits twice.
+  const { data: existing, error: selErr } = await sb
+    .from('lfg_experiment_students')
+    .select('id')
+    .eq('section_id', sectionId)
+    .ilike('student_email', studentEmail)
+    .maybeSingle();
+  if(selErr) throw selErr;
+  if(existing) return existing.id;
+
+  const { data: inserted, error: insErr } = await sb
+    .from('lfg_experiment_students')
+    .insert({ section_id: sectionId, student_name: studentName, student_email: studentEmail })
+    .select('id')
+    .single();
+  if(insErr) throw insErr;
+  return inserted.id;
+}
+
+async function submitResults(){
+  clearErrors();
+  if(!currentOrder) return;
+
+  await refreshWhoBox();
+  if(!currentSession){
+    toast('Your session expired \u2014 sign in again');
+    openOrder(currentOrder.id);
+    return;
+  }
+  const studentEmail = currentSession.user.email;
+
+  const studentName = document.getElementById('f-student-name').value.trim();
+  const areaId = document.getElementById('f-area').value;
+  const note = document.getElementById('f-note').value.trim();
+
+  let hasError = false;
+  if(!studentName){ showError('err-student-name'); hasError = true; }
+  if(!areaId){ showError('err-area'); hasError = true; }
+  if(hasError) return;
+
+  const inputs = Array.from(document.querySelectorAll('#metric-inputs input'));
+  const filled = inputs.filter(i => i.value !== '');
+  if(!filled.length){
+    toast('Enter at least one result');
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting\u2026';
+
+  try{
+    await ensureRosterRow(currentOrder.section_id, studentName, studentEmail);
+
+    const rows = filled.map(i => ({
+      section_id: currentOrder.section_id,
+      area_id: areaId,
+      metric: i.dataset.metricLabel,
+      value: parseFloat(i.value),
+      unit: i.dataset.metricUnit || null,
+      note: note || null,
+      source: 'manual',
+      recorded_by: studentName
+    }));
+
+    const { error } = await sb.from('lfg_experiment_readings').insert(rows);
+    if(error) throw error;
+
+    document.getElementById('form-screen').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+  }catch(e){
+    toast('Submission failed \u2014 try again');
+    console.error(e);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Submit results';
+  }
+}
+
+document.getElementById('submit-btn').addEventListener('click', submitResults);
+
+(async function init(){
+  await refreshWhoBox();
+  await loadBeds();
+  await loadOrders();
+})();
+</script>
+</body>
+</html>

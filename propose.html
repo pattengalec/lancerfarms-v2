@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>Propose a lab &mdash; Lancer Farms &amp; Gardens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<style>
+:root{
+color-scheme:dark;
+--ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+--line:#45423A; --line-strong:#5A554A;
+--green:#7E9A6E; --green-d:#2A2620;
+--amber:#C9973F; --amber-bg:#4A3A22;
+--red:#D15A48; --red-bg:#3E2723;
+--bar-bg:#1F1C17; --bar-ink:#F0EDE2; --bar-accent:#D4A44E;
+--shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;}
+h1,h2{font-family:'Fraunces',Georgia,serif; font-weight:600; margin:0;}
+button{font-family:inherit; cursor:pointer;}
+#app{max-width:520px; margin:0 auto; width:100%;}
+.sitebar{display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bar-bg);
+  border-bottom:1px solid var(--line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
+.sitebar img{width:34px; height:34px; border-radius:50%; border:1px solid var(--line); padding:2px;}
+.sitebar .eb{font-family:ui-monospace,monospace; font-size:.58rem; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--bar-accent); margin-bottom:2px;}
+.sitebar .wm{font-family:'Fraunces',Georgia,serif; font-weight:700; font-size:1.1rem; color:var(--bar-ink);}
+.pad{padding:16px 16px 40px;}
+.screen-h{font-size:15px; color:var(--ink-soft); margin:0 0 20px; line-height:1.4;}
+.field{margin-bottom:18px;}
+.field-label{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+  color:var(--ink-soft); margin-bottom:8px;}
+.field-label .opt{font-weight:400; text-transform:none; letter-spacing:0; opacity:.7;}
+.text-in{width:100%; min-height:52px; border:1.5px solid var(--line-strong); border-radius:14px;
+  padding:0 15px; font-size:16px; font-family:inherit; background:var(--card); color:var(--ink);}
+.text-in:focus{outline:none; border-color:var(--green);}
+select.text-in{-webkit-appearance:none; appearance:none; padding-right:38px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B0A99C' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center;}
+.notebox{width:100%; min-height:80px; border:1.5px solid var(--line-strong); border-radius:14px;
+  padding:13px 14px; font-size:15px; font-family:inherit; background:var(--card); color:var(--ink); resize:vertical;}
+.notebox:focus{outline:none; border-color:var(--green);}
+.note{font-size:12.5px; color:var(--ink-soft); margin-top:6px; line-height:1.4;}
+.btn-primary{width:100%; min-height:58px; border-radius:16px; border:none; background:var(--green);
+  color:#fff; font-size:17px; font-weight:700; box-shadow:var(--shadow); margin-top:8px;}
+.btn-primary:active{transform:scale(.99); background:var(--green-d);}
+.btn-primary:disabled{background:var(--line-strong);}
+.btn-ghost{width:100%; min-height:48px; border:1.5px solid var(--line-strong); background:transparent;
+  color:var(--ink-soft); font-size:15px; font-weight:600; border-radius:14px; margin-top:10px;}
+.err{font-size:13px; color:var(--red); margin-top:6px; display:none;}
+.err.show{display:block;}
+#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:#3E3A32; color:#F5F2E8; border:1.5px solid var(--line-strong); padding:14px 22px;
+  border-radius:12px; font-size:16px; font-weight:600; z-index:200; box-shadow:0 6px 20px rgba(0,0,0,.45);
+  transition:all .3s; pointer-events:none; max-width:88%; text-align:center;}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+#success{display:none; text-align:center; padding:60px 24px;}
+#success .ic{font-size:48px; margin-bottom:12px;}
+#success h1{font-size:22px; margin-bottom:8px;}
+#success p{color:var(--ink-soft); font-size:15px; line-height:1.5;}
+@media print{
+  .sitebar, .btn-primary, .btn-ghost{display:none !important;}
+  body{background:#fff; color:#000;}
+  .text-in, .notebox{border-color:#ccc; background:#fff; color:#000;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sitebar">
+    <img src="lfg-logo-192.webp" alt="">
+    <div>
+      <div class="eb">Lab proposal</div>
+      <div class="wm">Lancer Farms &amp; Gardens</div>
+    </div>
+  </div>
+
+  <div class="pad" id="form-screen">
+    <p class="screen-h">Submitted proposals go to your faculty sponsor for approval before a location is confirmed.</p>
+
+    <div class="field">
+      <div class="field-label">Your name</div>
+      <input class="text-in" id="f-student-name" autocomplete="name" placeholder="Full name">
+      <div class="err" id="err-student-name">Enter your name.</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Your email</div>
+      <input class="text-in" id="f-student-email" type="email" autocomplete="email" placeholder="you@calbaptist.edu">
+      <div class="err" id="err-student-email">Enter a valid email &mdash; this is how you'll hear back.</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Proposal title</div>
+      <input class="text-in" id="f-title" placeholder="Mycoremediation of petroleum-contaminated soil">
+      <div class="err" id="err-title">Give the proposal a title.</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Faculty sponsor</div>
+      <input class="text-in" id="f-sponsor" list="faculty-list" placeholder="Start typing a name" autocomplete="off">
+      <datalist id="faculty-list"></datalist>
+      <div class="err" id="err-sponsor">Pick a sponsor from the list.</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Research question</div>
+      <textarea class="notebox" id="f-question" placeholder="What is being asked"></textarea>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Background <span class="opt">(optional)</span></div>
+      <textarea class="notebox" id="f-background" placeholder="Why this matters, prior work"></textarea>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Hypothesis <span class="opt">(optional)</span></div>
+      <textarea class="notebox" id="f-hypothesis"></textarea>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Design <span class="opt">(optional)</span></div>
+      <textarea class="notebox" id="f-design" placeholder="Treatments, groups, timeline"></textarea>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Procedure <span class="opt">(optional)</span></div>
+      <textarea class="notebox" id="f-procedure" placeholder="One step per line"></textarea>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Materials <span class="opt">(optional)</span></div>
+      <textarea class="notebox" id="f-materials" placeholder="One item per line"></textarea>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Requested location</div>
+      <select class="text-in" id="f-location-select">
+        <option value="">Loading beds&hellip;</option>
+        <option value="other">Other (describe below)</option>
+        <option value="none">No preference</option>
+      </select>
+      <div id="f-location-freeform-wrap" style="display:none;margin-top:10px">
+        <input class="text-in" id="f-location-freeform" placeholder="e.g. greenhouse tabletop 2, or lab bench, room 186">
+        <div class="note">Used for indoor, tabletop, or off-bed locations. Your sponsor confirms final placement.</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="submit-btn">Submit for review</button>
+    <button class="btn-ghost" onclick="window.print()">Print / save copy</button>
+  </div>
+
+  <div id="success">
+    <div class="ic">&#10003;</div>
+    <h1>Proposal submitted</h1>
+    <p>Your sponsor will review it and you&rsquo;ll hear back once it&rsquo;s approved or if they have questions.</p>
+
+    <div class="field" id="attach-section" style="text-align:left;margin-top:28px;display:none">
+      <div class="field-label">Attach an existing document <span class="opt">(optional)</span></div>
+      <div class="note" style="margin-top:0;margin-bottom:10px">Already have a written proposal, dataset, or form? Attach it here &mdash; PDF, Word, Excel, CSV, or image. Up to 25MB.</div>
+      <input type="file" id="f-attach" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg" style="display:none">
+      <button class="btn-ghost" id="attach-btn" style="border-color:var(--green);color:var(--green)">Choose file</button>
+      <div id="attach-status" style="font-size:14px;color:var(--ink-soft);margin-top:8px"></div>
+    </div>
+
+    <button class="btn-ghost" onclick="window.print()">Print / save copy</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script>
+const SUPABASE_URL = window.LFG_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON = window.LFG_CONFIG.SUPABASE_ANON_KEY;
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+let FACULTY = [];
+let BEDS = [];
+let newExperimentId = null;
+
+// Attach-a-document is built and working (upload + lfg_experiment_files row)
+// but stays hidden until review.html can actually show attachments to a
+// faculty sponsor. Flip this to true once that's live \u2014 no other
+// changes needed here.
+const ATTACH_ENABLED = false;
+if(ATTACH_ENABLED) document.getElementById('attach-section').style.display = 'block';
+
+async function loadFaculty(){
+  try{
+    const { data, error } = await sb.from('lfg_faculty').select('id,name,email').eq('active', true).order('name');
+    if(error) throw error;
+    FACULTY = data || [];
+    const dl = document.getElementById('faculty-list');
+    dl.innerHTML = FACULTY.map(f => `<option value="${escapeHtml(f.name)}">`).join('');
+  }catch(e){
+    toast('Could not load faculty list');
+    console.error(e);
+  }
+}
+
+async function loadBeds(){
+  try{
+    const { data, error } = await sb.from('lfg_growing_areas')
+      .select('id,name,zone')
+      .is('archived_at', null)
+      .order('sort_order', { ascending: true });
+    if(error) throw error;
+    BEDS = data || [];
+    const sel = document.getElementById('f-location-select');
+    const opts = BEDS.map(b => `<option value="${b.id}">${escapeHtml(b.zone ? b.zone + ' \u2014 ' + b.name : b.name)}</option>`).join('');
+    sel.innerHTML = opts + `<option value="other">Other (describe below)</option><option value="none" selected>No preference</option>`;
+  }catch(e){
+    toast('Could not load bed list');
+    console.error(e);
+  }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+document.getElementById('f-location-select').addEventListener('change', function(){
+  document.getElementById('f-location-freeform-wrap').style.display = this.value === 'other' ? 'block' : 'none';
+});
+
+function clearErrors(){
+  document.querySelectorAll('.err').forEach(e => e.classList.remove('show'));
+}
+
+function showError(id){
+  const el = document.getElementById(id);
+  if(el) el.classList.add('show');
+}
+
+async function submitProposal(){
+  clearErrors();
+
+  const studentName = document.getElementById('f-student-name').value.trim();
+  const studentEmail = document.getElementById('f-student-email').value.trim();
+  const title = document.getElementById('f-title').value.trim();
+  const sponsorName = document.getElementById('f-sponsor').value.trim();
+  const question = document.getElementById('f-question').value.trim();
+  const background = document.getElementById('f-background').value.trim();
+  const hypothesis = document.getElementById('f-hypothesis').value.trim();
+  const design = document.getElementById('f-design').value.trim();
+  const procedure = document.getElementById('f-procedure').value.trim();
+  const materials = document.getElementById('f-materials').value.trim();
+  const locSel = document.getElementById('f-location-select').value;
+  const freeform = document.getElementById('f-location-freeform').value.trim();
+
+  let hasError = false;
+  if(!studentName){ showError('err-student-name'); hasError = true; }
+  if(!studentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail)){ showError('err-student-email'); hasError = true; }
+  if(!title){ showError('err-title'); hasError = true; }
+
+  const sponsor = FACULTY.find(f => f.name.toLowerCase() === sponsorName.toLowerCase());
+  if(!sponsor){ showError('err-sponsor'); hasError = true; }
+
+  if(hasError) return;
+
+  let requested_area_id = null;
+  let requested_location_label = null;
+  if(locSel === 'other'){
+    requested_location_label = freeform || null;
+  } else if(locSel && locSel !== 'none'){
+    requested_area_id = locSel;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting\u2026';
+
+  try{
+    const { data: inserted, error } = await sb.from('lfg_experiments').insert({
+      title,
+      research_question: question || null,
+      background: background || null,
+      hypothesis: hypothesis || null,
+      design: design || null,
+      procedure: procedure || null,
+      materials: materials || null,
+      submitted_by: studentName,
+      submitted_by_email: studentEmail,
+      sponsor_id: sponsor.id,
+      sponsor_name: sponsor.name,
+      requested_area_id,
+      requested_location_label,
+      approval_status: 'pending'
+    }).select('id').single();
+    if(error) throw error;
+
+    newExperimentId = inserted.id;
+    document.getElementById('form-screen').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+  }catch(e){
+    toast('Submission failed \u2014 try again');
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = 'Submit for review';
+  }
+}
+
+document.getElementById('submit-btn').addEventListener('click', submitProposal);
+
+document.getElementById('attach-btn').addEventListener('click', function(){
+  document.getElementById('f-attach').click();
+});
+
+document.getElementById('f-attach').addEventListener('change', async function(){
+  const file = this.files[0];
+  if(!file) return;
+  if(!newExperimentId){ toast('Submit the proposal first'); return; }
+
+  const statusEl = document.getElementById('attach-status');
+  const btn = document.getElementById('attach-btn');
+  btn.disabled = true;
+  statusEl.textContent = 'Uploading\u2026';
+
+  try{
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${newExperimentId}/${Date.now()}_${safeName}`;
+
+    const { error: uploadErr } = await sb.storage.from('experiment-files').upload(path, file, {
+      contentType: file.type || 'application/octet-stream'
+    });
+    if(uploadErr) throw uploadErr;
+
+    const { error: rowErr } = await sb.from('lfg_experiment_files').insert({
+      experiment_id: newExperimentId,
+      file_name: file.name,
+      storage_path: path,
+      mime_type: file.type || null,
+      size_bytes: file.size,
+      uploaded_by: document.getElementById('f-student-name').value.trim() || null
+    });
+    if(rowErr) throw rowErr;
+
+    statusEl.textContent = `Attached: ${file.name}`;
+    btn.textContent = 'Attach another file';
+    btn.disabled = false;
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = 'Upload failed \u2014 try again';
+    btn.disabled = false;
+  }
+});
+
+loadFaculty();
+loadBeds();
+</script>
+</body>
+</html>

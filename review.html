@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>Review lab proposal &mdash; Lancer Farms &amp; Gardens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<style>
+:root{
+color-scheme:dark;
+--ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+--line:#45423A; --line-strong:#5A554A;
+--green:#7E9A6E; --green-d:#2A2620;
+--amber:#C9973F; --amber-bg:#4A3A22;
+--red:#D15A48; --red-bg:#3E2723;
+--bar-bg:#1F1C17; --bar-ink:#F0EDE2; --bar-accent:#D4A44E;
+--shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;}
+h1,h2{font-family:'Fraunces',Georgia,serif; font-weight:600; margin:0;}
+button{font-family:inherit; cursor:pointer;}
+#app{max-width:520px; margin:0 auto; width:100%;}
+.sitebar{display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bar-bg);
+  border-bottom:1px solid var(--line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
+.sitebar img{width:34px; height:34px; border-radius:50%; border:1px solid var(--line); padding:2px;}
+.sitebar .eb{font-family:ui-monospace,monospace; font-size:.58rem; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--bar-accent); margin-bottom:2px;}
+.sitebar .wm{font-family:'Fraunces',Georgia,serif; font-weight:700; font-size:1.1rem; color:var(--bar-ink);}
+.pad{padding:16px 16px 40px;}
+.badge{display:inline-block; font-size:12px; font-weight:700; padding:4px 12px; border-radius:8px; margin-bottom:14px;}
+.badge.pending{background:var(--amber-bg); color:var(--amber);}
+.badge.approved{background:rgba(126,154,110,.18); color:var(--green);}
+.badge.rejected{background:var(--red-bg); color:var(--red);}
+.meta{font-size:14px; color:var(--ink-soft); margin:0 0 20px;}
+.section{margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--line);}
+.section:last-of-type{border-bottom:none;}
+.section-label{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+  color:var(--ink-soft); margin-bottom:6px;}
+.section-body{font-size:15px; line-height:1.5; white-space:pre-wrap;}
+.section-body.empty{color:var(--ink-soft); font-style:italic;}
+.notebox{width:100%; min-height:80px; border:1.5px solid var(--line-strong); border-radius:14px;
+  padding:13px 14px; font-size:15px; font-family:inherit; background:var(--card); color:var(--ink); resize:vertical;}
+.notebox:focus{outline:none; border-color:var(--green);}
+.btn-row{display:flex; gap:10px; margin-top:20px;}
+.btn-primary{flex:1; min-height:56px; border-radius:16px; border:none; background:var(--green);
+  color:#fff; font-size:16px; font-weight:700; box-shadow:var(--shadow);}
+.btn-primary:active{transform:scale(.99); background:var(--green-d);}
+.btn-primary:disabled{background:var(--line-strong);}
+.btn-danger{flex:1; min-height:56px; border-radius:16px; border:1.5px solid var(--red); background:transparent;
+  color:var(--red); font-size:16px; font-weight:700;}
+.btn-danger:active{background:var(--red-bg);}
+.btn-danger:disabled{opacity:.5;}
+.btn-ghost{width:100%; min-height:48px; border:1.5px solid var(--line-strong); background:transparent;
+  color:var(--ink-soft); font-size:15px; font-weight:600; border-radius:14px; margin-top:14px;}
+.center-state{text-align:center; padding:80px 24px;}
+.center-state .ic{font-size:44px; margin-bottom:12px; opacity:.7;}
+.center-state h1{font-size:20px; margin-bottom:8px;}
+.center-state p{color:var(--ink-soft); font-size:15px; line-height:1.5;}
+#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:#3E3A32; color:#F5F2E8; border:1.5px solid var(--line-strong); padding:14px 22px;
+  border-radius:12px; font-size:16px; font-weight:600; z-index:200; box-shadow:0 6px 20px rgba(0,0,0,.45);
+  transition:all .3s; pointer-events:none; max-width:88%; text-align:center;}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+@media print{
+  .sitebar, .btn-row, .btn-ghost, .notebox{display:none !important;}
+  body{background:#fff; color:#000;}
+  .section-body{color:#000;}
+  .section{border-color:#ccc;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sitebar">
+    <img src="lfg-logo-192.webp" alt="">
+    <div>
+      <div class="eb">Faculty review</div>
+      <div class="wm">Lancer Farms &amp; Gardens</div>
+    </div>
+  </div>
+
+  <div class="pad" id="loading-state">
+    <div class="center-state">
+      <div class="ic">&#8987;</div>
+      <p>Loading proposal&hellip;</p>
+    </div>
+  </div>
+
+  <div class="pad" id="invalid-state" style="display:none">
+    <div class="center-state">
+      <div class="ic">&#9888;</div>
+      <h1>Link no longer valid</h1>
+      <p>This review link has already been used, has expired, or is incorrect. If you still need to review this proposal, ask the student to check with the program for a new link.</p>
+    </div>
+  </div>
+
+  <div class="pad" id="review-state" style="display:none">
+    <span class="badge pending" id="status-badge">Pending</span>
+    <h1 id="p-title" style="font-size:20px; margin-bottom:6px"></h1>
+    <p class="meta" id="p-meta"></p>
+
+    <div class="section">
+      <div class="section-label">Research question</div>
+      <div class="section-body" id="p-question"></div>
+    </div>
+    <div class="section">
+      <div class="section-label">Background</div>
+      <div class="section-body" id="p-background"></div>
+    </div>
+    <div class="section">
+      <div class="section-label">Hypothesis</div>
+      <div class="section-body" id="p-hypothesis"></div>
+    </div>
+    <div class="section">
+      <div class="section-label">Design</div>
+      <div class="section-body" id="p-design"></div>
+    </div>
+    <div class="section">
+      <div class="section-label">Procedure</div>
+      <div class="section-body" id="p-procedure"></div>
+    </div>
+    <div class="section">
+      <div class="section-label">Materials</div>
+      <div class="section-body" id="p-materials"></div>
+    </div>
+    <div class="section">
+      <div class="section-label">Requested location</div>
+      <div class="section-body" id="p-location"></div>
+    </div>
+
+    <div class="section" id="decision-block">
+      <div class="section-label">Review note <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional, shared with the student)</span></div>
+      <textarea class="notebox" id="p-review-note" placeholder="Feedback, requested changes, conditions of approval&hellip;"></textarea>
+      <div class="btn-row">
+        <button class="btn-danger" id="reject-btn">Reject</button>
+        <button class="btn-primary" id="approve-btn">Approve</button>
+      </div>
+    </div>
+
+    <button class="btn-ghost" onclick="window.print()">Print / save copy</button>
+  </div>
+
+  <div class="pad" id="decided-state" style="display:none">
+    <div class="center-state">
+      <div class="ic" id="decided-ic">&#10003;</div>
+      <h1 id="decided-title"></h1>
+      <p id="decided-sub"></p>
+    </div>
+    <button class="btn-ghost" onclick="window.print()">Print / save copy</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script>
+const SUPABASE_URL = window.LFG_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON = window.LFG_CONFIG.SUPABASE_ANON_KEY;
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+function showOnly(id){
+  ['loading-state','invalid-state','review-state','decided-state'].forEach(s => {
+    document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
+  });
+}
+
+function escapeText(s){
+  return s == null || s === '' ? null : s;
+}
+
+function fillSection(id, value){
+  const el = document.getElementById(id);
+  if(value){
+    el.textContent = value;
+    el.classList.remove('empty');
+  } else {
+    el.textContent = 'Not provided';
+    el.classList.add('empty');
+  }
+}
+
+const params = new URLSearchParams(location.search);
+const token = params.get('token');
+let proposal = null;
+
+async function loadProposal(){
+  if(!token){
+    showOnly('invalid-state');
+    return;
+  }
+  try{
+    const { data, error } = await sb.rpc('get_experiment_by_token', { p_token: token });
+    if(error) throw error;
+    if(!data || !data.length){
+      showOnly('invalid-state');
+      return;
+    }
+    proposal = data[0];
+    await render();
+    showOnly('review-state');
+  }catch(e){
+    console.error(e);
+    showOnly('invalid-state');
+  }
+}
+
+async function render(){
+  document.getElementById('p-title').textContent = proposal.title || 'Untitled proposal';
+  document.getElementById('p-meta').textContent =
+    `Submitted by ${proposal.submitted_by || 'unknown'} \u00b7 sponsor ${proposal.sponsor_name || 'unassigned'}`;
+
+  fillSection('p-question', escapeText(proposal.research_question));
+  fillSection('p-background', escapeText(proposal.background));
+  fillSection('p-hypothesis', escapeText(proposal.hypothesis));
+  fillSection('p-design', escapeText(proposal.design));
+  fillSection('p-procedure', escapeText(proposal.procedure));
+  fillSection('p-materials', escapeText(proposal.materials));
+
+  let locationText = 'No preference specified';
+  if(proposal.requested_location_label){
+    locationText = `${proposal.requested_location_label} (freeform \u2014 not a mapped bed)`;
+  } else if(proposal.requested_area_id){
+    try{
+      const { data: area } = await sb.from('lfg_growing_areas').select('name,zone').eq('id', proposal.requested_area_id).single();
+      if(area) locationText = area.zone ? `${area.zone} \u2014 ${area.name}` : area.name;
+    }catch(e){ console.error(e); }
+  }
+  document.getElementById('p-location').textContent = locationText;
+}
+
+async function decide(decision){
+  const note = document.getElementById('p-review-note').value.trim();
+  const reviewerName = prompt('Your name (for the record):');
+  if(reviewerName === null) return;
+  if(!reviewerName.trim()){ toast('Name is required to submit a decision'); return; }
+
+  document.getElementById('approve-btn').disabled = true;
+  document.getElementById('reject-btn').disabled = true;
+
+  try{
+    const { error } = await sb.rpc('decide_experiment', {
+      p_token: token,
+      p_decision: decision,
+      p_note: note || null,
+      p_reviewer_name: reviewerName.trim()
+    });
+    if(error) throw error;
+
+    document.getElementById('decided-ic').textContent = decision === 'approved' ? '\u2713' : '\u2715';
+    document.getElementById('decided-title').textContent =
+      decision === 'approved' ? 'Proposal approved' : 'Proposal rejected';
+    document.getElementById('decided-sub').textContent =
+      decision === 'approved'
+        ? 'The student will be notified. This link is now used and can\u2019t be opened again.'
+        : 'The student will be notified with your note. This link is now used and can\u2019t be opened again.';
+    showOnly('decided-state');
+  }catch(e){
+    console.error(e);
+    toast('Could not submit \u2014 the link may have already been used. Reload to check.');
+    document.getElementById('approve-btn').disabled = false;
+    document.getElementById('reject-btn').disabled = false;
+  }
+}
+
+document.getElementById('approve-btn').addEventListener('click', () => decide('approved'));
+document.getElementById('reject-btn').addEventListener('click', () => decide('rejected'));
+
+loadProposal();
+</script>
+</body>
+</html>
