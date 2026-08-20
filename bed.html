@@ -226,7 +226,7 @@ function fail(title, detail){
   const isStaff = role === 'staff';
   body.innerHTML = '<div class="empty">Loading bed history\u2026</div>';
 
-  const [plantsR, tasksR, photosR, logR] = await Promise.all([
+  const [plantsR, tasksR, photosR, logR, readingsR, ordersR] = await Promise.all([
     LFG.sb.from('lfg_area_events').select('plant_name,event_type,event_date')
       .eq('area_id', bed.id).order('event_date', {ascending:false}).limit(6),
     LFG.sb.from('lfg_tasks').select('id,title,recurrence_type,due_date')
@@ -237,11 +237,33 @@ function fail(title, detail){
       .order('uploaded_at', {ascending:false}).limit(6),
     LFG.sb.from('lfg_log').select('note,logged_by,logged_at')
       .eq('area_id', bed.id).eq('approval_status','approved')
-      .order('logged_at', {ascending:false}).limit(4)
+      .order('logged_at', {ascending:false}).limit(4),
+    /* Soil/water test results from the assessment-order system. Identity
+       (a signed-in CBU student) stands in for approval here — there is no
+       pending state to filter on, only the RLS policy scoping this to
+       assessment-assignment readings specifically. */
+    LFG.sb.from('lfg_experiment_readings').select('metric,value,unit,recorded_by,recorded_at')
+      .eq('area_id', bed.id).order('recorded_at', {ascending:false}).limit(40),
+    /* Tests currently assigned to this bed, whether or not results are in
+       yet — "testing in progress" is worth showing even with zero results. */
+    LFG.sb.from('lfg_assessment_orders').select('assigned_label,due_date,lfg_test_catalog(name)')
+      .eq('area_id', bed.id).eq('status','active').limit(6)
   ]);
 
   const plants = plantsR.data || [], tasks = tasksR.data || [],
-        photos = photosR.data || [], logs = logR.data || [];
+        photos = photosR.data || [], logs = logR.data || [],
+        readings = readingsR.data || [], activeOrders = ordersR.data || [];
+
+  /* Collapse to the most recent value per metric — a bed tested across a
+     semester should show current state, not a growing wall of history. */
+  const latestByMetric = {};
+  readings.forEach(function(r){
+    if(!latestByMetric[r.metric] || r.recorded_at > latestByMetric[r.metric].recorded_at){
+      latestByMetric[r.metric] = r;
+    }
+  });
+  const metricRows = Object.values(latestByMetric).sort(function(a,b){ return a.metric.localeCompare(b.metric); });
+  const lastUpdated = readings.length ? readings[0].recorded_at : null;
 
   let h = '';
 
@@ -261,6 +283,35 @@ function fail(title, detail){
         ).join('') + '</div>';
   }
 
+  /* Unlike the other sections, this one always renders \u2014 an empty test
+     panel is a prompt to go order one, not something to hide. Silence here
+     reads as "nothing to test," which is never true for a working bed. */
+  h += '<div class="sect"><h2>Soil &amp; water testing</h2>';
+  if(activeOrders.length){
+    h += activeOrders.map(function(o){
+      const testName = (o.lfg_test_catalog && o.lfg_test_catalog.name) || 'Test';
+      const due = o.due_date ? ' &middot; due ' + esc(o.due_date) : '';
+      return '<div class="card"><div class="t">' + esc(testName) + ' \u2014 in progress</div>'
+        + '<div class="s">' + esc(o.assigned_label) + due + '</div></div>';
+    }).join('');
+  }
+  if(metricRows.length){
+    h += metricRows.map(function(r){
+      const val = (r.value != null ? r.value : '\u2014') + (r.unit ? ' ' + esc(r.unit) : '');
+      return '<div class="card"><div class="t">' + esc(r.metric) + ': ' + val + '</div>'
+        + '<div class="s">' + esc(r.recorded_by || 'Recorded') + ' &middot; ' + String(r.recorded_at||'').slice(0,10) + '</div></div>';
+    }).join('');
+    h += '<div class="s" style="padding:2px 2px 0">Last updated ' + String(lastUpdated||'').slice(0,10) + '</div>';
+  } else if(activeOrders.length){
+    h += '<div class="empty">No results submitted yet.</div>';
+  } else if(isStaff){
+    h += '<div class="empty">No tests assigned to this bed yet.</div>'
+      + '<a class="btn ghost" href="order.html">\u{1F4CB}&nbsp; Order a test for this bed</a>';
+  } else {
+    h += '<div class="empty">No testing recorded for this bed yet.</div>';
+  }
+  h += '</div>';
+
   /* Tasks and the work log are operational detail — useful standing at the
      bed with a trowel, noise to someone on a tour. */
   if(isStaff && tasks.length){
@@ -277,6 +328,10 @@ function fail(title, detail){
         ).join('') + '</div>';
   }
 
+  /* The testing section always renders something now (even if just a
+     prompt), so it no longer belongs in the "is this bed empty" check \u2014
+     otherwise a bed with only photos would trip this even though it
+     visibly has content on screen. */
   const nothing = !photos.length && !plants.length
                 && (!isStaff || (!tasks.length && !logs.length));
   if(nothing){
