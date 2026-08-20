@@ -49,7 +49,7 @@
        how the emergency row ended up greyed out and unclickable. The cost
        of a wrongly-open row is that someone sees a page they could have
        reached anyway. */
-    RANK: { emergency: 0, visitor: 0, tools: 0, staff: 1, instructor: 1, admin: 2, faculty: 2, owner: 2 },
+    RANK: { emergency: 0, visitor: 0, tools: 0, student: 1, staff: 2, instructor: 3, faculty: 4, owner: 5 },
 
     role: 'visitor',
 

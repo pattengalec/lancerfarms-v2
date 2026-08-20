@@ -157,6 +157,29 @@
    this file exists to stop. */
 .grush-locked{opacity:.42;filter:grayscale(.6);cursor:not-allowed;}
 .grush-locked-group{opacity:.55;}
+/* ── access-level accordions ──
+   Every labelled tier -- open or locked -- renders closed by default.
+   Native <details> so there is no toggle state to manage by hand. */
+.grush-tier{margin:0 10px 10px;border:1.5px solid var(--nav-line);border-radius:12px;overflow:hidden;}
+.grush-tier > summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;
+  align-items:center;justify-content:space-between;font-size:.72rem;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--tier-color, var(--nav-accent));
+  font-family:var(--font-mono, ui-monospace, monospace);-webkit-tap-highlight-color:transparent;}
+.grush-tier > summary::-webkit-details-marker{display:none;}
+.grush-tier > summary::after{content:'\\25BE';font-size:.9rem;transition:transform .2s ease;}
+.grush-tier[open] > summary::after{transform:rotate(180deg);}
+.grush-tier-body{padding:0 10px 10px;}
+.grush-soon{justify-content:space-between;opacity:.55;cursor:default;}
+.grush-soon-badge{font-size:.62rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--nav-soft);}
+.grush-request-wrap{padding:4px 6px 12px;}
+.grush-request-btn{width:100%;min-height:54px;border-radius:12px;
+  border:1.5px dashed var(--nav-line);background:transparent;color:var(--nav-ink);
+  font:600 .95rem/1 inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.grush-request-btn:active{background:var(--nav-cell);}
+.grush-request-msg{font-size:.78rem;color:var(--nav-soft);padding:0 6px 10px;min-height:1.2em;}
+.grush-req-in{width:100%;min-height:48px;margin:6px 0;padding:0 12px;border-radius:10px;
+  border:1.5px solid var(--nav-line);background:var(--nav-cell);color:var(--nav-ink);font:inherit;}
 /* The footer sits below every tier, separated and quieter. */
 .grush-foot{margin-top:18px;padding-top:14px;border-top:1px solid rgba(128,128,128,.28);opacity:.72;}
 /* Emergency: the one colour used nowhere else on the site. */
@@ -398,28 +421,135 @@
        sync with the rest of the page. */
     var tierColor = t.color || 'var(--tier-visitor)';
 
-    if (t.label) {
-      var lb = document.createElement('div');
-      lb.className = 'grush-group' + (locked ? ' grush-locked-group' : '');
-      lb.style.setProperty('--tier-color', tierColor);
-      lb.textContent = t.label + (locked ? '  \u{1F512}' : '');
-      drawer.appendChild(lb);
+    /* No label (emergency) stays a flat, always-visible row — it is not
+       an access level, it is an escape hatch, and burying it behind a
+       tap defeats the point. */
+    if (!t.label) {
+      t.items.forEach(function (it) {
+        var el = makeItem(it, 'grush-item' + (t.id ? ' grush-tier-' + t.id : ''));
+        if (t.id !== 'emergency') el.style.setProperty('--tier-color', tierColor);
+        drawer.appendChild(el);
+      });
+      return;
     }
+
+    /* Every labelled tier is a closed-by-default accordion — visitors and
+       owners see the same six doors, some just open on the first tap and
+       some ask first. */
+    var details = document.createElement('details');
+    details.className = 'grush-tier';
+    details.style.setProperty('--tier-color', tierColor);
+
+    var summary = document.createElement('summary');
+    summary.textContent = t.label + (locked ? '  \u{1F512}' : '');
+    details.appendChild(summary);
+
+    var body = document.createElement('div');
+    body.className = 'grush-tier-body';
+
+    if (locked) {
+      body.appendChild(makeRequestAccess(t));
+    } else {
+      t.items.forEach(function (it) { body.appendChild(makeTierRow(it, t, tierColor)); });
+    }
+
+    details.appendChild(body);
+    drawer.appendChild(details);
+  }
+
+  /* A soon item is inert regardless of rank — nobody can tap through to a
+     page that does not exist yet. It still renders, so the accordion
+     previews what is coming rather than hiding it. */
+  function makeTierRow(it, t, tierColor) {
+    if (it.soon) {
+      var row = document.createElement('div');
+      row.className = 'grush-item grush-soon';
+      row.innerHTML = '<span>' + (it.icon ? it.icon + ' ' : '') + it.label + '</span>' +
+        '<span class="grush-soon-badge">Soon</span>';
+      return row;
+    }
+    var el = makeItem(it, 'grush-item' + (t.id ? ' grush-tier-' + t.id : ''));
+    el.style.setProperty('--tier-color', tierColor);
+    return el;
+  }
+
+  /* Locked-tier body: the real item list, shown dimmed so a visitor can
+     see what they'd get, plus one request button underneath. One button
+     per tier, not one per item — access is granted by rank, so five
+     identical requests for five line items would be noise, not five
+     real choices. Writes to lfg_access_requests, the same table the
+     homepage's "Work here?" link already uses. */
+  function makeRequestAccess(t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'grush-request-wrap';
+
     t.items.forEach(function (it) {
-      var el = makeItem(it, 'grush-item' + (t.id ? ' grush-tier-' + t.id : ''));
-      if (t.id !== 'emergency') el.style.setProperty('--tier-color', tierColor);
-      if (locked) {
-        /* Shown, not hidden. Seeing a locked door is how you learn the
-           building exists — and it is the same drawer on every page, so
-           a visitor page shows exactly what a staff page shows. */
-        el.classList.add('grush-locked');
-        el.setAttribute('aria-disabled', 'true');
-        el.addEventListener('click', function (e) {
-          e.preventDefault(); e.stopPropagation();
-        }, true);
-      }
-      drawer.appendChild(el);
+      var row = document.createElement('div');
+      row.className = 'grush-item grush-locked';
+      row.innerHTML = '<span>' + (it.icon ? it.icon + ' ' : '') + it.label + '</span>';
+      wrap.appendChild(row);
     });
+
+    /* Nothing to request yet -- the program itself isn't approved. */
+    if (t.id === 'student') {
+      var soonMsg = document.createElement('div');
+      soonMsg.className = 'grush-request-msg';
+      soonMsg.textContent = 'Coming soon \u2014 pending campus approval.';
+      wrap.appendChild(soonMsg);
+      return wrap;
+    }
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'grush-request-btn';
+    btn.textContent = 'Request access';
+
+    var form = document.createElement('div');
+    form.style.display = 'none';
+    var nameIn = document.createElement('input');
+    nameIn.className = 'grush-req-in'; nameIn.type = 'text'; nameIn.placeholder = 'Your name';
+    var emailIn = document.createElement('input');
+    emailIn.className = 'grush-req-in'; emailIn.type = 'email'; emailIn.placeholder = 'you@calbaptist.edu';
+    emailIn.autocapitalize = 'off'; emailIn.spellcheck = false;
+    form.appendChild(nameIn); form.appendChild(emailIn);
+
+    var msg = document.createElement('div');
+    msg.className = 'grush-request-msg';
+
+    btn.addEventListener('click', function () {
+      if (form.style.display === 'none') {
+        form.style.display = 'block';
+        btn.textContent = 'Send request';
+        nameIn.focus();
+        return;
+      }
+      var name = nameIn.value.trim();
+      var email = emailIn.value.trim();
+      if (!name) { msg.textContent = 'Please give your name.'; return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = 'That email does not look right.'; return; }
+
+      var G; try { G = LFG; } catch (e) { G = undefined; }
+      if (!G || !G.sb) { msg.textContent = 'Requests are unavailable here \u2014 try the homepage.'; return; }
+
+      btn.disabled = true; msg.textContent = 'Sending\u2026';
+      G.sb.from('lfg_access_requests').insert({
+        display_name: name, email: email, requested_role: t.id
+      }).then(function (res) {
+        if (res.error) {
+          msg.textContent = 'Could not send: ' + (res.error.message || 'please try again');
+          btn.disabled = false;
+          return;
+        }
+        msg.textContent = 'Sent \u2014 Chad will get you set up.';
+        form.style.display = 'none';
+        btn.style.display = 'none';
+      });
+    });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(form);
+    wrap.appendChild(msg);
+    return wrap;
   }
 
   function buildMenu() {

@@ -1347,23 +1347,30 @@ async function loadAccessRequests(){
   done.innerHTML = shut.length ? shut.map(handled).join('')
     : '<div class="empty-state">Nothing handled yet.</div>';
 
+  var ROLE_LABEL = { crew: 'crew', operator: 'admin access', staff: 'staff', instructor: 'instructor', faculty: 'faculty' };
+  var ROLE_RANK  = { staff: 2, instructor: 3, faculty: 4 };
+
   function card(r){
-    const isOp = r.requested_role === 'operator';
+    const role = r.requested_role;
+    const isLegacyOp = role === 'operator';
+    const opRank = ROLE_RANK[role];
+    const label = ROLE_LABEL[role] || role;
     return '<div class="data-row" style="flex-direction:column;align-items:stretch;gap:8px">'
       + '<div><strong>' + esc(r.display_name) + '</strong>'
       + '<span style="margin-left:8px;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;'
-      + 'color:' + (isOp ? 'var(--alert)' : 'var(--ink-soft)') + '">'
-      + (isOp ? 'admin access' : 'crew') + '</span></div>'
+      + 'color:' + ((isLegacyOp || role === 'faculty') ? 'var(--alert)' : 'var(--ink-soft)') + '">'
+      + esc(label) + '</span></div>'
       + '<div style="font-size:0.78rem;color:var(--ink-soft)">' + esc(r.email)
       + ' &middot; ' + new Date(r.created_at).toLocaleDateString() + '</div>'
       + (r.reason ? '<div style="font-size:0.82rem">' + esc(r.reason) + '</div>' : '')
-      + (isOp
+      + (isLegacyOp
           ? '<div style="font-size:0.75rem;color:var(--alert);line-height:1.45">'
             + 'Admin access is not granted from here. Add a row to <code>grush_operators</code> '
             + 'with their email, then mark this approved.</div>'
           : '')
       + '<div style="display:flex;gap:8px">'
-      + (isOp ? '' : '<button class="btn btn-primary btn-sm" onclick="approveRequest(\'' + r.id + '\',\'' + esc(r.display_name).replace(/'/g,"") + '\')">Add to crew</button>')
+      + (role === 'crew' ? '<button class="btn btn-primary btn-sm" onclick="approveRequest(\'' + r.id + '\',\'' + esc(r.display_name).replace(/'/g,"") + '\')">Add to crew</button>' : '')
+      + (opRank ? '<button class="btn btn-primary btn-sm" onclick="approveAsOperator(\'' + r.id + '\',\'' + esc(r.display_name).replace(/'/g,"") + '\',\'' + esc(r.email) + '\',\'' + role + '\',' + opRank + ')">Add as ' + esc(label) + '</button>' : '')
       + '<button class="btn btn-ghost btn-sm" onclick="markRequest(\'' + r.id + '\',\'approved\')">Mark approved</button>'
       + '<button class="btn btn-ghost btn-sm" onclick="markRequest(\'' + r.id + '\',\'declined\')">Decline</button>'
       + '</div></div>';
@@ -1385,6 +1392,20 @@ async function approveRequest(id, name){
   }
   await markRequest(id, 'approved', true);
   showToast(name + ' added to crew');
+}
+
+/* Staff / instructor / faculty requests grant a real login: a row in
+   grush_operators with the matching rank, scoped to this site. Faculty
+   (rank 4) is the ceiling this button can grant -- owner (rank 5) is
+   Chad alone and is never created from a request. */
+async function approveAsOperator(id, name, email, role, rank){
+  try{
+    await sbPost('grush_operators', { email: email, display_name: name, role: role, rank: rank, site: 'lfg' });
+  }catch(e){
+    showToast('Could not add as ' + role + ': ' + (e.message||'unknown')); return;
+  }
+  await markRequest(id, 'approved', true);
+  showToast(name + ' added as ' + role);
 }
 
 async function markRequest(id, status, quiet){

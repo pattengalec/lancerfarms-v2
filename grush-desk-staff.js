@@ -80,12 +80,12 @@
 
      Any tier defined in desk.html needs a rank here, or the gate denies
      it silently. */
-  var RANK = { emergency: 0, visitor: 0, tools: 0, staff: 1, instructor: 1, admin: 2, faculty: 2, owner: 2 };
+  var RANK = { emergency: 0, visitor: 0, tools: 0, student: 1, staff: 2, instructor: 3, faculty: 4, owner: 5 };
   var role = 'visitor';
 
   /* ── the tiers this overlay owns ─────────────────────────────────────
-     Retier freely. `id` must stay one of staff | admin, because RANK is
-     what decides visibility. */
+     Retier freely. `id` must stay one of student | staff | instructor |
+     faculty, because RANK is what decides visibility. */
   /* ── TOOLS ───────────────────────────────────────────────────────────
      Open to everyone, deliberately. These are the compute-and-print tools
      defined by GRUSH-TOOL-CONTRACT.md: static tables and arithmetic over
@@ -128,6 +128,19 @@
     ]
   });
 
+  /* ── CBU STUDENT ─────────────────────────────────────────────────────
+     Coming soon, pending campus approval -- see the pitch in Drive.
+     Both items are placeholders (soon:true) until the program launches;
+     the drawer shows them so people know it's coming, not so they can
+     click through to nothing. */
+  D.addTier({
+    id: 'student', label: 'CBU Student', color: 'var(--tier-staff)', locked: true,
+    items: [
+      { label: 'Adopt a growing area', icon: '\u{1F331}', soon: true },
+      { label: 'Garden use policy',    icon: '\u{1F4DC}', soon: true }
+    ]
+  });
+
   /* ── STAFF ───────────────────────────────────────────────────────────
      Recording tools. These write to lfg_* tables — app.html alone carries
      11 inserts, 15 updates and a delete. A visitor "logging activity"
@@ -155,11 +168,27 @@
     ]
   });
 
+  /* ── INSTRUCTOR ──────────────────────────────────────────────────────
+     Not built yet. Instructors will choose or design a lab, then assign
+     it directly to their own students, digital-handout style. Placeholder
+     until lfg_experiment_sections gets a scoped, self-serve front end. */
   D.addTier({
-    id: 'admin', label: 'Admin', color: 'var(--tier-admin)', locked: true,
+    id: 'instructor', label: 'Instructor', color: 'var(--tier-admin)', locked: true,
     items: [
-      { label: 'Approvals',   icon: '\u{2705}',  href: 'app.html?s=approvals' },
-      { label: 'Admin panel', icon: '\u{1F510}', href: 'admin.html' }
+      { label: 'Assign labs to students', icon: '\u{1F4CB}', soon: true }
+    ]
+  });
+
+  /* ── FACULTY ─────────────────────────────────────────────────────────
+     Was "Admin" -- renamed to match the real rank name. Same two built
+     destinations; Team management is listed as soon:true because
+     lfg_teams exists in the database but has no page yet. */
+  D.addTier({
+    id: 'faculty', label: 'Faculty', color: 'var(--tier-admin)', locked: true,
+    items: [
+      { label: 'Approvals',         icon: '\u{2705}',  href: 'app.html?s=approvals' },
+      { label: 'Admin panel',       icon: '\u{1F510}', href: 'admin.html' },
+      { label: 'Team management',   icon: '\u{1F465}', soon: true }
     ]
   });
 
@@ -223,9 +252,9 @@
   var elEmail = $('gdEmail'), elSend = $('gdSend'), elMsg = $('gdMsg'), elWhy = $('gdWhy');
 
   function openSheet(tierId) {
-    elWhy.textContent = (tierId === 'admin')
-      ? 'We\u2019ll email a sign-in link. Admin access comes from the farm\u2019s operator list \u2014 signing in does not grant it by itself.'
-      : 'We\u2019ll email a sign-in link. Your address has to be on the farm\u2019s operator list for crew tools to appear.';
+    elWhy.textContent = (tierId === 'faculty')
+      ? 'We\u2019ll email a sign-in link. Faculty access comes from the farm\u2019s operator list \u2014 signing in does not grant it by itself.'
+      : 'We\u2019ll email a sign-in link. Your address has to be on the farm\u2019s operator list for that tier to unlock.';
     elMsg.textContent = ''; elMsg.className = 'gd-msg';
     elSend.disabled = false; elSend.textContent = 'Send link';
     scrim.classList.add('on');
@@ -273,14 +302,18 @@
       ? 'Four things you reach for most. Sign in for crew tools.'
       : 'Four things you reach for most. Tap + in the menu to fill a slot.');
 
-    ['staff', 'admin'].forEach(function (id) {   /* tools is never locked */
+    var TIER_COPY = {
+      student:    { action: 'Sign in with your CBU email',        why: 'Adopt a growing area, once it launches.' },
+      staff:      { action: 'Sign in to unlock crew tools',       why: 'Field tool, manual, triage and the mix bench.' },
+      instructor: { action: 'Sign in with an instructor account', why: 'Assign labs to your class, once it launches.' },
+      faculty:    { action: 'Sign in with a faculty account',     why: 'Approvals, crew and configuration.' }
+    };
+    ['student', 'staff', 'instructor', 'faculty'].forEach(function (id) {   /* tools is never locked */
       var locked = RANK[id] > RANK[role];
       D.setLock(id, {
         locked: locked,
-        action: id === 'staff' ? 'Sign in to unlock crew tools'
-                               : 'Sign in with an admin account',
-        why:    id === 'staff' ? 'Field tool, manual, triage and the mix bench.'
-                               : 'Approvals, crew and configuration.',
+        action: TIER_COPY[id].action,
+        why:    TIER_COPY[id].why,
         onClick: openSheet
       });
     });
