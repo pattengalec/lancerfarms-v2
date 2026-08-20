@@ -111,7 +111,20 @@
          bed — which is what this tier is for. Open to everyone, like the
          rest of Tools. */
       { label: 'Almanac',      icon: '\u{1F326}', href: 'almanac.html' },
-      { label: 'Bed lookup',   icon: '\u{1F4CD}', href: 'bed.html' }
+      { label: 'Bed lookup',   icon: '\u{1F4CD}', href: 'bed.html' },
+      /* Added Aug 2026. Public, unlocked, no operator login on the page
+         itself — students and any faculty member need to reach these
+         without being on the grush_operators allowlist. */
+      { label: 'Propose a lab',  icon: '\u{1F9EA}', href: 'propose.html' },
+      { label: 'Order a test',   icon: '\u{1F4CB}', href: 'order.html' },
+      { label: 'Assessments',    icon: '\u{1F9EA}', href: 'assess.html' },
+      /* Moved here from the locked Staff tier Aug 2026. That placement
+         only worked because Chad, Lanphere, and Koo happen to already be
+         grush_operators — any other faculty member added later (via
+         lfg_faculty, used by propose.html's sponsor list) would not be,
+         and would never see this link. The page itself has no auth wall,
+         so it belongs in the tier that matches that. */
+      { label: 'Faculty & Research', icon: '\u{1F393}', href: 'faculty.html' }
     ]
   });
 
@@ -136,11 +149,9 @@
       { label: 'How-to cards', icon: '\u{1F5C2}', href: 'howto.html' },
       /* Added for real per-bed GPS collection — tap-to-place pins on a
          live satellite map, writing directly to lfg_growing_areas.lat/lng. */
-      { label: 'Garden Map', icon: '\u{1F5FA}', href: 'garden-map.html' },
-      /* Added Aug 2026 for the Koo mycoremediation meeting. Locked with
-         the rest of Staff — Chad, Lanphere, and Koo are all admins in
-         grush_operators, so all three see it once signed in. */
-      { label: 'Faculty & Research', icon: '\u{1F393}', href: 'faculty.html' }
+      { label: 'Garden Map', icon: '\u{1F5FA}', href: 'garden-map.html' }
+      /* Faculty & Research moved to the Tools tier Aug 2026 — see the
+         comment there. It no longer lives in this list. */
     ]
   });
 
