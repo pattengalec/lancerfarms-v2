@@ -61,6 +61,18 @@ select.text-in{-webkit-appearance:none; appearance:none; padding-right:38px;
   border-radius:12px; font-size:16px; font-weight:600; z-index:200; box-shadow:0 6px 20px rgba(0,0,0,.45);
   transition:all .3s; pointer-events:none; max-width:88%; text-align:center;}
 #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.team-card{background:var(--card); border:1.5px solid var(--line-strong); border-radius:16px;
+  padding:16px; margin-bottom:12px;}
+.team-card h3{font-family:'Fraunces',Georgia,serif; font-size:17px; font-weight:600; margin:0 0 4px;}
+.team-card .research{font-size:13.5px; color:var(--ink-soft); line-height:1.5; margin:0 0 8px;}
+.team-card .sponsor{font-size:12px; color:var(--ink-soft); margin:0 0 10px;}
+.team-card .leader{font-size:14px; font-weight:600;}
+.team-card .leader a{color:var(--green); text-decoration:none;}
+.team-card .leader a:active{text-decoration:underline;}
+.gate-continue{display:block; width:100%; text-align:center; font-size:14px; color:var(--ink-soft);
+  text-decoration:underline; margin-top:20px; padding:12px; background:none; border:none;
+  cursor:pointer; font-family:inherit;}
+.gate-continue:active{color:var(--ink);}
 #success{display:none; text-align:center; padding:60px 24px;}
 #success .ic{font-size:48px; margin-bottom:12px;}
 #success h1{font-size:22px; margin-bottom:8px;}
@@ -82,8 +94,14 @@ select.text-in{-webkit-appearance:none; appearance:none; padding-right:38px;
     </div>
   </div>
 
-  <div class="pad" id="form-screen">
-    <p class="screen-h">Submitted proposals go to your faculty sponsor for approval before a location is confirmed.</p>
+  <div class="pad" id="gate-screen">
+    <p class="screen-h">Thinking about a research proposal? Check whether a CBU research team is already working on something similar first &mdash; joining one can save you the trouble, and them the redundancy.</p>
+    <div id="gate-teams"><p class="screen-h">Loading teams&hellip;</p></div>
+    <button type="button" class="gate-continue" id="gate-continue">Continue to submit my own proposal &rarr;</button>
+  </div>
+
+  <div class="pad" id="form-screen" style="display:none">
+    <p class="screen-h">Submitted proposals go to Chad for a first look before your faculty sponsor sees them.</p>
 
     <div class="field">
       <div class="field-label">Your name</div>
@@ -160,7 +178,7 @@ select.text-in{-webkit-appearance:none; appearance:none; padding-right:38px;
   <div id="success">
     <div class="ic">&#10003;</div>
     <h1>Proposal submitted</h1>
-    <p>Your sponsor will review it and you&rsquo;ll hear back once it&rsquo;s approved or if they have questions.</p>
+    <p>Chad will take a first look, then your sponsor will review it. You&rsquo;ll hear back once it&rsquo;s approved or if there are questions.</p>
 
     <div class="field" id="attach-section" style="text-align:left;margin-top:28px;display:none">
       <div class="field-label">Attach an existing document <span class="opt">(optional)</span></div>
@@ -237,6 +255,51 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function showForm(){
+  document.getElementById('gate-screen').style.display = 'none';
+  document.getElementById('form-screen').style.display = 'block';
+}
+
+/* The team-directory gate. Only teams with a CURRENT documented leader are
+   listed -- a team with nobody to contact isn't a place to route someone,
+   it's a dead end. If no team qualifies, or the query fails, the gate
+   steps out of the way rather than blocking a real submission on a
+   directory problem. */
+async function loadTeamsGate(){
+  const box = document.getElementById('gate-teams');
+  document.getElementById('gate-continue').addEventListener('click', showForm);
+
+  try{
+    const [{ data: teams, error: tErr }, { data: leaders, error: lErr }] = await Promise.all([
+      sb.from('lfg_teams').select('id,name,faculty_sponsor,current_research').eq('active', true).order('name'),
+      sb.from('lfg_team_members').select('team_id,display_name,email').eq('is_leader', true).is('left_at', null)
+    ]);
+    if(tErr) throw tErr;
+    if(lErr) throw lErr;
+
+    const leaderByTeam = {};
+    (leaders || []).forEach(function(l){ leaderByTeam[l.team_id] = l; });
+
+    const listed = (teams || []).filter(t => leaderByTeam[t.id]);
+
+    if(!listed.length){ showForm(); return; }
+
+    box.innerHTML = listed.map(function(t){
+      const lead = leaderByTeam[t.id];
+      return '<div class="team-card">'
+        + '<h3>' + escapeHtml(t.name) + '</h3>'
+        + (t.current_research ? '<p class="research">' + escapeHtml(t.current_research) + '</p>' : '')
+        + (t.faculty_sponsor ? '<p class="sponsor">Faculty sponsor: ' + escapeHtml(t.faculty_sponsor) + '</p>' : '')
+        + '<div class="leader">Team lead: <a href="mailto:' + escapeHtml(lead.email) + '">' + escapeHtml(lead.display_name) + '</a></div>'
+        + '</div>';
+    }).join('');
+  }catch(e){
+    console.error(e);
+    /* A broken directory must never block someone who actually wants to submit. */
+    showForm();
+  }
+}
+
 document.getElementById('f-location-select').addEventListener('change', function(){
   document.getElementById('f-location-freeform-wrap').style.display = this.value === 'other' ? 'block' : 'none';
 });
@@ -289,6 +352,11 @@ async function submitProposal(){
   btn.textContent = 'Submitting\u2026';
 
   try{
+    /* Lands as 'new', not 'pending'. RLS only allows a public insert at
+       'new' -- see the "public submits new proposals" policy. Chad reviews
+       it in admin.html and forwards to the sponsor himself; only THAT step
+       flips the status to 'pending', which is what triggers the sponsor's
+       emailed review link. Nothing here notifies the sponsor directly. */
     const { data: inserted, error } = await sb.from('lfg_experiments').insert({
       title,
       research_question: question || null,
@@ -303,7 +371,7 @@ async function submitProposal(){
       sponsor_name: sponsor.name,
       requested_area_id,
       requested_location_label,
-      approval_status: 'pending'
+      approval_status: 'new'
     }).select('id').single();
     if(error) throw error;
 
@@ -365,6 +433,7 @@ document.getElementById('f-attach').addEventListener('change', async function(){
 
 loadFaculty();
 loadBeds();
+loadTeamsGate();
 </script>
 </body>
 </html>
