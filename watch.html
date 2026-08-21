@@ -87,9 +87,11 @@ video{width:100%;height:auto;display:block;background:#000}
 /* ── link cards below the video (always present) ───────────────── */
 .grid{display:grid;gap:14px;margin:26px 0}
 @media(min-width:660px){.grid{grid-template-columns:1fr 1fr}}
-.lk{display:block;background:var(--card);border:1px solid var(--line);
-  border-radius:12px;padding:20px 22px;transition:border-color .18s,transform .18s}
+.lk{display:block;position:relative;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:20px 46px 20px 22px;transition:border-color .18s,transform .18s}
 .lk:hover{border-color:var(--green);transform:translateY(-2px);text-decoration:none}
+.lk::after{content:'\2192';position:absolute;top:20px;right:20px;font-size:18px;line-height:1;
+  color:var(--soft);pointer-events:none}
 .lk.g{background:#0C1424;border-color:var(--g-line)}
 .lk.g:hover{border-color:var(--g-cyan)}
 .lk b{display:block;font-family:'Fraunces',serif;font-size:20px;font-weight:600;
@@ -107,6 +109,7 @@ video{width:100%;height:auto;display:block;background:#000}
   color:var(--ink);font-size:15px;font-weight:600;cursor:pointer;
   font-family:inherit;text-align:left;width:100%}
 .sh:hover{border-color:var(--green);text-decoration:none}
+.sh::after{content:'\2192';margin-left:auto;font-size:16px;color:var(--soft);flex:0 0 auto}
 .sh .ic{width:26px;text-align:center;font-size:17px;flex:none;color:var(--leaf)}
 .sh.primary{background:var(--green);color:#12170F;border-color:var(--green)}
 .sh.primary .ic{color:#12170F}

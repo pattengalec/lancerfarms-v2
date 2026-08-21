@@ -52,9 +52,12 @@ a:hover{text-decoration:underline}
   border-radius:999px;padding:6px 14px;color:var(--leaf);margin-top:8px}
 
 /* one feature: name, what it does, where it lives */
-.f{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;
-  padding:20px 22px;margin-bottom:14px;transition:border-color .18s,transform .18s}
+.f{display:block;position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:20px 46px 20px 22px;margin-bottom:14px;transition:border-color .18s,transform .18s}
 .f:hover{border-color:var(--green);transform:translateY(-2px);text-decoration:none}
+.f::after{content:'\2192';position:absolute;top:20px;right:20px;font-size:18px;line-height:1;
+  color:var(--soft);pointer-events:none}
+.grush .f::after{color:var(--g-soft)}
 .f b{display:block;font-family:'Fraunces',serif;font-size:20px;font-weight:600;
   color:var(--ink);margin-bottom:5px}
 .f span{display:block;font-size:15.5px;color:var(--soft)}
