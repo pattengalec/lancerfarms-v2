@@ -112,10 +112,6 @@
          rest of Tools. */
       { label: 'Almanac',      icon: '\u{1F326}', href: 'almanac.html' },
       { label: 'Bed lookup',   icon: '\u{1F4CD}', href: 'bed.html' },
-      /* Added Aug 2026. Public, unlocked, no operator login on the page
-         itself — students and any faculty member need to reach these
-         without being on the grush_operators allowlist. */
-      { label: 'Propose a lab',  icon: '\u{1F9EA}', href: 'propose.html' },
       { label: 'Order a test',   icon: '\u{1F4CB}', href: 'order.html' },
       { label: 'Assessments',    icon: '\u{1F9EA}', href: 'assess.html' },
       /* Moved here from the locked Staff tier Aug 2026. That placement
@@ -129,13 +125,17 @@
   });
 
   /* ── CBU STUDENT ─────────────────────────────────────────────────────
-     Coming soon, pending campus approval -- see the pitch in Drive.
-     Both items are placeholders (soon:true) until the program launches;
-     the drawer shows them so people know it's coming, not so they can
-     click through to nothing. */
+     Adopt a growing area and Garden use policy are placeholders (soon:true)
+     pending campus approval -- see the pitch in Drive. Propose a lab is
+     real and working: moved here from Tools Aug 2026 so it reads as a
+     student privilege rather than a general-purpose calculator. The page
+     itself still has no auth wall (a signed-in-but-unranked visitor could
+     still reach it by direct link) -- this only changes who SEES the door
+     in the drawer, not who can walk through it once they find it. */
   D.addTier({
     id: 'student', label: 'CBU Student', color: 'var(--tier-staff)', locked: true,
     items: [
+      { label: 'Propose a lab',        icon: '\u{1F9EA}', href: 'propose.html' },
       { label: 'Adopt a growing area', icon: '\u{1F331}', soon: true },
       { label: 'Garden use policy',    icon: '\u{1F4DC}', soon: true }
     ]
@@ -303,7 +303,7 @@
       : 'Four things you reach for most. Tap + in the menu to fill a slot.');
 
     var TIER_COPY = {
-      student:    { action: 'Sign in with your CBU email',        why: 'Adopt a growing area, once it launches.' },
+      student:    { action: 'Sign in with your CBU email',        why: 'Propose a lab, adopt a growing area, once it launches.' },
       staff:      { action: 'Sign in to unlock crew tools',       why: 'Field tool, manual, triage and the mix bench.' },
       instructor: { action: 'Sign in with an instructor account', why: 'Assign labs to your class, once it launches.' },
       faculty:    { action: 'Sign in with a faculty account',     why: 'Approvals, crew and configuration.' }

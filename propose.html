@@ -95,13 +95,16 @@ select.text-in{-webkit-appearance:none; appearance:none; padding-right:38px;
   </div>
 
   <div class="pad" id="gate-screen">
-    <p class="screen-h">Thinking about a research proposal? Check whether a CBU research team is already working on something similar first &mdash; joining one can save you the trouble, and them the redundancy.</p>
+    <p class="screen-h">Proposals go through a research team. Pick the team that fits your idea &mdash; you'll write the proposal next, then everyone on the team gets a say before it goes to Chad.</p>
     <div id="gate-teams"><p class="screen-h">Loading teams&hellip;</p></div>
-    <button type="button" class="gate-continue" id="gate-continue">Continue to submit my own proposal &rarr;</button>
   </div>
 
   <div class="pad" id="form-screen" style="display:none">
-    <p class="screen-h">Submitted proposals go to Chad for a first look before your faculty sponsor sees them.</p>
+    <div class="team-card" id="submitting-to-card">
+      <h3 id="submitting-to-name"></h3>
+      <button type="button" class="gate-continue" id="change-team-btn" style="margin-top:0;padding:6px 0;text-align:left">&larr; Change team</button>
+    </div>
+    <p class="screen-h">Chad gets a first look only after your team lead finalizes this &mdash; nothing reaches a faculty sponsor before then.</p>
 
     <div class="field">
       <div class="field-label">Your name</div>
@@ -122,18 +125,9 @@ select.text-in{-webkit-appearance:none; appearance:none; padding-right:38px;
     </div>
 
     <div class="field">
-      <div class="field-label">Submit to a team for review first? <span class="opt">(optional)</span></div>
-      <select class="text-in" id="f-team">
-        <option value="">No &mdash; send directly to Chad</option>
-      </select>
-      <div class="note">If you pick a team, every member gets a link to respond with agreement, changes, or an alternative. Your team lead reviews everyone's input, finalizes the proposal, and sends it on to Chad &mdash; nothing reaches a faculty sponsor until then.</div>
-    </div>
-
-    <div class="field">
-      <div class="field-label">Faculty sponsor <span class="opt" id="sponsor-opt-tag" style="display:none">(optional if a team will finalize this)</span></div>
+      <div class="field-label">Faculty sponsor <span class="opt">(optional &mdash; your team lead confirms this)</span></div>
       <input class="text-in" id="f-sponsor" list="faculty-list" placeholder="Start typing a name" autocomplete="off">
       <datalist id="faculty-list"></datalist>
-      <div class="err" id="err-sponsor">Pick a sponsor from the list.</div>
     </div>
 
     <div class="field">
@@ -263,48 +257,30 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-function showForm(){
+let SELECTED_TEAM = null;   // { id, name }
+
+function showGate(){
+  document.getElementById('form-screen').style.display = 'none';
+  document.getElementById('gate-screen').style.display = 'block';
+}
+
+function selectTeam(team){
+  SELECTED_TEAM = team;
+  document.getElementById('submitting-to-name').textContent = 'Submitting to: ' + team.name;
   document.getElementById('gate-screen').style.display = 'none';
   document.getElementById('form-screen').style.display = 'block';
 }
 
-/* Only teams with a CURRENT documented leader are offered here -- the
-   whole point of routing through a team is that someone with the
-   authority to finalize is on the other end. A team with nobody to
-   finalize would just be a dead end with extra steps. */
-async function loadTeamsForSubmit(){
-  const sel = document.getElementById('f-team');
-  try{
-    const [{ data: teams, error: tErr }, { data: leaders, error: lErr }] = await Promise.all([
-      sb.from('lfg_teams').select('id,name').eq('active', true).order('name'),
-      sb.from('lfg_team_members').select('team_id').eq('is_leader', true).is('left_at', null)
-    ]);
-    if(tErr) throw tErr;
-    if(lErr) throw lErr;
-    const hasLeader = new Set((leaders || []).map(l => l.team_id));
-    const eligible = (teams || []).filter(t => hasLeader.has(t.id));
-    eligible.forEach(function(t){
-      const opt = document.createElement('option');
-      opt.value = t.id; opt.textContent = t.name;
-      sel.appendChild(opt);
-    });
-  }catch(e){ console.error(e); /* the direct-to-Chad option still works */ }
-}
+document.getElementById('change-team-btn').addEventListener('click', showGate);
 
-function syncSponsorRequirement(){
-  const teamPicked = !!document.getElementById('f-team').value;
-  document.getElementById('sponsor-opt-tag').style.display = teamPicked ? 'inline' : 'none';
-}
-document.getElementById('f-team').addEventListener('change', syncSponsorRequirement);
-
-/* The team-directory gate. Only teams with a CURRENT documented leader are
-   listed -- a team with nobody to contact isn't a place to route someone,
-   it's a dead end. If no team qualifies, or the query fails, the gate
-   steps out of the way rather than blocking a real submission on a
-   directory problem. */
+/* Every proposal goes through a team -- there is no direct-to-Chad path.
+   Only teams with a CURRENT documented leader are offered: a team with
+   nobody to finalize a proposal isn't a real option, it's a dead end with
+   extra steps. If nothing qualifies, or the query fails, the person is
+   told plainly rather than being routed into a form with nowhere for
+   their submission to go. */
 async function loadTeamsGate(){
   const box = document.getElementById('gate-teams');
-  document.getElementById('gate-continue').addEventListener('click', showForm);
 
   try{
     const [{ data: teams, error: tErr }, { data: leaders, error: lErr }] = await Promise.all([
@@ -319,21 +295,33 @@ async function loadTeamsGate(){
 
     const listed = (teams || []).filter(t => leaderByTeam[t.id]);
 
-    if(!listed.length){ showForm(); return; }
+    if(!listed.length){
+      box.innerHTML = '<p class="screen-h">No research teams are currently open for proposals. '
+        + 'Email <a href="mailto:chad@getgrush.com" style="color:var(--green)">chad@getgrush.com</a> directly to get started.</p>';
+      return;
+    }
 
     box.innerHTML = listed.map(function(t){
       const lead = leaderByTeam[t.id];
-      return '<div class="team-card">'
+      return '<button type="button" class="team-card" data-team-id="' + t.id + '" '
+        + 'data-team-name="' + escapeHtml(t.name) + '" '
+        + 'style="width:100%;text-align:left;border:1.5px solid var(--line-strong);cursor:pointer;font-family:inherit;color:var(--ink)">'
         + '<h3>' + escapeHtml(t.name) + '</h3>'
         + (t.current_research ? '<p class="research">' + escapeHtml(t.current_research) + '</p>' : '')
         + (t.faculty_sponsor ? '<p class="sponsor">Faculty sponsor: ' + escapeHtml(t.faculty_sponsor) + '</p>' : '')
-        + '<div class="leader">Team lead: <a href="mailto:' + escapeHtml(lead.email) + '">' + escapeHtml(lead.display_name) + '</a></div>'
-        + '</div>';
+        + '<div class="leader">Team lead: ' + escapeHtml(lead.display_name) + '</div>'
+        + '</button>';
     }).join('');
+
+    box.querySelectorAll('.team-card').forEach(function(card){
+      card.addEventListener('click', function(){
+        selectTeam({ id: card.dataset.teamId, name: card.dataset.teamName });
+      });
+    });
   }catch(e){
     console.error(e);
-    /* A broken directory must never block someone who actually wants to submit. */
-    showForm();
+    box.innerHTML = '<p class="screen-h">Teams could not be loaded. Email '
+      + '<a href="mailto:chad@getgrush.com" style="color:var(--green)">chad@getgrush.com</a> directly.</p>';
   }
 }
 
@@ -353,10 +341,11 @@ function showError(id){
 async function submitProposal(){
   clearErrors();
 
+  if(!SELECTED_TEAM){ showGate(); return; }
+
   const studentName = document.getElementById('f-student-name').value.trim();
   const studentEmail = document.getElementById('f-student-email').value.trim();
   const title = document.getElementById('f-title').value.trim();
-  const teamId = document.getElementById('f-team').value || null;
   const sponsorName = document.getElementById('f-sponsor').value.trim();
   const question = document.getElementById('f-question').value.trim();
   const background = document.getElementById('f-background').value.trim();
@@ -372,15 +361,11 @@ async function submitProposal(){
   if(!studentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail)){ showError('err-student-email'); hasError = true; }
   if(!title){ showError('err-title'); hasError = true; }
 
-  /* A team submission doesn't need a sponsor yet -- that's decided during
-     team review. A direct-to-Chad submission still needs one up front,
-     same as before. */
+  /* The sponsor is never required at this stage -- the team decides it
+     together during review, and the team lead confirms it when finalizing. */
   let sponsor = null;
   if(sponsorName){
     sponsor = FACULTY.find(f => f.name.toLowerCase() === sponsorName.toLowerCase());
-    if(!sponsor){ showError('err-sponsor'); hasError = true; }
-  } else if(!teamId){
-    showError('err-sponsor'); hasError = true;
   }
 
   if(hasError) return;
@@ -398,10 +383,11 @@ async function submitProposal(){
   btn.textContent = 'Submitting\u2026';
 
   try{
-    /* team_id set -> lands as 'team_review' (every team member gets a
-       response link; nothing reaches Chad until the team lead finalizes).
-       No team -> lands as 'new' exactly as before. RLS allows both values
-       on a public insert -- see "public submits new proposals". */
+    /* Every submission lands as 'team_review' -- RLS only allows a public
+       insert at that status (see "public submits new proposals"), so
+       there is no way for a client-side insert to skip straight to 'new'.
+       The only path to 'new' is finalize_team_proposal(), which requires
+       the team lead's personal token. */
     const { data: inserted, error } = await sb.from('lfg_experiments').insert({
       title,
       research_question: question || null,
@@ -416,16 +402,14 @@ async function submitProposal(){
       sponsor_name: sponsor ? sponsor.name : null,
       requested_area_id,
       requested_location_label,
-      team_id: teamId,
-      approval_status: teamId ? 'team_review' : 'new'
+      team_id: SELECTED_TEAM.id,
+      approval_status: 'team_review'
     }).select('id').single();
     if(error) throw error;
 
     newExperimentId = inserted.id;
-    if(teamId){
-      document.getElementById('success-body').textContent =
-        'Every team member will get a link to respond with agreement, changes, or an alternative. Your team lead reviews everyone\u2019s input and sends the finalized proposal on to Chad \u2014 you\u2019ll hear back once that happens.';
-    }
+    document.getElementById('success-body').textContent =
+      'Every ' + SELECTED_TEAM.name + ' member will get a link to respond with agreement, changes, or an alternative. Your team lead reviews everyone\u2019s input and sends the finalized proposal on to Chad \u2014 you\u2019ll hear back once that happens.';
     document.getElementById('form-screen').style.display = 'none';
     document.getElementById('success').style.display = 'block';
   }catch(e){
@@ -484,7 +468,6 @@ document.getElementById('f-attach').addEventListener('change', async function(){
 loadFaculty();
 loadBeds();
 loadTeamsGate();
-loadTeamsForSubmit();
 </script>
 </body>
 </html>
