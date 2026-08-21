@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex">
+<title>Team review &mdash; Lancer Farms &amp; Gardens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<!--
+  team-review.html — reached only via a personal, per-member magic link
+  emailed by notify_team_review() when a proposal lands with
+  approval_status = 'team_review'. No login, no password: the token in the
+  URL IS the credential, exactly like the sponsor's decision link on
+  review.html. Every read and write here goes through a SECURITY DEFINER
+  RPC (get_proposal_by_review_token, get_team_responses,
+  submit_team_response, finalize_team_proposal) — this page never touches
+  lfg_experiments or lfg_proposal_reviews directly, because a public page
+  has no RLS credentials to do so.
+
+  Two audiences share this file:
+    - A regular team member sees the proposal read-only, sees what
+      teammates have already said, and can leave their own agree /
+      suggest-changes / alternative response.
+    - The team LEAD (is_leader = true on their token) sees all of that
+      PLUS an editable copy of every field and a "Send to Chad" button.
+      Finalizing calls finalize_team_proposal(), which saves her edits and
+      flips approval_status to 'new' — the exact same status a direct
+      submission lands at. From that instant this proposal is
+      indistinguishable to Chad's queue from one that skipped team review
+      entirely; nothing about this page bypasses his gate.
+-->
+<style>
+:root{
+color-scheme:dark;
+--ink:#F0EDE2; --ink-soft:#B0A99C; --paper:#2A2620; --card:#34302A;
+--line:#45423A; --line-strong:#5A554A;
+--green:#7E9A6E; --green-d:#2A2620;
+--amber:#C9973F;
+--red:#D15A48;
+--bar-bg:#1F1C17; --bar-ink:#F0EDE2; --bar-accent:#D4A44E;
+--shadow:0 1px 0 rgba(32,38,28,.04), 0 2px 8px rgba(32,38,28,.06);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{font-family:'Source Sans 3',system-ui,sans-serif; color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;}
+h1,h2{font-family:'Fraunces',Georgia,serif; font-weight:600; margin:0;}
+button{font-family:inherit; cursor:pointer;}
+#app{max-width:560px; margin:0 auto; width:100%;}
+.sitebar{display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bar-bg);
+  border-bottom:1px solid var(--line); box-shadow:inset 0 -4px 0 -3px var(--bar-accent);}
+.sitebar img{width:34px; height:34px; border-radius:50%; border:1px solid var(--line); padding:2px;}
+.sitebar .eb{font-family:ui-monospace,monospace; font-size:.58rem; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--bar-accent); margin-bottom:2px;}
+.sitebar .wm{font-family:'Fraunces',Georgia,serif; font-weight:700; font-size:1.1rem; color:var(--bar-ink);}
+.pad{padding:16px 16px 60px;}
+.state-msg{font-size:15px; color:var(--ink-soft); line-height:1.5; padding:40px 6px; text-align:center;}
+
+.hero{margin-bottom:22px;}
+.hero .eb{display:block; font-family:ui-monospace,monospace; font-size:.62rem; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--bar-accent); margin-bottom:6px;}
+.hero h1{font-size:22px; line-height:1.25;}
+.hero .who{font-size:13px; color:var(--ink-soft); margin-top:6px;}
+
+.section{background:var(--card); border:1.5px solid var(--line); border-radius:16px;
+  padding:16px; margin-bottom:16px;}
+.section h2{font-size:15px; margin-bottom:10px;}
+.ro-field{margin-bottom:14px;}
+.ro-field:last-child{margin-bottom:0;}
+.ro-label{font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.7px;
+  color:var(--ink-soft); margin-bottom:4px;}
+.ro-val{font-size:14.5px; line-height:1.55; white-space:pre-wrap;}
+.ro-val.empty{color:var(--ink-soft); font-style:italic;}
+
+.resp-row{border-top:1px solid var(--line); padding:12px 0; font-size:14px;}
+.resp-row:first-child{border-top:none; padding-top:0;}
+.resp-who{font-weight:700;}
+.resp-tag{display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.6px; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle;}
+.resp-tag.agree{background:rgba(126,154,110,.22); color:var(--green);}
+.resp-tag.suggest_changes{background:rgba(201,151,63,.22); color:var(--amber);}
+.resp-tag.alternative{background:rgba(209,90,72,.2); color:var(--red);}
+.resp-note{color:var(--ink-soft); margin-top:4px; line-height:1.5;}
+
+.field-label{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+  color:var(--ink-soft); margin-bottom:8px;}
+select.text-in, .text-in{width:100%; min-height:52px; border:1.5px solid var(--line-strong); border-radius:14px;
+  padding:0 15px; font-size:16px; font-family:inherit; background:var(--paper); color:var(--ink);}
+.text-in:focus{outline:none; border-color:var(--green);}
+.notebox{width:100%; min-height:80px; border:1.5px solid var(--line-strong); border-radius:14px;
+  padding:13px 14px; font-size:15px; font-family:inherit; background:var(--paper); color:var(--ink); resize:vertical;}
+.notebox:focus{outline:none; border-color:var(--green);}
+.field{margin-bottom:14px;}
+
+.resp-choice{display:flex; flex-direction:column; gap:8px; margin-bottom:14px;}
+.resp-opt{display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border:1.5px solid var(--line-strong);
+  border-radius:12px; cursor:pointer;}
+.resp-opt input{margin-top:3px;}
+.resp-opt .t{font-weight:700; font-size:14.5px;}
+.resp-opt .d{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+.resp-opt.checked{border-color:var(--green); background:rgba(126,154,110,.08);}
+
+.btn-primary{width:100%; min-height:56px; border-radius:16px; border:none; background:var(--green);
+  color:#fff; font-size:16px; font-weight:700; box-shadow:var(--shadow);}
+.btn-primary:active{transform:scale(.99); background:var(--green-d);}
+.btn-primary:disabled{background:var(--line-strong);}
+.btn-lead{background:var(--amber); color:#241C0E;}
+.msg{font-size:13px; margin-top:10px; min-height:1.2em; color:var(--ink-soft);}
+.msg.good{color:var(--green);}
+.msg.bad{color:var(--red);}
+
+.lead-panel{border:1.5px solid var(--amber); background:rgba(201,151,63,.06);}
+.lead-panel h2{color:var(--amber);}
+.lead-tag{display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.6px; padding:2px 8px; border-radius:999px; background:var(--amber); color:#241C0E; margin-left:8px;}
+
+.done-ic{font-size:44px; text-align:center; margin-bottom:8px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sitebar">
+    <img src="lfg-logo-192.webp" alt="">
+    <div>
+      <div class="eb">Team review</div>
+      <div class="wm">Lancer Farms &amp; Gardens</div>
+    </div>
+  </div>
+
+  <div class="pad">
+    <div id="state-loading" class="state-msg">Loading&hellip;</div>
+    <div id="state-invalid" class="state-msg" style="display:none">This link isn&rsquo;t valid. Ask whoever submitted the proposal for a fresh one.</div>
+    <div id="state-finalized" class="state-msg" style="display:none">This proposal has already been finalized and sent to Chad. No further responses are needed.</div>
+    <div id="state-done" class="state-msg" style="display:none">
+      <div class="done-ic">&#10003;</div>
+      <div id="done-text"></div>
+    </div>
+
+    <div id="content" style="display:none">
+      <div class="hero">
+        <span class="eb" id="team-name"></span>
+        <h1 id="p-title"></h1>
+        <div class="who" id="p-who"></div>
+      </div>
+
+      <div class="section">
+        <h2>The proposal</h2>
+        <div class="ro-field"><div class="ro-label">Research question</div><div class="ro-val" id="ro-question"></div></div>
+        <div class="ro-field"><div class="ro-label">Background</div><div class="ro-val" id="ro-background"></div></div>
+        <div class="ro-field"><div class="ro-label">Hypothesis</div><div class="ro-val" id="ro-hypothesis"></div></div>
+        <div class="ro-field"><div class="ro-label">Design</div><div class="ro-val" id="ro-design"></div></div>
+        <div class="ro-field"><div class="ro-label">Procedure</div><div class="ro-val" id="ro-procedure"></div></div>
+        <div class="ro-field"><div class="ro-label">Materials</div><div class="ro-val" id="ro-materials"></div></div>
+        <div class="ro-field"><div class="ro-label">Requested location</div><div class="ro-val" id="ro-location"></div></div>
+      </div>
+
+      <div class="section" id="responses-section" style="display:none">
+        <h2>What the team has said so far</h2>
+        <div id="responses-list"></div>
+      </div>
+
+      <div class="section">
+        <h2>Your response</h2>
+        <div class="resp-choice" id="resp-choice">
+          <label class="resp-opt" data-val="agree">
+            <input type="radio" name="resp" value="agree">
+            <div><div class="t">Agree</div><div class="d">This proposal is ready as-is.</div></div>
+          </label>
+          <label class="resp-opt" data-val="suggest_changes">
+            <input type="radio" name="resp" value="suggest_changes">
+            <div><div class="t">Suggest changes</div><div class="d">Good direction, but something should be adjusted.</div></div>
+          </label>
+          <label class="resp-opt" data-val="alternative">
+            <input type="radio" name="resp" value="alternative">
+            <div><div class="t">Propose an alternative</div><div class="d">A different idea entirely.</div></div>
+          </label>
+        </div>
+        <div class="field">
+          <div class="field-label">Note <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">(optional for Agree)</span></div>
+          <textarea class="notebox" id="resp-note" placeholder="What would you change, or what's your alternative?"></textarea>
+        </div>
+        <button class="btn-primary" id="resp-submit">Submit response</button>
+        <div class="msg" id="resp-msg"></div>
+      </div>
+
+      <div class="section lead-panel" id="lead-panel" style="display:none">
+        <h2>Finalize and send to Chad <span class="lead-tag">Team lead</span></h2>
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.5;margin:0 0 14px">
+          Edit anything below based on the team's input, confirm a faculty sponsor, then send it on.
+          This is the only step that reaches Chad's queue &mdash; nothing else on this page does.
+        </p>
+        <div class="field"><div class="field-label">Title</div><input class="text-in" id="lf-title"></div>
+        <div class="field"><div class="field-label">Research question</div><textarea class="notebox" id="lf-question"></textarea></div>
+        <div class="field"><div class="field-label">Background</div><textarea class="notebox" id="lf-background"></textarea></div>
+        <div class="field"><div class="field-label">Hypothesis</div><textarea class="notebox" id="lf-hypothesis"></textarea></div>
+        <div class="field"><div class="field-label">Design</div><textarea class="notebox" id="lf-design"></textarea></div>
+        <div class="field"><div class="field-label">Procedure</div><textarea class="notebox" id="lf-procedure"></textarea></div>
+        <div class="field"><div class="field-label">Materials</div><textarea class="notebox" id="lf-materials"></textarea></div>
+        <div class="field">
+          <div class="field-label">Faculty sponsor</div>
+          <input class="text-in" id="lf-sponsor" list="lf-faculty-list" placeholder="Start typing a name" autocomplete="off">
+          <datalist id="lf-faculty-list"></datalist>
+        </div>
+        <button class="btn-primary btn-lead" id="lf-submit">Send to Chad</button>
+        <div class="msg" id="lf-msg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script>
+const SUPABASE_URL = window.LFG_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON = window.LFG_CONFIG.SUPABASE_ANON_KEY;
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const RESPONSE_LABEL = { agree:'Agree', suggest_changes:'Suggested changes', alternative:'Proposed an alternative' };
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showState(id){
+  ['state-loading','state-invalid','state-finalized','state-done','content'].forEach(function(s){
+    document.getElementById(s).style.display = (s === id) ? (id === 'content' ? 'block' : 'block') : 'none';
+  });
+}
+
+const params = new URLSearchParams(location.search);
+const TOKEN = params.get('token');
+let PROPOSAL = null;
+let FACULTY = [];
+
+async function init(){
+  if(!TOKEN){ showState('state-invalid'); return; }
+
+  const { data, error } = await sb.rpc('get_proposal_by_review_token', { p_token: TOKEN });
+  if(error || !data || !data.length){ showState('state-invalid'); return; }
+
+  PROPOSAL = data[0];
+
+  if(PROPOSAL.approval_status !== 'team_review'){ showState('state-finalized'); return; }
+
+  render();
+  showState('content');
+  loadResponses();
+  if(PROPOSAL.is_leader) setupLeaderPanel();
+}
+
+function fill(id, val){
+  const el = document.getElementById(id);
+  if(val && String(val).trim()){ el.textContent = val; el.classList.remove('empty'); }
+  else { el.textContent = 'Not specified'; el.classList.add('empty'); }
+}
+
+function render(){
+  document.getElementById('team-name').textContent = PROPOSAL.team_name + ' \u00b7 team review';
+  document.getElementById('p-title').textContent = PROPOSAL.title || 'Untitled proposal';
+  document.getElementById('p-who').textContent = 'Reviewing as ' + PROPOSAL.reviewer_name + (PROPOSAL.is_leader ? ' (team lead)' : '');
+
+  fill('ro-question', PROPOSAL.research_question);
+  fill('ro-background', PROPOSAL.background);
+  fill('ro-hypothesis', PROPOSAL.hypothesis);
+  fill('ro-design', PROPOSAL.design);
+  fill('ro-procedure', PROPOSAL.procedure);
+  fill('ro-materials', PROPOSAL.materials);
+  fill('ro-location', PROPOSAL.requested_location_label || (PROPOSAL.requested_area_id ? 'A specific bed (see with Chad)' : 'No preference'));
+
+  if(PROPOSAL.my_response_type){
+    const radio = document.querySelector('input[name="resp"][value="'+PROPOSAL.my_response_type+'"]');
+    if(radio){ radio.checked = true; radio.closest('.resp-opt').classList.add('checked'); }
+    document.getElementById('resp-note').value = PROPOSAL.my_note || '';
+    document.getElementById('resp-submit').textContent = 'Update response';
+  }
+
+  document.querySelectorAll('.resp-opt').forEach(function(opt){
+    opt.addEventListener('click', function(){
+      document.querySelectorAll('.resp-opt').forEach(o => o.classList.remove('checked'));
+      opt.classList.add('checked');
+    });
+  });
+}
+
+async function loadResponses(){
+  const { data, error } = await sb.rpc('get_team_responses', { p_token: TOKEN });
+  if(error || !data || !data.length) return;
+  document.getElementById('responses-section').style.display = 'block';
+  document.getElementById('responses-list').innerHTML = data.map(function(r){
+    return '<div class="resp-row"><span class="resp-who">'+esc(r.member_name)+'</span>'
+      + '<span class="resp-tag '+esc(r.response_type)+'">'+esc(RESPONSE_LABEL[r.response_type] || r.response_type)+'</span>'
+      + (r.note ? '<div class="resp-note">'+esc(r.note)+'</div>' : '')
+      + '</div>';
+  }).join('');
+}
+
+document.getElementById('resp-submit').addEventListener('click', async function(){
+  const checked = document.querySelector('input[name="resp"]:checked');
+  const msg = document.getElementById('resp-msg');
+  if(!checked){ msg.className = 'msg bad'; msg.textContent = 'Pick one of the three options above.'; return; }
+  const note = document.getElementById('resp-note').value.trim();
+  if(checked.value !== 'agree' && !note){
+    msg.className = 'msg bad';
+    msg.textContent = 'Add a note explaining the change or alternative.';
+    return;
+  }
+
+  const btn = this;
+  btn.disabled = true;
+  msg.className = 'msg'; msg.textContent = 'Sending\u2026';
+
+  const { error } = await sb.rpc('submit_team_response', {
+    p_token: TOKEN, p_response_type: checked.value, p_note: note || null
+  });
+  btn.disabled = false;
+
+  if(error){
+    msg.className = 'msg bad';
+    msg.textContent = error.message && error.message.includes('no longer open')
+      ? 'This proposal was just finalized \u2014 your response can\u2019t be recorded, but the team lead may have already seen your earlier input.'
+      : 'Could not send \u2014 try again.';
+    return;
+  }
+  msg.className = 'msg good';
+  msg.textContent = 'Response recorded.';
+  btn.textContent = 'Update response';
+  loadResponses();
+});
+
+/* ── team lead only ──────────────────────────────────────────────────── */
+function setupLeaderPanel(){
+  document.getElementById('lead-panel').style.display = 'block';
+  document.getElementById('lf-title').value = PROPOSAL.title || '';
+  document.getElementById('lf-question').value = PROPOSAL.research_question || '';
+  document.getElementById('lf-background').value = PROPOSAL.background || '';
+  document.getElementById('lf-hypothesis').value = PROPOSAL.hypothesis || '';
+  document.getElementById('lf-design').value = PROPOSAL.design || '';
+  document.getElementById('lf-procedure').value = PROPOSAL.procedure || '';
+  document.getElementById('lf-materials').value = PROPOSAL.materials || '';
+  document.getElementById('lf-sponsor').value = PROPOSAL.sponsor_name || '';
+  loadFaculty();
+}
+
+async function loadFaculty(){
+  try{
+    const { data, error } = await sb.from('lfg_faculty').select('id,name').eq('active', true).order('name');
+    if(error) throw error;
+    FACULTY = data || [];
+    document.getElementById('lf-faculty-list').innerHTML =
+      FACULTY.map(f => '<option value="'+esc(f.name)+'">').join('');
+  }catch(e){ console.error(e); }
+}
+
+document.getElementById('lf-submit').addEventListener('click', async function(){
+  const msg = document.getElementById('lf-msg');
+  const title = document.getElementById('lf-title').value.trim();
+  const sponsorName = document.getElementById('lf-sponsor').value.trim();
+  const sponsor = FACULTY.find(f => f.name.toLowerCase() === sponsorName.toLowerCase());
+
+  if(!title){ msg.className = 'msg bad'; msg.textContent = 'The proposal needs a title.'; return; }
+  if(!sponsor){ msg.className = 'msg bad'; msg.textContent = 'Pick a faculty sponsor from the list before sending.'; return; }
+
+  const btn = this;
+  btn.disabled = true;
+  msg.className = 'msg'; msg.textContent = 'Sending to Chad\u2026';
+
+  const { error } = await sb.rpc('finalize_team_proposal', {
+    p_token: TOKEN,
+    p_title: title,
+    p_research_question: document.getElementById('lf-question').value.trim() || null,
+    p_background: document.getElementById('lf-background').value.trim() || null,
+    p_hypothesis: document.getElementById('lf-hypothesis').value.trim() || null,
+    p_design: document.getElementById('lf-design').value.trim() || null,
+    p_procedure: document.getElementById('lf-procedure').value.trim() || null,
+    p_materials: document.getElementById('lf-materials').value.trim() || null,
+    p_requested_area_id: PROPOSAL.requested_area_id || null,
+    p_requested_location_label: PROPOSAL.requested_location_label || null,
+    p_sponsor_id: sponsor.id,
+    p_sponsor_name: sponsor.name
+  });
+
+  if(error){
+    btn.disabled = false;
+    msg.className = 'msg bad';
+    msg.textContent = 'Could not finalize: ' + (error.message || 'try again');
+    return;
+  }
+
+  document.getElementById('done-text').innerHTML =
+    '<h1 style="font-size:20px">Sent to Chad</h1>'
+    + '<p style="color:var(--ink-soft);margin-top:8px">He\u2019ll take a first look, then forward it to '
+    + esc(sponsor.name) + ' for the real decision.</p>';
+  showState('state-done');
+});
+
+init();
+</script>
+</body>
+</html>

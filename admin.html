@@ -2156,32 +2156,80 @@ function reviewPhotoCard(p){
 function reviewSimpleCard(kind,id,title,body){
   return '<div class="rv-card"><div class="rv-main"><b>'+esc(title)+'</b><div>'+esc(body)+'</div></div><div class="rv-actions"><button class="btn btn-primary btn-sm" data-kind="'+kind+'" data-act="approve" data-id="'+escAttr(id)+'">Approve</button><button class="btn btn-ghost btn-sm" data-kind="'+kind+'" data-act="delete" data-id="'+escAttr(id)+'">Delete</button></div></div>';
 }
+/* Proposals get their own card. "Approve" here does not finalize a
+   proposal -- it forwards it to the sponsor, who makes the real call via
+   their emailed link. Chad's decision at this stage is only "is this
+   worth Koo's time," so the buttons say that plainly rather than reusing
+   Approve/Delete language that would read as a final decision. */
+function reviewProposalCard(p){
+  const bits=[p.submitted_by||'?','sponsor '+(p.sponsor_name||'unassigned')];
+  if(p.research_question) bits.push(p.research_question.slice(0,120)+(p.research_question.length>120?'\u2026':''));
+  return '<div class="rv-card"><div class="rv-main"><b>'+esc(p.title||'Untitled')+'</b><div>'+esc(bits.join(' \u00b7 '))+'</div></div>'
+    + '<div class="rv-actions">'
+    + '<button class="btn btn-primary btn-sm" data-kind="proposal" data-act="approve" data-id="'+escAttr(p.id)+'">Forward to sponsor</button>'
+    + '<button class="btn btn-ghost btn-sm" data-kind="proposal" data-act="delete" data-id="'+escAttr(p.id)+'">Reject</button>'
+    + '</div></div>';
+}
 async function loadReview(){
   const el=document.getElementById('review-list'); if(!el) return;
   if(!el._wired){ el._wired=1; el.addEventListener('click', reviewClick); }
-  let photos=[], notes=[], logs=[], areas=[], proposals=[];
+  let photos=[], notes=[], logs=[], areas=[], proposals=[], teamReview=[];
   try{
     const r=await Promise.all([
       sbGet('lfg_photos','approval_status=eq.pending&order=uploaded_at.desc'),
       sbGet('lfg_comments','status=eq.new&order=submitted_at.desc'),
       sbGet('lfg_log','approval_status=eq.pending&order=logged_at.desc'),
       sbGet('lfg_growing_areas','select=id,name,zone&archived_at=is.null&order=zone.asc,sort_order.asc.nullslast,name.asc'),
-      sbGet('lfg_experiments','approval_status=eq.pending&kind=eq.proposal&order=created_at.desc')
+      sbGet('lfg_experiments','approval_status=eq.new&kind=eq.proposal&order=created_at.desc'),
+      sbGet('lfg_experiments','select=id,title,submitted_by,team_id,created_at&approval_status=eq.team_review&kind=eq.proposal&order=created_at.desc')
     ]);
-    photos=r[0]||[]; notes=r[1]||[]; logs=r[2]||[]; areas=r[3]||[]; proposals=r[4]||[];
+    photos=r[0]||[]; notes=r[1]||[]; logs=r[2]||[]; areas=r[3]||[]; proposals=r[4]||[]; teamReview=r[5]||[];
   }catch(e){ el.innerHTML='<div class="empty-state">Could not load review queue</div>'; return; }
   reviewAreas=areas;
   const total=photos.length+notes.length+logs.length+proposals.length;
   const badge=document.getElementById('review-count'); if(badge){ badge.textContent=total||''; badge.style.display=total?'inline-flex':'none'; }
-  if(!total){ el.innerHTML='<div class="empty-state">✅ Nothing waiting — all caught up.</div>'; return; }
+
+  /* Team names and response counts for the read-only strip below.
+     Best-effort: a lookup failure here shouldn't block the queue itself. */
+  let teamNames={}, responseCounts={};
+  if(teamReview.length){
+    try{
+      const teamIds=[...new Set(teamReview.map(t=>t.team_id).filter(Boolean))];
+      if(teamIds.length){
+        const teams = await sbGet('lfg_teams','select=id,name&id=in.(' + teamIds.join(',') + ')');
+        teams.forEach(t => { teamNames[t.id] = t.name; });
+      }
+      const expIds = teamReview.map(t=>t.id);
+      if(expIds.length){
+        const reviews = await sbGet('lfg_proposal_reviews','select=experiment_id,responded_at&experiment_id=in.(' + expIds.join(',') + ')');
+        reviews.forEach(function(r){
+          if(!responseCounts[r.experiment_id]) responseCounts[r.experiment_id] = {done:0,total:0};
+          responseCounts[r.experiment_id].total++;
+          if(r.responded_at) responseCounts[r.experiment_id].done++;
+        });
+      }
+    }catch(e){ /* strip just shows without counts */ }
+  }
+
+  if(!total && !teamReview.length){ el.innerHTML='<div class="empty-state">✅ Nothing waiting — all caught up.</div>'; return; }
   let html='';
   if(photos.length){ html+='<div class="section-label">Photos ('+photos.length+')</div>'+photos.map(reviewPhotoCard).join(''); }
   if(notes.length){ html+='<div class="section-label">Visitor notes ('+notes.length+')</div>'+notes.map(function(c){ return reviewSimpleCard('comment',c.id,c.commenter_name||'Visitor',c.message||''); }).join(''); }
   if(logs.length){ html+='<div class="section-label">Field logs ('+logs.length+')</div>'+logs.map(function(x){ return reviewSimpleCard('log',x.id,x.location_label||'—',(x.note||'')+' · '+(x.submitted_by||'?')); }).join(''); }
   if(proposals.length){
-    html+='<div class="section-label">Lab proposals ('+proposals.length+')</div>'+proposals.map(function(p){
-      return reviewSimpleCard('proposal',p.id,p.title||'Untitled',(p.submitted_by||'?')+' · sponsor '+(p.sponsor_name||'unassigned')+' · backup approval — normally handled by the sponsor\u2019s emailed link');
-    }).join('');
+    html+='<div class="section-label">Lab proposals \u2014 your first look ('+proposals.length+')</div>'+proposals.map(reviewProposalCard).join('');
+  }
+  if(teamReview.length){
+    /* Read-only on purpose: Chad isn't the one acting at this stage --
+       the team is. This is visibility, not a queue. */
+    html+='<div class="section-label">In team review \u2014 not yet yours to act on ('+teamReview.length+')</div>'
+      + teamReview.map(function(t){
+          const c = responseCounts[t.id];
+          const progress = c ? (c.done+' of '+c.total+' responded') : '';
+          const team = teamNames[t.team_id] || 'team';
+          return '<div class="rv-card"><div class="rv-main"><b>'+esc(t.title||'Untitled')+'</b>'
+            + '<div>'+esc(t.submitted_by||'?')+' \u00b7 '+esc(team)+(progress?' \u00b7 '+esc(progress):'')+'</div></div></div>';
+        }).join('');
   }
   el.innerHTML=html;
 }
@@ -2204,8 +2252,20 @@ async function reviewClick(e){
       if(act==='approve'){ await sbPatch('lfg_log',{id},{approval_status:'approved'}); showToast('Approved'); }
       if(act==='delete'){ if(!confirm('Remove this log?')) return; await sbPatch('lfg_log',{id},{approval_status:'rejected'}); showToast('Removed'); }
     } else if(kind==='proposal'){
-      if(act==='approve'){ await sbPatch('lfg_experiments',{id},{approval_status:'approved'}); showToast('Approved'); }
-      if(act==='delete'){ if(!confirm('Reject this proposal?')) return; await sbPatch('lfg_experiments',{id},{approval_status:'rejected'}); showToast('Rejected'); }
+      /* 'approve' forwards to the sponsor (status -> pending), which is what
+         fires the sponsor's emailed review link. It does NOT finalize the
+         proposal -- only the sponsor's own decision, or a direct reject
+         here, does that. */
+      if(act==='approve'){
+        if(!confirm('Forward this proposal to its sponsor for review?')) return;
+        await sbPatch('lfg_experiments',{id},{approval_status:'pending'});
+        showToast('Forwarded to sponsor');
+      }
+      if(act==='delete'){
+        if(!confirm('Reject this proposal? The sponsor will never see it, and the student will be notified.')) return;
+        await sbPatch('lfg_experiments',{id},{approval_status:'rejected'});
+        showToast('Rejected');
+      }
     }
     loadReview();
   }catch(x){ showToast('Action failed'); }
@@ -2506,9 +2566,5 @@ document.addEventListener('grush:auth', (e) => {
 <script src="grush-menu.js?v=1"></script>
 <script src="grush-desk-staff.js?v=10"></script>
 <script src="grush-nav.js?v=5"></script>
-
-<!-- Spanish chrome + the language switch. Every other language is
-     the browser's job; see i18n.js. -->
-<script src="i18n.js?v=2"></script>
 </body>
 </html>
