@@ -66,10 +66,6 @@
   .role-btn .ic{font-size:34px; flex:0 0 auto;}
   .role-btn small{display:block; font-weight:400; font-size:13px; opacity:.8; margin-top:3px;}
   .role-staff{background:var(--green); color:#fff;}
-  .langrow{margin-top:24px; display:flex; gap:8px;}
-  .lang-pill{border:1.5px solid var(--line-strong); background:var(--card); color:var(--ink-soft);
-    border-radius:999px; padding:9px 18px; font-size:14px; font-weight:600;}
-  .lang-pill.on{background:var(--green); color:#1B1B17; border-color:var(--green);}
   .tiny{margin-top:22px; font-size:12px; color:var(--ink-soft); opacity:.7;}
   .mbg{display:block; font-family:Georgia,serif; font-style:italic; font-size:12px;
     letter-spacing:0; text-transform:none; opacity:.85; margin-top:10px;}
@@ -108,7 +104,6 @@
     color:var(--ink-soft);font-size:15px;font-family:inherit;margin-top:4px;}
 </style>
 <link rel="stylesheet" href="grush-tokens.css?v=1">
-<script src="i18n.js?v=2"></script>
 <link rel="icon" type="image/webp" href="lfg-logo-192.webp">
 <link rel="apple-touch-icon" href="lfg-logo-180.png">
 <script src="grush-settings.js?v=11"></script>
@@ -126,10 +121,9 @@
   <div class="sub"><span class="mbg" style="margin-top:2px">managed by <a href="about-grush.html" class="grush-sig" translate="no">grush</a></span></div>
   <a class="role-btn role-staff" href="desk.html">
     <span class="ic">&#127793;</span>
-    <span><span data-i18n="role.enter">Enter the farm</span><small data-i18n="role.enter_sub">Tools, records and what grows here</small></span>
+    <span><span>Enter the farm</span><small>Tools, records and what grows here</small></span>
   </a>
-  <div class="langrow"><span data-lang-switch></span></div>
-  <button class="req-link" onclick="openRequest()" data-i18n="req.link">Work here? Request access</button>
+  <button class="req-link" onclick="openRequest()">Work here? Request access</button>
 </div>
 
 <!-- ── ACCESS REQUEST ──
@@ -168,7 +162,7 @@
 <script src="lfg-config.js"></script>
 <script src="lfg-db.js?v=1"></script>
 <script>
-/* Splash → role chooser (always). Language pref remembered. */
+/* Splash → role chooser (always). */
 window.addEventListener('load', function(){
   setTimeout(function(){
     document.getElementById('splash').classList.add('gone');
@@ -254,9 +248,5 @@ async function sendRequest(){
 <script src="grush-menu.js?v=1"></script>
 <script src="grush-desk-staff.js?v=10"></script>
 <script src="grush-nav.js?v=5"></script>
-
-<!-- Spanish chrome + the language switch. Every other language is
-     the browser's job; see i18n.js. -->
-<script src="i18n.js?v=2"></script>
 </body>
 </html>

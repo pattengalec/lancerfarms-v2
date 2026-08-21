@@ -66,7 +66,7 @@
 <body>
 
 <div class="wrap">
-  <a class="back" href="visitor.html" data-i18n="back">&larr; Back</a>
+  <a class="back" href="visitor.html">&larr; Back</a>
   <div class="head">
     <h1>Do</h1>
     <p class="lede">Two numbers worth working out before you start: how much soil a bed
@@ -75,22 +75,22 @@
 
   <!-- ── soil ─────────────────────────────────────────────────────────── -->
   <section class="tool">
-    <h2 data-i18n="do.soil_h">How much soil does a bed take?</h2>
+    <h2>How much soil does a bed take?</h2>
     <p class="why">Bed sizes come from the farm's own records, so the answer is for the
       real bed, not a guess.</p>
 
     <div class="field">
-      <label for="bed" data-i18n="do.bed">Bed</label>
+      <label for="bed">Bed</label>
       <select id="bed"><option>Loading&hellip;</option></select>
     </div>
 
     <div class="two">
       <div class="field">
-        <label for="depth" data-i18n="do.depth">Fill depth (in)</label>
+        <label for="depth">Fill depth (in)</label>
         <input id="depth" type="number" min="1" max="48" step="1" value="12">
       </div>
       <div class="field">
-        <label for="bag" data-i18n="do.bag">Bag size</label>
+        <label for="bag">Bag size</label>
         <select id="bag">
           <option value="1.5">1.5 cu ft</option>
           <option value="2" selected>2 cu ft</option>
@@ -100,7 +100,7 @@
     </div>
 
     <div class="out">
-      <div class="big" id="soil-cf">&mdash;<small data-i18n="do.cuft">cubic feet</small></div>
+      <div class="big" id="soil-cf">&mdash;<small>cubic feet</small></div>
       <div class="rows" id="soil-rows"></div>
       <p class="caveat" id="soil-note"></p>
     </div>
@@ -108,16 +108,16 @@
 
   <!-- ── harvest ──────────────────────────────────────────────────────── -->
   <section class="tool">
-    <h2 data-i18n="do.ready_h">When will it be ready?</h2>
+    <h2>When will it be ready?</h2>
     <p class="why">Only the annuals appear here. Trees, berries and perennials are not
       measured in days to maturity, so listing them would invite a false answer.</p>
 
     <div class="field">
-      <label for="plant" data-i18n="do.plant">Plant</label>
+      <label for="plant">Plant</label>
       <select id="plant"><option>Loading&hellip;</option></select>
     </div>
     <div class="field">
-      <label for="planted" data-i18n="do.planted">Planted on</label>
+      <label for="planted">Planted on</label>
       <input id="planted" type="date">
     </div>
 
@@ -301,9 +301,5 @@ loadPlants();
 <script src="grush-menu.js?v=1"></script>
 <script src="grush-desk-staff.js?v=10"></script>
 <script src="grush-nav.js?v=5"></script>
-
-<!-- Spanish chrome + the language switch. Every other language is
-     the browser's job; see i18n.js. -->
-<script src="i18n.js?v=2"></script>
 </body>
 </html>
