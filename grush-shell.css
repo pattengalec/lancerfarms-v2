@@ -1,26 +1,7 @@
 /* ============================================================
    grush-shell.css — opt-in "app shell" layout.
-
-   Normally a page scrolls its document: the header is sticky, the rail
-   is fixed, and iOS Safari collapses its URL bar as you scroll. That is
-   the right behaviour for DOCUMENTS you read a long way down —
-   manual, almanac, data, howto.
-
-   This file is for TOOLS: short screens you operate rather than read,
-   where the header and rail should never move and only the middle
-   scrolls. Locking the body means Safari's toolbar never collapses, so
-   you permanently spend ~60px on it. Worth it on admin and app, not on
-   a page of prose.
-
-   TO OPT IN, three things:
-     1. <html class="grush-shell">      on the html tag
-     2. <link rel="stylesheet" href="grush-shell.css">
-     3. class="shell-frame" on the full-height column, and
-        class="shell-scroll" on the element that should scroll
-
-   TO OPT OUT: delete "grush-shell" from the html tag. Nothing else.
-   The page falls straight back to normal document scrolling, because
-   every rule below is scoped to that one class.
+   Light refinement for smoother mobile scroll feel.
+   Same opt-in contract. Drop-in replacement.
    ============================================================ */
 
 /* Pin the viewport. min-height:0 and max-height matter: pages commonly
@@ -61,6 +42,8 @@ html.grush-shell .shell-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding-bottom: env(safe-area-inset-bottom);
+  /* slight smoothness boost on modern iOS */
+  scroll-behavior: smooth;
 }
 
 /* Anything meant to stay put inside the frame. */
@@ -79,4 +62,11 @@ html.grush-shell .shell-frame > .shell-fixed { position: static; }
 html.grush-shell body { padding-bottom: 0 !important; }
 html.grush-shell .shell-scroll.has-rail {
   padding-bottom: calc(78px + env(safe-area-inset-bottom));
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html.grush-shell .shell-scroll {
+    scroll-behavior: auto;
+  }
 }

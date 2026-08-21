@@ -1,33 +1,8 @@
-/* LANCER FARMS & GARDENS — DESIGN TOKENS v6
+/* LANCER FARMS & GARDENS — DESIGN TOKENS v6.1
    Shared colour + type variables. Nothing else.
-
-   :root HOLDS THE DARK PALETTE. That is not a style preference — it is a
-   contract with grush-settings.js, which owns theming on every page:
-
-     it snapshots :root, and when someone picks light it either substitutes
-     from its own LIGHT map or runs lightFlip() on the raw value.
-     Dark is the INPUT. Light is DERIVED.
-
-   v4 got this backwards. It made :root light and added a
-   [data-mode="light"] block, so grush-settings snapshotted LIGHT values as
-   the base — and in DARK mode handed them straight back untransformed,
-   because no transform runs unless the person has chosen light. That is why
-   admin.html rendered pale. v5 kept the mistake while pruning dead rules.
-
-   v6 restores :root to dark and drops the [data-mode] blocks entirely.
-   They were dead anyway: grush-settings writes INLINE custom properties on
-   <html> and sets data-themeBase, never data-mode, so nothing matched them.
-
-   One deliberate change survives from v4: --on-alert is dark ink rather
-   than cream. Cream on --alert scored 2.97 — an outright WCAG AA failure on
-   .badge-urgent. Dark ink on the same orange reads 5.24.
-
-   HISTORY. v3 was renamed to ARCHIVE-lfg-theme.css on 24 July while
-   admin.html still linked it, leaving admin with every variable undefined
-   for weeks. v5 cut 44 dead class rules — 61% of the file — that styled
-   systems.html and the old index.
-
-   CONSUMERS: admin.html, data.html.                                     */
+   Light refinement for softer mobile feel. Drop-in replacement.
+   Consumers: admin.html, data.html.
+   ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
   --bg:        #2A2620;
@@ -40,9 +15,6 @@
   --accent-2:  #A8B89A;
   --on-accent: #1B1B17;
   --alert:     #C97A4A;
-  /* was #FDF1E8, which scored 2.97 on --alert -- an outright AA fail on
-     .badge-urgent. Dark ink on the orange reads at 5.24. This is the one
-     visible dark-mode change in v4. */
   --on-alert:  #1B1B17;
   --card:      #34302A;
   --card-border: #45423A;
@@ -55,14 +27,40 @@
 
   --font-head: Georgia, serif;
   --font-body: 'Source Sans 3', 'Helvetica Neue', sans-serif;
-  --radius:    10px;
+  --radius:    12px;
   --border-w:  1.5px;
-  --shadow:    0 2px 16px rgba(0,0,0,0.30);
+  --shadow:    0 2px 16px rgba(0,0,0,0.28);
+  --ease:      cubic-bezier(0.22, 0.8, 0.24, 1);
 }
 
 /* The one component rule with no inline equivalent anywhere. */
 .form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); font-family: var(--font-mono, 'Courier Prime', monospace); }
-.form-group input, .form-group select, .form-group textarea { background: var(--bg); border: var(--border-w) solid var(--card-border); border-radius: 8px; padding: 11px 14px; font-size: 0.92rem; font-family: inherit; color: var(--ink); outline: none; transition: border-color 0.15s; }
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent-2); }
-.form-group textarea { resize: vertical; min-height: 80px; }
+.form-group label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  font-family: var(--font-mono, 'Courier Prime', monospace);
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: var(--bg);
+  border: var(--border-w) solid var(--card-border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 0.92rem;
+  font-family: inherit;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 160ms var(--ease);
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--accent-2);
+}
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}

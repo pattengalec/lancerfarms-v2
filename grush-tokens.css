@@ -1,163 +1,114 @@
 /* ═══════════════════════════════════════════════════════════════════════
    grush-tokens.css — one palette family, two accents.
-
-   HOW THIS WORKS, AND WHY IT NEEDS NO PAGE REWRITTEN.
-
-   Most pages had already converged on the same variable NAMES — --paper,
-   --card, --line, --ink, --green — and drifted only on the values. This
-   file redeclares those names and loads AFTER each page's inline <style>.
-   Same specificity, later in the cascade, so it wins. No page loses its
-   component CSS, no selectors are rewritten, and removing the one <link>
-   puts a page back exactly as it was.
-
-   ── VISITOR vs STAFF, NOT LIGHT vs DARK ───────────────────────────────
-   This used to be two things: a FARM/GRUSH surface split (class="grush-
-   surface" on <body>) AND a separate, independent light/dark toggle
-   living in grush-settings.js that could recolor either surface on top.
-   Those two systems didn't know about each other, and on any page using
-   both, the surface class silently won every time — a handful of core
-   variable names (starting with --ink) were permanently stuck regardless
-   of what a visitor actually chose in settings, because a body-level
-   class always overrides an inline style set on <html>. That's a real,
-   confirmed bug this replaces, not a hypothetical one.
-
-   The fix is to stop having two systems: one ground, one dark palette,
-   no toggle. class="staff" on <html> is the ONLY variation now, and it
-   changes the ACCENT only — green becomes mustard — not a competing
-   light/dark state. Visitor is the default; nothing needs to opt in to
-   get it. It lives on <html> rather than <body> deliberately — see the
-   comment on the html.staff rule below for why.
-
-   ── WHAT IS DELIBERATELY NOT HERE ─────────────────────────────────────
-   emergency.html. It has to work when the database is down, the session
-   is gone and the network dropped after the first byte, so it carries its
-   own styles and depends on nothing. A shared stylesheet is one more
-   thing that can fail to load on the day it matters.
+   Updated for softer tactile / ASMR-friendly mobile feel.
+   All variable names preserved. Drop-in replacement.
    ═══════════════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
 :root{
-  /* ── VISITOR: the default ground — fern green ────────────────────── */
-  --paper:        #1C2117;
-  --card:         #252B1F;
-  --line:         #3A4131;
-  --line-strong:  #4C5540;
-  --ink:          #EAE6D6;
-  --ink-soft:     #A9B79C;
+  /* ── VISITOR: the default ground — soft fern ─────────────────────── */
+  --paper:        #1A1F16;
+  --card:         #232920;
+  --line:         #363E2E;
+  --line-strong:  #48533C;
+  --ink:          #EDE9DB;
+  --ink-soft:     #A7B59A;
 
   --green:        #4F9142;
   --green-d:      #3B6D31;
   --leaf:         #7FBE5E;
 
-  /* Signals. Amber warns, red stops. Neither is ever decorative — a
-     colour that appears for emphasis stops meaning anything. Kept
-     independent of the visitor/staff accent split on purpose: a warning
-     has to read as a warning on either side of the site. */
+  /* Signals */
   --amber:        #C9973F;
-  --amber-bg:     rgba(201,151,63,.12);
+  --amber-bg:     rgba(201,151,63,.14);
   --red:          #B4231F;
-  --red-bg:       rgba(180,35,31,.12);
+  --red-bg:       rgba(180,35,31,.14);
 
-  --shadow:       0 2px 10px rgba(0,0,0,.28);
-  --tap:          rgba(255,255,255,.06);
+  /* Softer, more physical depth */
+  --shadow:       0 1px 2px rgba(0,0,0,.18),
+                  0 4px 16px rgba(0,0,0,.22);
+  --shadow-soft:  0 2px 8px rgba(0,0,0,.16);
+  --shadow-lift:  0 6px 24px rgba(0,0,0,.28);
+  --tap:          rgba(255,255,255,.07);
 
-  /* ── tiers ───────────────────────────────────────────────────────────
-     Read by grush-nav.js when it renders the drawer, so each tier's
-     section carries its own family's accent — Visitor and Support in
-     green, Tools/Staff/Admin in mustard — without opening a page to
-     know which kind of destination a row leads to. */
+  /* tiers */
   --tier-visitor: var(--green);
   --tier-staff:   #C8801A;
   --tier-admin:   #C8801A;
 
-  /* ── type ────────────────────────────────────────────────────────────
-     Already near-universal before this file existed: Fraunces on fifteen
-     pages, Source Sans on seventeen. This makes it exact rather than
-     nearly. */
+  /* type */
   --font-head:    'Fraunces', Georgia, serif;
   --font-body:    'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   --font-mono:    'Courier Prime', ui-monospace, monospace;
 
-  /* ── the shell ───────────────────────────────────────────────────────
-     Read by grush-nav.js for the header, footer and drawer. Kept as their
-     own names so the shell can be tuned without touching page content —
-     the bar is allowed to be darker than the page it sits on. */
-  --nav-bar:      #171C13;
-  --nav-line:     #3A4131;
-  --nav-ink:      #EAE6D6;
-  --nav-dim:      #A9B79C;
+  /* shell */
+  --nav-bar:      #151A12;
+  --nav-line:     #363E2E;
+  --nav-ink:      #EDE9DB;
+  --nav-dim:      #A7B59A;
   --nav-accent:   #4F9142;
 
-  --bar-bg:       #171C13;
-  --bar-line:     #3A4131;
-  --bar-ink:      #EAE6D6;
-  --bar-soft:     #A9B79C;
+  --bar-bg:       #151A12;
+  --bar-line:     #363E2E;
+  --bar-ink:      #EDE9DB;
+  --bar-soft:     #A7B59A;
   --bar-accent:   #4F9142;
 
-  /* ── shape ───────────────────────────────────────────────────────────
-     14px radius and 1px hairlines apply to both accents. The ground and
-     accent change; the joinery does not. */
-  --radius:       14px;
-  --radius-sm:    10px;
+  /* shape — slightly softer corners for tactile feel */
+  --radius:       16px;
+  --radius-sm:    12px;
   --hair:         1px;
 
-  /* 68px is the glove floor — the size a row has to be to be hit reliably
-     outdoors, established when the desk was built. Nothing that can be
-     tapped in a bed goes below it. */
+  /* glove targets unchanged */
   --tap-floor:    68px;
   --tap-min:      52px;
+
+  /* motion — the ASMR timing set */
+  --ease-out:     cubic-bezier(0.22, 0.8, 0.24, 1);
+  --ease-soft:    cubic-bezier(0.33, 0.9, 0.28, 1);
+  --ease-spring:  cubic-bezier(0.34, 1.2, 0.64, 1);
+  --dur-fast:     160ms;
+  --dur-mid:      240ms;
+  --dur-slow:     340ms;
 }
 
-/* ═══ STAFF ═══════════════════════════════════════════════════════════
-   class="staff" on <html> — not <body>. Two reasons, both hard-learned
-   tonight: grush-settings.js runs in <head>, before <body> exists in the
-   DOM at all, so it cannot check a body class at the point it needs to;
-   and grush-settings.js writes its own inline overrides onto <html>, so
-   putting the surface class on a DIFFERENT element than the one JS
-   writes to is exactly the html-vs-body precedence conflict that broke
-   --ink earlier tonight, just rebuilt one level up. Same element for
-   both means there is nothing left to disagree.
-
-   Tools, records, admin — the crew's side. Same shape as visitor,
-   mustard in place of green. Deliberately just an accent swap: the
-   furniture (header, footer, drawer, spacing, type) stays identical so
-   nothing needs to be relearned crossing from one side of the site to
-   the other. */
+/* ═══ STAFF ═══════════════════════════════════════════════════════════ */
 html.staff{
-  --paper:        #221A10;
-  --card:         #2C2216;
-  --line:         #453824;
-  --line-strong:  #5A4A30;
-  --ink:          #F2E8D2;
-  --ink-soft:     #B5A184;
+  --paper:        #1F1910;
+  --card:         #2A2218;
+  --line:         #433A28;
+  --line-strong:  #584C34;
+  --ink:          #F3EAD8;
+  --ink-soft:     #B8A78A;
 
   --green:        #C8801A;
   --green-d:      #8A6620;
   --leaf:         #E3A63C;
 
   --amber:        #C8801A;
-  --amber-bg:     rgba(200,128,26,.12);
+  --amber-bg:     rgba(200,128,26,.14);
 
-  --shadow:       0 2px 12px rgba(0,0,0,.45);
+  --shadow:       0 1px 2px rgba(0,0,0,.22),
+                  0 4px 18px rgba(0,0,0,.32);
+  --shadow-soft:  0 2px 10px rgba(0,0,0,.2);
+  --shadow-lift:  0 8px 28px rgba(0,0,0,.38);
   --tap:          rgba(255,255,255,.05);
 
-  --nav-bar:      #191307;
-  --nav-line:     #453824;
-  --nav-ink:      #F2E8D2;
-  --nav-dim:      #B5A184;
+  --nav-bar:      #18120A;
+  --nav-line:     #433A28;
+  --nav-ink:      #F3EAD8;
+  --nav-dim:      #B8A78A;
   --nav-accent:   #C8801A;
 
-  --bar-bg:       #191307;
-  --bar-line:     #453824;
-  --bar-ink:      #F2E8D2;
-  --bar-soft:     #B5A184;
+  --bar-bg:       #18120A;
+  --bar-line:     #433A28;
+  --bar-ink:      #F3EAD8;
+  --bar-soft:     #B8A78A;
   --bar-accent:   #C8801A;
 }
 
-/* data.html took a different vocabulary before this file existed — --bg,
-   --surface, --forest, --lime, --mist. Aliased rather than renamed: its
-   selectors keep working and it stops being a third palette. */
+/* data.html aliases */
 :root{
   --bg:           var(--paper);
   --surface:      var(--card);
@@ -169,47 +120,34 @@ html.staff{
   --accent:       var(--green);
 }
 
-/* ═══ the pieces that are genuinely shared ════════════════════════════
-   Kept deliberately short. Cards, rows and buttons are stage 3; putting
-   them here now would fight many pages of existing component CSS and
-   break things only a phone would show. */
+/* shared base */
 body{
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── the card ───────────────────────────────────────────────────────────
-   Several pages defined .card and they already agreed on nearly
-   everything — same background, same border colour, same variables. They
-   differed on radius and border weight, which is the kind of drift
-   nobody chooses and nobody notices until two cards sit next to each
-   other.
-
-   Only those two properties are set here. Padding stays with the page:
-   24px on a marketing page and 16px on a phone card are different jobs,
-   not drift, and flattening them would be tidying at the cost of the
-   thing the page was doing.
-
-   body:not(.card-custom) outranks a page's own .card by specificity, so
-   this does not depend on load order — and a page that genuinely needs a
-   different card says so with a class instead of losing silently. */
+/* card shape — shared */
 body:not(.card-custom) .card{
   border-radius: var(--radius);
   border-width: var(--hair);
   border-style: solid;
+  box-shadow: var(--shadow-soft);
 }
 
-/* One colour on the whole site, used once per page at most. */
 ::selection{ background: var(--green); color: var(--paper); }
 
-/* Focus has to be visible everywhere. A farm is worked in gloves and
-   sometimes with a keyboard on the shed laptop. */
-:focus-visible{ outline: 2px solid var(--green); outline-offset: 2px; }
+:focus-visible{
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
 
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{
-    animation-duration:.01ms !important; animation-iteration-count:1 !important;
-    transition-duration:.01ms !important; scroll-behavior:auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
   }
 }

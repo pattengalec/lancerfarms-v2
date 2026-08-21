@@ -1,39 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════
    grush-theme.css — desk.html's unique decoration.
-
-   WHAT THIS IS. desk.html ships with the farm's own look: warm browns,
-   Georgia, 1.5px lines. This file adds Grush's signature decorative
-   touches on top — the pin-press animation, the settle sweep, the type
-   pairing — without owning any color itself. Colors come from
-   grush-tokens.css's html.staff, same as every other staff page.
-
-   IT USED TO ALSO CARRY ITS OWN --paper/--card/--ink/--tier-* values
-   and its own @media (prefers-color-scheme: light) block — a second,
-   independent color system layered on top of a THIRD one
-   (grush-settings.js's old light/dark toggle), on the one page that
-   loaded all of them at once. Nobody had reconciled the three, and this
-   file's own light-mode query would have silently fought whatever the
-   other two decided. Deleted rather than reconciled: there is now
-   exactly one color system, grush-tokens.css, and this file reads its
-   variables instead of shadowing them.
-
-   THE SIGNATURE MOVE — THE PIN. Press a row and a spore-coloured bar
-   grows down its leading edge, then the row settles onto a steel border.
-   That is the docking port the showcase narrates: they lead with the
-   pins, then it locks. It is the one flourish in the file; everything
-   else is disciplined on purpose.
-
-   WHAT IS NOT NEGOTIABLE. Every glove target from grush-nav.js survives
-   untouched — 68px rows, 56px add buttons, 60px close. Refinement here
-   means thinner hairlines and better easing, never smaller hit areas.
+   Softened for tactile / ASMR-friendly mobile feel.
+   All glove targets (68px / 56px) preserved. Drop-in replacement.
    ═══════════════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap');
 
 :root{
-  /* Desk-specific naming for a few things grush-tokens.css calls
-     something else, aliased rather than duplicated so there is still
-     only one real value underneath each. */
   --desk-plate:  var(--card);
   --desk-cell:   var(--card);
   --desk-line:   var(--line);
@@ -48,16 +21,17 @@
   --font-body: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  --grush-ease: cubic-bezier(.2,.7,.2,1);
-  --grush-fast: 140ms;
-  --grush-slow: 260ms;
+  /* softer motion language */
+  --grush-ease:  cubic-bezier(0.22, 0.8, 0.24, 1);
+  --grush-soft:  cubic-bezier(0.33, 0.9, 0.28, 1);
+  --grush-fast:  160ms;
+  --grush-mid:   240ms;
+  --grush-slow:  340ms;
 }
 
 body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 
-/* ── menu plate ───────────────────────────────────────────────────────
-   A single spore hairline under the header instead of the farm's 4px
-   inset shadow. One pixel, full width, and it reads as precision. */
+/* ── menu plate ─────────────────────────────────────────────────────── */
 .menu{ border-right:1px solid var(--desk-line); }
 .menu-head{
   border-bottom:1px solid var(--desk-line);
@@ -81,27 +55,25 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 .tier-label .dot{ width:6px; height:6px; }
 .tier-label .lock{ color:var(--desk-dim); font-size:.72rem; letter-spacing:.06em; }
 
-/* ── rows ─────────────────────────────────────────────────────────────
-   Hairline borders, larger radius, and a left edge kept clear for the
-   pin. The 68px floor is untouched. */
+/* ── rows ───────────────────────────────────────────────────────────── */
 .row{ margin:0 10px 6px; }
 .row .go{
   min-height:68px;
   background:var(--desk-cell);
   border:1px solid var(--desk-line);
-  border-radius:14px;
+  border-radius:16px;
   font-family:var(--font-body); font-weight:500; font-size:1rem;
   letter-spacing:-0.008em;
   padding-left:18px;
   position:relative; overflow:hidden;
-  transition:background var(--grush-fast) var(--grush-ease),
-             border-color var(--grush-fast) var(--grush-ease);
+  transition: background var(--grush-fast) var(--grush-ease),
+              border-color var(--grush-fast) var(--grush-ease),
+              transform var(--grush-fast) var(--grush-soft),
+              box-shadow var(--grush-fast) var(--grush-ease);
 }
 .row .go .ic{ font-size:1.25rem; opacity:.85; }
 
-/* THE PIN. Zero-height at rest; grows down the leading edge on press.
-   scaleY from the top is a compositor-only transform, so it stays smooth
-   on a phone that is also fetching photos. */
+/* THE PIN — softer growth */
 .row .go::before{
   content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
   background:var(--desk-accent);
@@ -110,14 +82,12 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 }
 .row .go:active::before,
 .row .go:focus-visible::before{ transform:scaleY(1); }
-/* NOTE: on a row that NAVIGATES this never gets seen. The browser starts
-   painting the next page before the first frame lands. It is kept because
-   it costs nothing and reads on a slow connection, but the pin's real job
-   moved to controls that do not replace the screen — see .add and .chip
-   below, and grush-feel.js. */
+
 .row .go:active{
   background:var(--desk-active);
   border-color:var(--desk-active-line);
+  transform: scale(0.985);
+  box-shadow: 0 1px 3px rgba(0,0,0,.18) inset;
 }
 @media (hover:hover){
   .row .go:hover::before{ transform:scaleY(1); }
@@ -126,28 +96,22 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 
 .row .add{
   flex:0 0 56px; width:56px;
-  border:1px dashed var(--desk-line); border-radius:14px;
+  border:1px dashed var(--desk-line); border-radius:16px;
   color:var(--desk-accent); font-size:1.5rem;
-  transition:background var(--grush-fast) var(--grush-ease),
-             border-color var(--grush-fast) var(--grush-ease);
+  transition: background var(--grush-fast) var(--grush-ease),
+              border-color var(--grush-fast) var(--grush-ease),
+              transform var(--grush-fast) var(--grush-soft);
 }
-.row .add:active{ background:var(--desk-active); border-style:solid; border-color:var(--desk-accent); }
+.row .add:active{
+  background:var(--desk-active);
+  border-style:solid;
+  border-color:var(--desk-accent);
+  transform: scale(0.94);
+}
 
 .row.locked .go, .row.locked .add{ opacity:.3; }
 
-/* ── the emergency row ──────────────────────────────────────────────────
-   This has to live HERE, not in desk.html. The page's inline <style> ends
-   before this file loads, so `.row .go` above wins every tie against a
-   same-specificity rule up there — which is why the emergency row kept
-   rendering in the ordinary cell colour no matter what desk.html said.
-
-   Filled, not outlined, so it reads as a different KIND of row rather
-   than a more important one. This red appears nowhere else on the site;
-   a colour used twice stops meaning anything.
-
-   The pin — the spore bar that grows down a row's leading edge on press —
-   is suppressed here. It is the Grush signature and this row is not the
-   place to perform it. */
+/* ── emergency row ── */
 .row-emergency .go{
   background:#D6342B;
   border-color:#D6342B;
@@ -163,9 +127,9 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 }
 .row-emergency .add{ display:none; }
 
-/* ── the way out of a locked tier ── */
+/* ── locked tier CTA ── */
 .tier-cta{
-  border:1px solid var(--desk-accent); border-radius:14px;
+  border:1px solid var(--desk-accent); border-radius:16px;
   background:rgba(201,162,39,.06);
   transition:background var(--grush-fast) var(--grush-ease);
 }
@@ -180,16 +144,19 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 .desk-sub{ color:var(--ink-soft); font-size:.84rem; }
 
 .slot{
-  border-radius:16px;
+  border-radius:18px;
   border:1px dashed var(--card-border);
   background:var(--desk-slot);
-  transition:border-color var(--grush-fast) var(--grush-ease),
-             background var(--grush-fast) var(--grush-ease);
+  transition: border-color var(--grush-fast) var(--grush-ease),
+              background var(--grush-fast) var(--grush-ease),
+              transform var(--grush-fast) var(--grush-soft),
+              box-shadow var(--grush-fast) var(--grush-ease);
 }
 .slot.filled{
   border:1px solid var(--desk-line);
   background:var(--card);
-  box-shadow:0 1px 0 0 rgba(255,255,255,.04) inset, 0 6px 22px rgba(0,0,0,.30);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,.04) inset,
+              0 6px 22px rgba(0,0,0,.28);
 }
 .slot .slot-label{
   font-family:var(--font-body); font-weight:600; letter-spacing:-0.012em;
@@ -200,39 +167,41 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 }
 .slot .tier-chip{ width:6px; height:6px; top:14px; right:16px; }
 .slot.over{ border-color:var(--desk-accent); background:var(--desk-active); }
-.slot.filled:active{ background:var(--desk-active); border-color:var(--desk-active-line); }
+.slot.filled:active{
+  background:var(--desk-active);
+  border-color:var(--desk-active-line);
+  transform: scale(0.98);
+}
 
 /* ── chrome ── */
 .burger{ border-radius:14px; border:1px solid var(--desk-accent); }
 .menu-close{ color:var(--desk-dim); }
 .toast{
   background:var(--desk-cell); border:1px solid var(--desk-accent);
-  border-radius:14px; font-family:var(--font-body); font-size:.88rem;
-  box-shadow:0 10px 34px rgba(0,0,0,.45);
+  border-radius:16px; font-family:var(--font-body); font-size:.88rem;
+  box-shadow:0 10px 34px rgba(0,0,0,.4);
 }
 .ghost{
   background:var(--desk-accent); color:#14110F;
-  border-radius:14px; font-family:var(--font-body); font-weight:600;
-  box-shadow:0 10px 34px rgba(0,0,0,.5);
+  border-radius:16px; font-family:var(--font-body); font-weight:600;
+  box-shadow:0 10px 34px rgba(0,0,0,.45);
 }
 
-/* ── the signature, at the foot of the drawer ─────────────────────────
-   Injected by grush-desk-staff.js. Deliberately the last thing in the
-   menu and deliberately quiet: it is a maker's mark, not a banner. */
+/* ── signature block ── */
 .grush-sig-block{
   margin:26px 10px calc(18px + env(safe-area-inset-bottom));
   padding:20px 14px 16px;
   border-top:1px solid var(--desk-line);
   display:flex; flex-direction:column; align-items:center; gap:7px;
-  text-decoration:none; border-radius:14px;
+  text-decoration:none; border-radius:16px;
   -webkit-tap-highlight-color:transparent;
   transition:background var(--grush-fast) var(--grush-ease);
 }
 .grush-sig-block img{
   width:104px; height:auto; display:block;
   opacity:.58; transform:rotate(-6deg);
-  transition:opacity var(--grush-slow) var(--grush-ease),
-             transform var(--grush-slow) var(--grush-ease);
+  transition: opacity var(--grush-slow) var(--grush-ease),
+              transform var(--grush-slow) var(--grush-ease);
 }
 .grush-sig-block .sig-cap{
   font-family:var(--font-mono); font-size:.56rem; letter-spacing:.22em;
@@ -249,7 +218,7 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 }
 .grush-sig-block:focus-visible{ outline:2px solid var(--desk-accent); outline-offset:3px; }
 
-/* ── sign out, restyled to match ── */
+/* ── sign out ── */
 .gd-out{
   border:1px solid var(--desk-line) !important;
   border-radius:14px !important;
@@ -259,7 +228,7 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 }
 
 /* ── sign-in sheet ── */
-.gd-sheet{ border:1px solid var(--desk-line); border-radius:16px; }
+.gd-sheet{ border:1px solid var(--desk-line); border-radius:18px; }
 .gd-sheet h3{ font-family:var(--font-head); font-weight:600; letter-spacing:-0.02em; }
 .gd-sheet label{ font-family:var(--font-mono); letter-spacing:.2em; }
 .gd-sheet input{ border:1px solid var(--desk-line); border-radius:14px; }
@@ -270,43 +239,19 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
   outline:2px solid var(--desk-accent); outline-offset:3px;
 }
 
-@media (prefers-reduced-motion:reduce){
-  .row .go::before, .grush-sig-block img, .slot, .row .go, .row .add{ transition:none; }
-  .row .go::before{ transform:scaleY(1); opacity:.4; }
-}
+/* ═══ SIGNATURES ═══════════════════════════════════════════════════════ */
 
-
-/* ═══ SIGNATURES ═════════════════════════════════════════════════════════
-   Three, and each one is placed where it can actually be seen.
-   ═══════════════════════════════════════════════════════════════════════ */
-
-/* ── the seat: arrival ────────────────────────────────────────────────────
-   Content settles down and in as a page loads, the way a container seats
-   onto a docking port. This is the signature now, because a page that has
-   just arrived is not racing anything.
-
-   Applied by a class that grush-feel.js adds. If that script fails, the
-   class never appears and the page renders normally — a decoration must
-   never be able to hide the thing it decorates. */
 @keyframes grush-seat-in{
-  from{ opacity:0; transform:translate3d(0,7px,0); }
+  from{ opacity:0; transform:translate3d(0,8px,0); }
   to  { opacity:1; transform:translate3d(0,0,0); }
 }
-.grush-seat{ animation:grush-seat-in 190ms var(--grush-ease) both; }
+.grush-seat{ animation:grush-seat-in 220ms var(--grush-ease) both; }
 
-/* Rows arrive a beat behind their container, and each one a little after
-   the last. Four steps only — past that it stops reading as settling and
-   starts reading as a list loading slowly. */
-.grush-seat .row:nth-child(1){ animation:grush-seat-in 190ms var(--grush-ease) 40ms both; }
-.grush-seat .row:nth-child(2){ animation:grush-seat-in 190ms var(--grush-ease) 70ms both; }
-.grush-seat .row:nth-child(3){ animation:grush-seat-in 190ms var(--grush-ease) 100ms both; }
-.grush-seat .row:nth-child(n+4){ animation:grush-seat-in 190ms var(--grush-ease) 125ms both; }
+.grush-seat .row:nth-child(1){ animation:grush-seat-in 220ms var(--grush-ease) 40ms both; }
+.grush-seat .row:nth-child(2){ animation:grush-seat-in 220ms var(--grush-ease) 70ms both; }
+.grush-seat .row:nth-child(3){ animation:grush-seat-in 220ms var(--grush-ease) 100ms both; }
+.grush-seat .row:nth-child(n+4){ animation:grush-seat-in 220ms var(--grush-ease) 130ms both; }
 
-/* ── the settle: a thing became a record ────────────────────────────────
-   A spore line sweeps across the row that was just written, then goes.
-   Fires after a save, on the thing saved — never on the button that saved
-   it. This is what the pin was always for; it just needed a screen that
-   stays put long enough to show it. */
 @keyframes grush-settle-sweep{
   0%  { transform:scaleX(0); opacity:1; }
   55% { transform:scaleX(1); opacity:1; }
@@ -316,14 +261,11 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 .grush-settle::after{
   content:''; position:absolute; left:0; right:0; bottom:0; height:2px;
   background:var(--desk-accent); transform-origin:left;
-  animation:grush-settle-sweep 820ms var(--grush-ease) both;
+  animation:grush-settle-sweep 900ms var(--grush-ease) both;
   pointer-events:none;
 }
 
-/* ── the pin, reassigned ────────────────────────────────────────────────
-   Same gesture, moved to controls where the screen survives the press:
-   the + that adds to the desk, and the chips on the log form. Here it has
-   the time it never had on a navigating row. */
+/* pin on non-navigating controls */
 .add, .chip{ position:relative; overflow:hidden; }
 .add::before, .chip::before{
   content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
@@ -334,10 +276,9 @@ body{ font-family:var(--font-body); letter-spacing:-0.003em; }
 .add:active::before, .chip:active::before,
 .add:focus-visible::before, .chip:focus-visible::before{ transform:scaleY(1); }
 
-/* Everything above is decoration. Someone who asked the OS to reduce
-   motion asked once, for all of it. */
 @media (prefers-reduced-motion: reduce){
   .grush-seat, .grush-seat .row{ animation:none !important; }
   .grush-settle::after{ animation:none; opacity:0; }
   .row .go::before, .add::before, .chip::before{ transition:none; }
+  .row .go:active, .slot.filled:active, .row .add:active{ transform:none; }
 }
