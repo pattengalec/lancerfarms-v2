@@ -1,21 +1,30 @@
 # Lancer Farms & Gardens — lancerfarms.com
 
-**Rebuild reference as of August 8, 2026.**
+**Rebuild reference as of August 21, 2026.**
 This document is sufficient to reconstruct the site, database, and all tooling from scratch.
 
-> **August 8, 2026 was a large session.** The Grush layer became formally
-> removable, `desk.html` was built, the tool contract was written and
-> published to the getgrush repo, `triage.html` was rewritten, and the
-> translation strategy changed. Sections 4, 5, 6, 6a, 11 and 12 all
-> changed. If you are reading an older copy, most of it is now wrong.
+> **August 20–21, 2026 was a large session** — the six-tier drawer system, the
+> Chad-first lab proposal gate, the team-review pipeline, and the removal of
+> the Spanish/i18n layer. Sections 4, 5, 6, 6b, 7 and 11 all changed.
+>
+> **A gap exists between August 8 and August 20 that this document does not
+> fully narrate.** Roughly thirty migrations landed in that window —
+> assessments, donations, photo consent, the experiments/proposal module, the
+> six-tier rank system — that predate the session this rewrite was done from.
+> The migration names are listed in section 7 so nothing is silently missing,
+> but the detailed "what changed and why" narrative for that period was not
+> reconstructed. If you were the one who did that work, section 12 has a slot
+> waiting for it.
+>
+> If you are reading a copy older than this, most of it is now wrong.
 
 ---
 
 ## 1. Project overview
 
-Lancer Farms & Gardens is a student-run organic teaching garden at California Baptist University, Riverside CA, located next to the historic Hawthorne House (Colony area). The site serves three audiences: staff/caretakers who log work, administrators who approve and configure, and the public who can read about the garden.
+Lancer Farms & Gardens is a student-run organic teaching garden at California Baptist University, Riverside CA, located next to the historic Hawthorne House (Colony area). The site serves several audiences: staff/caretakers who log work, faculty who sponsor and approve research, CBU students who propose labs, administrators who approve and configure, and the public who can read about the garden.
 
-**Caretaker:** Chad Pattengale, part-time student caretaker, B.S. Environmental Science (CBU, ~1 year remaining). Reports to Julie Ratzlaff (Lab Director). Dr. Jacob Lanphere (Environmental Science) is the founding faculty advisor. Dr. Bonjun Koo (Environmental Science) is program director.
+**Caretaker:** Chad Pattengale, part-time student caretaker, B.S. Environmental Science (CBU, ~1 year remaining). Dr. Jacob Lanphere (Environmental Science) is the founding faculty advisor. Dr. Bonjun Koo (Environmental Science) is program director and sponsors the Carbon Research Team.
 
 **Platform:** The site is the Grush farm management chassis (getgrush.com) deployed on the LFG site. The same Supabase project also hosts Fun Guy Fungi (FGF) as a co-tenant using `fgf_*` prefixed tables.
 
@@ -39,6 +48,14 @@ lancerfarms.com
 │   ├── Cloud name: ddbsuxerb
 │   └── Upload preset: lfg-photos
 │
+├── Transactional email — Resend
+│   ├── Sending domain: lancerfarms.com (verification submitted Aug 21 2026,
+│   │   DNS records added at Namecheap; propagation pending at time of writing)
+│   └── Prior sender: onboarding@resend.dev (Resend's shared sandbox address —
+│       could only deliver to the account owner's own inbox, which silently
+│       blocked every notification meant for someone other than Chad. This is
+│       why the team-review emails failed on first real test — see section 11.)
+│
 └── DNS — Namecheap → lancerfarms.com → GitHub Pages CNAME
 ```
 
@@ -54,12 +71,14 @@ lancerfarms.com
 | Supabase | chad@getgrush.com | Database + auth + functions |
 | Cloudinary | ddbsuxerb | Photo upload + CDN |
 | Namecheap | — | DNS for lancerfarms.com |
-| Resend | Via vault secret `resend_api_key` | Access request email notifications |
+| Resend | **getgrush workspace**, logged in via GitHub OAuth on `pattengalec` (not email/password) | All transactional email — access requests, proposal notifications, team-review links |
+
+**A note on the Resend account, because finding it cost real time on Aug 21:** the working API key lives in the **"getgrush"** workspace, reached by logging into resend.com via **"Continue with GitHub"** using the `pattengalec` GitHub account. Logging in a different way (or authorizing a fresh GitHub OAuth grant) can land in a *different*, empty Resend account with no API keys — that happened mid-session and cost real debugging time. If API Keys ever shows empty, you're in the wrong account/workspace, not looking at a broken dashboard.
 
 **Supabase Vault secrets required:**
 - `resend_api_key` — Resend API key for email notifications
-- `notify_email_to` — destination email for access request alerts
-- `notify_email_from` — sender address (must be a verified Resend domain)
+- `notify_email_to` — destination email for Chad-facing alerts (access requests, new proposals)
+- `notify_email_from` — sender address. **Must be on a Resend-verified domain** or every send to anyone but the account owner is rejected with a 403. Was `onboarding@resend.dev` through Aug 21; update to a `lancerfarms.com` address once domain verification (section 2) completes.
 
 ---
 
@@ -69,11 +88,11 @@ lancerfarms.com
 pattengalec/lancerfarms-v2 (branch: main)
 │
 ├── index.html          Landing page — one door to desk.html + access request
-├── desk.html           The console — tiered menu + 2x2 glove desktop
+├── desk.html           The console — six-tier locked menu + 2x2 glove desktop
 ├── app.html            Staff PWA — tasks, photos, areas, log, triage
-├── admin.html          Admin dashboard — all CRUD + approval queues
+├── admin.html          Admin dashboard — all CRUD + approval queues + team-review visibility
 ├── manual.html         Farm manual — 6 topic sections with tabs
-├── data.html           Live farm data dashboard (public)
+├── data.html            Live farm data dashboard (public)
 ├── almanac.html        Growing almanac — planting calendar, plant DB
 ├── triage.html         Plant triage tool (Three.js ACLS-style model)
 ├── howto.html          Step-by-step how-to card player
@@ -81,35 +100,60 @@ pattengalec/lancerfarms-v2 (branch: main)
 ├── irrigation-bom.html Irrigation bill of materials calculator
 ├── visitor.html        Visitor hub — four tiles (See / Learn / Do / Share)
 ├── see.html            Photo gallery — approved photos, zone filters, lightbox
-├── learn.html          Plant knowledge base — 36 plants, search + category
+├── learn.html          Plant knowledge base — plants, search + category
 ├── do.html             Calculators — bed soil volume, harvest date
 ├── share.html          Visit counter, moderated notes, share link
 ├── bed.html            QR landing page — role-aware, reads ?b=CODE
 ├── watch.html          Showcase video player
 ├── features.html       Feature overview
+├── help.html           How-to-use-the-site help page
 ├── about-grush.html    What Grush is → links to getgrush.com
+│
+│                       ── STUDENT RESEARCH PIPELINE (added Aug 2026) ──
+├── propose.html        Lab proposal form. Team-only: picks a research team
+│                       from a live directory (only teams with a documented
+│                       leader are listed), writes the proposal, submits.
+│                       No direct-to-Chad path exists — see section 6d.
+├── team-review.html    Token-gated page reached only via a personal emailed
+│                       link. Every team member can respond (agree / suggest
+│                       changes / propose an alternative); the team's
+│                       documented leader additionally sees an editable copy
+│                       of the proposal and a "Send to Chad" action. See 6d.
+├── review.html         Token-gated sponsor decision page — the faculty
+│                       sponsor's one-click approve/reject, reached only via
+│                       their emailed link after Chad forwards a proposal.
 │
 │                       ── FARM-OWNED (survive removal of the Grush layer) ──
 ├── lfg-config.js       Supabase URL + anon key + Cloudinary config
 ├── lfg-db.js           The farm's Supabase client. Split out of grush-auth
-│                       on Aug 8 so public pages stop importing identity
-│                       just to reach a database handle
+│                       so public pages stop importing identity just to
+│                       reach a database handle
 ├── lfg-theme.css       Legacy theme tokens (older pages)
-├── i18n.js             English + Spanish chrome. Every other language is
-│                       the browser's job — see section 6b
 │
 │                       ── GRUSH LAYER (removable; see section 6a) ──
+├── grush-menu.js       The shared drawer, defined once. Farm-owned tiers
+│                       (Emergency, Visitor, Support) plus the footer. The
+│                       overlay below extends it at runtime via addTier().
 ├── grush-auth.js       Identity: magic link, session, grush_role()
-├── grush-nav.js        Shared nav/drawer/rail + a copy of the tracker
-├── grush-track.js      Page-view counter, standalone. Extracted from
-│                       grush-nav on Aug 8 so a page can be counted
-│                       without inheriting a nav rail
+├── grush-nav.js        Shared nav/drawer/rail for every page except desk.html.
+│                       Renders locked tiers as closed-by-default accordions
+│                       with a dimmed item preview and a Request Access form
+│                       that writes to lfg_access_requests — no sign-in
+│                       required to ask.
+├── grush-track.js      Page-view counter, standalone.
 ├── grush-tool.js       The tool contract implementation — banner, input
 │                       echo, print, guarded role read
-├── grush-desk-staff.js desk.html's tier definitions and sign-in sheet
+├── grush-desk-staff.js desk.html's tier definitions and sign-in sheet.
+│                       Owns Tools, CBU Student, Staff, Instructor, Faculty.
+│                       "Propose a lab" lives under CBU Student (locked),
+│                       not Tools — moved Aug 21 so it reads as a student
+│                       privilege rather than a general calculator; the
+│                       page itself still has no auth wall, so a direct
+│                       link still works for anyone who has one.
 ├── grush-settings.js   Theme owner + settings console
 ├── grush-shell.css     Shared shell layout
 ├── grush-theme.css     The Grush design language applied to desk.html
+├── grush-tokens.css    Shared design tokens, loaded on every page
 │
 ├── lfg-logo-192.webp   App icon
 ├── lfg-logo-512.webp   PWA icon (large)
@@ -128,154 +172,60 @@ pattengalec/lancerfarms-v2 (branch: main)
 └── CNAME               lancerfarms.com → GitHub Pages
 ```
 
+**`i18n.js` was deleted Aug 21 2026** — see section 6b. If you find a page still loading it, that page is stale and needs the same cleanup applied to index/visitor/learn/do/see/share that night.
+
 **Three design systems co-exist intentionally:**
-- **LFG style** (app, admin, manual, data, almanac, triage, howto, visitor, see, learn, do, share): `Fraunces` / `Source Sans 3` / `Courier Prime`. Earth tones: `#2A2620` paper, `#F0EDE2` ink, `#7E9A6E` green, `#A8B89A` leaf, `#C9973F` amber. `manual.html` moved off `IM Fell English` on Aug 5 2026; no page uses it now.
+- **LFG style** (app, admin, manual, data, almanac, triage, howto, visitor, see, learn, do, share): `Fraunces` / `Source Sans 3` / `Courier Prime`. Earth tones: `#2A2620` paper, `#F0EDE2` ink, `#7E9A6E` green, `#A8B89A` leaf, `#C9973F` amber.
   Canonical tokens: `--ink --ink-soft --paper --card --line --line-strong --green --leaf --amber`.
-- **Grush tool style** (mixbench, irrigation-bom): `Bricolage Grotesque` / `Source Serif 4` / `JetBrains Mono`. Navy/cyan/chartreuse: `#050a18`, `#00c8ff`, `#c8ff00`, `#ffb830`. Predates the design language below and has not been migrated.
-- **Grush design language** (`grush-theme.css`, applied to desk.html): `Fraunces` / `IBM Plex Sans` / `IBM Plex Mono`. Substrate `#14110F`, mycelium `#E8E1D4`, spore `#C9A227`, steel `#5C7080`, oxblood `#8C2F39` — reserved for destructive actions only. 1px hairlines, 14px radius, one easing curve. The signature move is *the pin*: a spore bar grows down a row's leading edge on press, from the docking-port story the showcase narrates. Canonical tokens live in `grush-brand.css` in the **getgrush repo**; this repo carries a copy.
+- **Grush tool style** (mixbench, irrigation-bom): `Bricolage Grotesque` / `Source Serif 4` / `JetBrains Mono`. Navy/cyan/chartreuse. Predates the design language below and has not been migrated.
+- **Grush design language** (`grush-theme.css`, applied to desk.html): `Fraunces` / `IBM Plex Sans` / `IBM Plex Mono`. Substrate `#14110F`, mycelium `#E8E1D4`, spore `#C9A227`, steel `#5C7080`, oxblood `#8C2F39` — reserved for destructive actions only.
+- **`propose.html` and `team-review.html`** use their own small dark palette (`--paper #2A2620`, `--card #34302A`, `--green #7E9A6E`, `--amber #C9973F`) — close kin to the LFG style but self-contained, since both are standalone forms rather than pages inside the drawer.
 
 ---
 
 ## 5. Page-by-page function reference
 
-### index.html — Landing page (13KB)
+*(Sections for app.html, admin.html's non-review tabs, manual.html, data.html, almanac.html, triage.html, howto.html, mixbench.html, irrigation-bom.html, bed.html, about-grush.html are unchanged from the Aug 8 description and are not repeated here — see git history for that text if needed. What follows covers everything that changed or was added since.)*
 
-One door. Enters `desk.html`; there is no longer a Staff/Visitor fork.
+### index.html — Landing page
 
-**Removed Aug 8 2026:** `chooseRole()` asked people to *declare* a role, stored it in `localStorage`, and routed staff to app.html / visitors to visitor.html. That was a second, weaker answer to a question `grush_role()` and the operator allowlist already answer properly, and it outlived the visit, which the tool contract forbids. A one-line cleanup clears the stale `lfg_role` key from anyone who used the old page.
+One door. Enters `desk.html`. Carries the access request sheet (writes `lfg_access_requests`; a trigger emails Chad) and Open Graph/canonical meta. **The EN/ES language switch was removed Aug 21 2026** — see section 6b. `i18n.js` no longer loads here.
 
-Also carries: the access request sheet (writes `lfg_access_requests`; a trigger emails Chad), the EN/ES switch, and — added Aug 8 — description, Open Graph and canonical meta, which the page previously had none of, so a shared link previewed as bare URL text.
+### desk.html — The console
 
-### desk.html — The console (23KB)
+The launcher. Left pane is a menu in **six locked tiers** (Tools open; CBU Student, Staff, Instructor, Faculty locked by rank), right pane is a 2×2 desktop the person fills themselves, persisted per device via `localStorage`.
 
-The launcher, and the shop window. Built Aug 8 2026.
+**Glove rules, unchanged since Aug 8:** 68px rows, 56px add buttons, no overlapping hit fields, no edge-swipe, drag as the secondary path via Pointer Events. `?preview=` still only ever narrows.
 
-- **Left**: a menu in tiers — Visitor, Tools, Staff, Admin. Locked tiers are shown greyed, not hidden: seeing a locked door is how you learn the building exists.
-- **Right**: a 2×2 desktop the person fills themselves, persisted per device.
-- **Glove rules inherited from grush-nav.js**: 68px rows, 56px add buttons, no overlapping hit fields, no edge-swipe. Refinement means thinner hairlines, never smaller targets.
-- **Drag is the secondary path.** Tap `+` to add, long-press a slot to clear. Implemented with Pointer Events, because HTML5 drag events never fire on touch devices at all.
-- **`?preview=visitor|staff|admin`** shows another tier's view. It may only ever *narrow* — it cannot grant access you lack.
+**Structure is unchanged:** `desk.html` itself is farm-owned and contains no reference to auth, Supabase, staff or admin. The whole Grush layer arrives through one marked block at the bottom of the file. See section 6a.
 
-**Structure matters here.** `desk.html` itself is farm-owned and contains no reference to auth, Supabase, staff or admin. The whole Grush layer arrives through one marked block at the bottom of the file. See section 6a.
+### grush-nav.js — the shared drawer (every page except desk.html)
 
-**Capacitive reality:** ordinary leather or cloth work gloves do not actuate a capacitive screen at all. Large targets fix accuracy, not conductivity. Crew need nitrile or touchscreen-rated gloves; no amount of CSS changes that.
+Every labelled tier renders as a closed-by-default `<details>` accordion — open or locked, so a visitor and an operator see the same six doors and only some open on the first tap. A locked tier's body shows a dimmed, non-interactive preview of what's inside, plus a **Request Access** control that expands into a name/email form and writes to `lfg_access_requests` — no sign-in needed to ask. `desk.html` has its own, separate implementation of the same idea (`grush-desk-staff.js`) because it also needs the `+` add-to-desk button, which the shared drawer doesn't have.
 
-### app.html — Staff PWA (111KB)
-- Full farm operations interface, mobile-first
-- **Tabs:** Today's tasks · Areas · Log · Photos · How-to · Hub
-- **Hub menu** → Learn section links: Farm manual, How-to cards, Plant triage, Mix Bench, Irrigation BOM
-- Photo upload pipeline via Cloudinary (cloud `ddbsuxerb`, preset `lfg-photos`)
-- Task completion logging → `lfg_task_completions`
-- Area log entries → `lfg_log`
-- Loads: `grush-auth.js`, `lfg-config.js`, Supabase JS CDN
+### propose.html — Lab proposal (student research pipeline)
 
-### admin.html — Admin dashboard (101KB)
-- Operator-gated (requires email in `grush_operators` table)
-- Tabs: Areas · Tasks · Photos · Plants · Inventory · Requests · Settings
-- Full CRUD on all major tables
-- Photo approval queue (pending → approved/rejected)
-- Access request management
+Public, no login required. **Team-only as of Aug 21 2026** — there is no path to submit a proposal without picking a team; the old "submit directly to Chad" option was removed at Chad's request after testing surfaced that it defeated the point of routing ideas through a team first.
 
-### manual.html — Farm manual (110KB)
-- 6 topic cards: Soil · Concrete · Irrigation · Pest & Disease · Planting · Tools & Records
-- Each topic has tabs with inline calculators and reference data
-- **Nav links:** Staff App · Farm data · Almanac · **Mix Bench** · **Irrigation BOM**
-- **Irrigation → Reference tab:** tool cards linking to Irrigation BOM and Mix Bench water calculator
-- **Pest → Treatments tab:** tool card linking to Mix Bench
-- Loads Supabase for manual entries (`lfg_manual_entries`)
+- **Gate screen:** a live directory of active research teams, but **only teams with a currently documented leader are listed** (queried from `lfg_teams` joined against `lfg_team_members` where `is_leader = true and left_at is null`). A team with nobody able to finalize a proposal isn't offered — a team with no leader is a dead end, not a real option. If the query fails or nothing qualifies, the visitor sees a plain message pointing to Chad's email instead of a broken form.
+- Tapping a team card carries you straight into the form with that team locked in (shown as "Submitting to: [team]," with a "Change team" link back).
+- **Faculty sponsor is always optional at this stage** — the team decides it together during review; the team lead confirms it when finalizing.
+- On submit, the row lands in `lfg_experiments` with `approval_status = 'team_review'` and `team_id` set. RLS only allows a public insert at that exact status — see section 7. A trigger (`notify_team_review`) then creates one `lfg_proposal_reviews` row per active team member and emails each a personal token link to `team-review.html`.
 
-### data.html — Farm data dashboard (34KB)
-- Public-facing live data: areas, events, photos, log
-- Hub menu Learn section: Farm manual, How-to cards, Plant triage, **Mix Bench**, **Irrigation BOM**
-- Stats: area count, event count, photo count
+### team-review.html — Team member response + leader finalize
 
-### almanac.html — Growing almanac (9KB)
-- Operator-gated sections
-- Plant database browser from `lfg_master_plants`
-- Zone 9b planting calendar
+Reached only via a personal magic link (`?token=...`) from `notify_team_review()`. No login — the token is the credential, same pattern `review.html` already used for the sponsor's link. Every read and write goes through a SECURITY DEFINER RPC (`get_proposal_by_review_token`, `get_team_responses`, `submit_team_response`, `finalize_team_proposal`); the page never touches `lfg_experiments` or `lfg_proposal_reviews` directly, because a public page has no RLS credentials to do so.
 
-### triage.html — Plant triage (58KB)
+- **Every team member** sees the proposal read-only, sees what teammates have already said, and can submit their own response: **Agree**, **Suggest changes**, or **Propose an alternative**, each with a note. Reusable, not single-use — a response can be revised before the meeting.
+- **The team's documented leader** (`is_leader = true` on their specific token) additionally sees an editable copy of every field plus a faculty-sponsor picker and a **"Send to Chad"** button. Only a leader's token can call `finalize_team_proposal()` — enforced inside the function itself, not just hidden in the UI. Finalizing saves the leader's edits and flips `approval_status` to `'new'`, which is the exact same status a (now-removed) direct submission used to land at — from that instant the proposal is indistinguishable to Chad's queue from one that skipped team review entirely.
 
-A decision tree over plant symptoms, with a live Three.js model of seven plant systems whose spheres grow and brighten as belief shifts.
+### admin.html — Admin dashboard, Review Queue changes
 
-**Rewritten Aug 8 2026.** The file carried **five near-copies of the same 98-line block** — the belief logic plus the whole scene — one at top level and four pasted inside restart-button click handlers. 392 duplicated lines, and they had drifted: three of the five carried a function the others did not.
+The Review Queue's `loadReview()` now also pulls proposals sitting at `approval_status = 'team_review'` and shows them in a **read-only** strip — "In team review — not yet yours to act on" — with a response-progress count ("2 of 3 responded") pulled from `lfg_proposal_reviews`. No buttons on these cards; Chad isn't the one acting at that stage, the team is.
 
-The paste was doing real work: re-declaring `let bel` inside a handler gave that handler a fresh belief array, so **the reset was a side effect of the redeclaration.** Removing the copies required `resetBelief()` to do it on purpose. Deleting them without that would have left restart looking like it worked while silently keeping the old beliefs.
-
-Now: `bootOrgan()` builds the scene, `resetBelief()` resets state, and each restart handler calls both. Collapsing the copies also exposed **two `onclick` handlers assigned to the same `#restart` element four lines apart** — the second overwriting the first, neither visible next to the other.
-
-**Five leaks fixed at the same time.** Every `bootOrgan()` used to add an animation loop, a WebGLRenderer, a resize listener, seven label divs and a caption, none of which were ever taken down. Browsers cap live WebGL contexts around 16, so **the canvas would have gone blank after roughly fifteen restarts**, silently. Fixed with a generation counter — a stale `oframe()` sees `gen !== organGen` and returns rather than re-queueing, which is the only way to end a `requestAnimationFrame` chain from outside — plus explicit disposal, because Three.js holds GPU buffers that outlive their JS references.
-
-**Readability, same session.** The palette was rebuilt *against the label colour* rather than in isolation: cream `#F0EDE2` on the old `#4FA83C` scored 2.56 and on `#EDA100` scored 1.85, unreadable exactly when it mattered because a sphere grows as belief rises. Deep hues now clear 4.5:1 on all seven at peak emissive, worst case 4.82. Labels are one cream instead of seven tints, positioned from the actual projection maths (`scale × height × 0.181 + 13px`), with overlap resolved by belief so the strongest label keeps the position it earned. Edge opacity floor went 0.03 → 0.09 and the threshold 0.62 → 0.50, because the lattice — the actual content — was invisible for most of a session.
-
-### howto.html — How-to cards (18KB)
-- Step-by-step card player (swipe/tap navigation)
-- Loads cards from `lfg_howto_cards` via Supabase
-- Cards have: title, summary, materials checklist, safety note, steps (JSONB array of `{text}`)
-- **5 cards as of Aug 4 2026:** string trellis, + 3 others + removable shade structure
-
-### mixbench.html — Mix Bench (84KB)
-
-Three calculators: The Mix (recipe reference), Stock & budget estimator, Water demand estimator. Zero database calls, zero storage, zero writes.
-
-**The estimator was invisible to everyone until Aug 8 2026.** Three independent reasons, any one sufficient: the page never loaded `grush-auth.js`; the gate looked for `window.GrushAuth`, which does not exist under any casing; and `unlock()` had exactly one caller, inside that dead gate. `<div id="estPanel" class="hidden">` shipped hidden and nothing ever removed the class. Not gated — unreachable.
-
-The gate is gone. Nothing there is private: static tables and arithmetic over numbers the visitor types. A visitor using the tool and printing the result *is* the demonstration.
-
-**Now conforms to the tool contract** (section 6c) via `grush-tool.js`: mode banner, print with echoed inputs, guarded optional role read. Mounts twice, once per tab.
-
-### irrigation-bom.html — Irrigation BOM (25KB)
-- Standalone parts list calculator for drip retrofit
-- Inputs: supply GPM, emitter GPH, spacing, zone count, bed groups (N/W/L per group)
-- Sections: zone hardware (filter, regulator, flush valve), per-bed hardware (adapter, header, tees, dripline, end caps, stakes, goof plugs), path sleeves
-- All prices editable, recalculate live
-- Flow check against measured supply
-- 8 design-decision cards explaining every specification choice
-- "What this does not include" table: gauge, tools, mulch, labor, zone valve work
-- Links back to manual.html and mixbench.html
-
-### visitor.html — Visitor hub (6KB)
-- Four tiles: **See**, **Learn**, **Do**, **Share** — the whole public shape in one screen
-- Shares the staff fork's visual language (82px tiles, Fraunces + Source Sans 3)
-- `NOT_BUILT` array marks tiles whose page does not exist yet; currently empty
-- Staff login link → index.html
-
-### see.html — Photo gallery (11KB)
-- Approved photos from `lfg_photos`, newest first, square grid (2-up phone / 3-up wider)
-- Zone filter chips built from real data; bed-code chips; captions
-- Lightbox with keyboard nav and Escape
-- `subject_type` shown as an inert chip — Learn crossover not yet wired
-
-### learn.html — Plant knowledge base (12KB)
-- 26 approved plants from `lfg_master_plants` with botanical name and summary
-- Search + category filters; detail sheet with facts and days-to-maturity
-- **Filters out 8 placeholder rows** that carry a category and nothing else
-- No plant photographs exist yet, so cards lead with the initial rather than a
-  grey rectangle implying an image is coming
-- Perennials show why days-to-maturity is absent rather than leaving a blank
-
-### do.html — Calculators (13KB)
-- **Bed soil volume** — reads the 23 real beds from `lfg_growing_areas`; cubic feet,
-  cubic yards, bags rounded up; fill depth pre-fills from `soil_depth_in`
-- **Harvest date** — the 14 annuals with `days_to_maturity`; planting date to
-  estimated harvest, with a check-from date a week earlier
-- Trees, berries and perennials are excluded from the harvest tool on purpose:
-  days-to-maturity does not apply to them and listing them would invite a false answer
-
-### share.html — Share (13KB)
-- Site view counter from `grush_total_views('lfg')`; shows an em dash, never 0, on failure
-- Moderated notes insert to `lfg_comments` with `status='new'`
-- Web Share API with copy-link fallback
-- Operator-only per-path breakdown via `GRUSH.isOperator()` (convenience, not security —
-  the SELECT policy on `grush_page_views` is permissive)
-
-### bed.html — QR bed landing (15KB)
-- Reads bed code from `?b=CODE` (uppercased); role-aware staff/visitor fork
-- Target of the 23 printed QR signs
-
-### about-grush.html — About Grush (8KB)
-- `<meta http-equiv="refresh">` → getgrush.com
-- Handles all "managed by grush" footer links across the site
+Proposals that land at `approval_status = 'new'` (whether from a finalized team submission, or historically from a since-removed direct path) still show under **"Lab proposals — your first look"** with two real actions:
+- **Forward to sponsor** — flips `approval_status` to `'pending'`, which is what fires the sponsor's emailed decision link (`review.html`). Does not finalize anything; only the sponsor's own decision, or a direct reject, does that.
+- **Reject** — flips to `'rejected'`, notifies the student, the sponsor never sees it.
 
 ---
 
@@ -283,17 +233,22 @@ The gate is gone. Nothing there is private: static tables and arithmetic over nu
 
 **File:** `grush-auth.js` (needs supabase-js from CDN, then `lfg-config.js`, then `lfg-db.js`)
 
-**Three tiers as of Aug 8 2026.** The old two-tier model could not express the difference between crew tooling and irreversible actions.
+**A six-tier rank system, not the three-tier model this document described through Aug 8** (migration `six_tier_rank_system`, Aug 20 2026). Both `grush-menu.js` and `grush-desk-staff.js` share the same rank table:
 
-1. **Visitor** — the absence of a row. Never stored.
-2. **Staff** — email in `grush_operators`, `revoked_at IS NULL`, `role = 'staff'`.
-3. **Admin** — same, `role = 'admin'`. Approvals, crew, configuration.
+```js
+RANK = { emergency: 0, visitor: 0, tools: 0, student: 1, staff: 2, instructor: 3, faculty: 4, owner: 5 }
+```
 
-`grush_operators.role` was added Aug 8 (`text not null default 'staff'`, checked against `('staff','admin')`).
+- **Emergency, Visitor, Tools** — open to everyone, never locked, never require sign-in.
+- **CBU Student** (rank 1) — locked. Holds "Propose a lab" (real, working) plus two `soon:true` placeholders pending campus approval.
+- **Staff** (rank 2) — locked. Recording tools: log, tasks, photos, inventory, locations, how-to cards, garden map.
+- **Instructor** (rank 3) — locked, placeholder only.
+- **Faculty** (rank 4) — locked. Approvals, admin panel, team management (placeholder).
+- **Owner** (rank 5) — Chad alone. Never granted from an access request.
 
-**`grush_role()`** — SECURITY DEFINER, returns `'visitor' | 'staff' | 'admin'`. Reads the allowlist without exposing it and returns `'visitor'` for any signed-in stranger. Granted to `anon` and `authenticated`.
+An unranked/unknown tier is treated as **open**, deliberately — the cost of a wrongly-open row is someone sees a page they could have reached anyway; the cost of a wrongly-shut one is a greyed-out emergency button.
 
-**Key exports:** `isOperator()`, `sendLink(email)`, `requireOperator()`, `session()`, `signOut()`, `headers()`, `rest()`, `stamp()`, and `sb` — though public pages should use `LFG.sb` from `lfg-db.js` instead.
+`grush_operators.role` and `grush_operators.rank` carry this on the database side. `grush_role()` — SECURITY DEFINER — reads the allowlist and returns the caller's tier name, `'visitor'` for anyone not on it.
 
 **`GRUSH` is a lexical `const`, not a property of `window`.** Read the bare name inside a `try`:
 
@@ -302,70 +257,49 @@ var G; try { G = GRUSH; } catch (e) { return; }   // correct
 var G = window.GrushAuth;                          // silently always null
 ```
 
-This is not hypothetical. `mixbench.html` looked for `window.GrushAuth`, on a page that never loaded `grush-auth.js` at all, and **its entire Stock & budget estimator shipped invisible to every user, including admins, for months.** Nobody noticed, because the failure path was "show nothing." The gate was removed Aug 8 — see section 6c.
-
-**One client per page.** supabase-js keeps its session in `localStorage`; two clients means two GoTrue instances racing the same keys, logging *"Multiple GoTrueClient instances detected"* and occasionally dropping a session on refresh. `grush-auth.js` borrows `window.LFG.sb` when `lfg-db.js` has already made one.
-
-**Never reload from a `grush:auth` handler.** supabase-js emits `INITIAL_SESSION` on every page load and `TOKEN_REFRESHED` on a timer. A `location.reload()` there is an infinite loop, and a magic-link redirect makes it worse because the link opens a second tab and both spin. Re-read the role in place instead.
-
-**The real boundary is Postgres.** Every client-side check shows and hides UI. Row-level security is what enforces.
+**One client per page**, **never reload from a `grush:auth` handler**, **the real boundary is Postgres** — all unchanged from Aug 8, still load-bearing, see that section's original text if this summary isn't enough.
 
 ---
 
 ## 6a. The Grush layer is removable
 
-**This is the product thesis, not a tidiness preference.** Grush is an overlay on a site an organisation already has. Deleting it must leave the original intact.
-
-**The removal test**, run — not asserted — on Aug 8:
-
-1. Delete `grush-auth.js`, `grush-desk-staff.js`, `grush-theme.css`, `grush-track.js`
-2. Delete the marked block at the bottom of `desk.html`
-3. Delete the `GRUSH OVERLAY` blocks in `share.html` and `almanac.html`
-4. Delete the counter blocks in the pages that carry them
-
-Result: **zero dangling script references across every public page.** One code reference survives, in `share.html`, and it degrades correctly — `GRUSH` is a lexical const, so the bare name throws `ReferenceError`, the existing `catch` swallows it, and the operator panel stays hidden.
-
-**What made this possible:** `GRUSH.sb` used to be the only way to get a Supabase client, so six public pages imported the whole identity module to reach a database handle they were entitled to anyway. `lfg-db.js` now owns the connection and `grush-auth.js` is a guest on it.
-
-Staff and admin pages (`admin`, `app`, `data`, `howto`, `manual`, `triage`) still reference `grush-auth.js` — correctly, since they *are* the Grush layer and would be removed with it.
+Unchanged in substance since Aug 8 — see that section's text. The removal test still passes: delete the marked overlay blocks, zero dangling script references remain on public pages.
 
 ---
 
-## 6b. Languages
+## 6b. Languages — the Spanish/i18n layer was removed
 
-**Spanish by hand. Everything else by browser.**
+**Removed entirely Aug 21 2026.** This section previously documented a hand-maintained `i18n.js` carrying English + Spanish for a handful of visitor-facing tiles and headings, with everything else left to the browser's native translation. That design was sound in principle but the execution didn't deliver on it: tapping the ES toggle silently translated three tiles and left the rest of the page — and every other page — in English, with no active guidance toward the browser's own translate feature. That read as broken, not as "here's how you get the rest."
 
-CBU has ~316 international students across 60+ countries — five to fifteen people per language. Riverside itself is ~53% Latino. So Spanish has a large, local, permanent audience and the international cohort is a long tail no dictionary can serve.
+**Current state:** no hand-maintained translation layer exists. The site relies entirely on the browser's native translation (Chrome/Safari/Edge), same as it always did for everything `i18n.js` didn't cover — which was already almost the entire site. `i18n.js` was deleted from the repo; the EN/ES switch markup was removed from `index.html` and `visitor.html`; `data-i18n`/`data-i18n-ph` attributes were stripped from `index.html`, `visitor.html`, `learn.html`, `do.html`, `see.html`, `share.html`.
 
-- `i18n.js` carries **en + es only**, 35 keys, wired across index / visitor / learn / do / see / share.
-- The previous dictionary held en/es/fr/pt and **0 of 38 keys matched the live copy** on learn, do or see. It had drifted so far that switching to English would have changed the English. Rebuilt from scratch Aug 8.
-- Every other language is handled by Chrome/Safari/Edge native translation, which reaches **everything** — including plant summaries and how-to cards in Postgres that can never appear in a file.
-
-**Keeping the site translatable is the actual work:**
-- All text is real DOM. Nothing is drawn into a canvas — including the triage organ labels, which are `<div>` elements positioned over the canvas.
-- Every page declares `lang`; `setSiteLang()` updates it so a translator knows what it is starting from.
-- `translate="no"` on brand links and the EN/ES switch.
-- `translate="no" lang="la"` on botanical names. Chrome renders *Mentha spicata* as "spiked mint" otherwise, which is not the plant's name and is not searchable against any reference.
-
-**Unreviewed.** The Spanish has not been checked by a native speaker. Low risk for tiles and headings; higher for anything a stranger acts on.
+If a hand-maintained translation layer is rebuilt in the future, the failure mode to design against is exactly this one: partial coverage that looks broken rather than looking like a deliberate handoff to the browser.
 
 ---
 
 ## 6c. The tool contract
 
-Written Aug 8, published to the **getgrush repo** as `GRUSH-TOOL-CONTRACT.md` and `grush-tool.js`. Extracted from two working tools, not designed in advance.
+Unchanged since Aug 8 — see that section's original text. `mixbench.html` and `irrigation-bom.html` still conform; no new tool has been added to the contract since.
 
-> **A Grush tool is a page with inputs, a computed result, and a printable artifact.**
+---
 
-- **Mode, not access.** The visitor/staff line is whether a result *persists*, never whether the tool runs. Neither reference tool gates anything, because neither has anything to protect.
-- **Compute tools get a visitor mode; recording tools do not.** A visitor logging fake activity against a farm that is not theirs produces nothing worth printing.
-- **Role reads are optional and guarded.** A tool must work with the auth layer absent, and must not add a dependency merely to change a sentence.
-- **Print is the visitor's only artifact**, so it echoes the readable inputs, the date, and provenance.
-- **Ephemeral means `sessionStorage`.** `localStorage` outlives the visit and breaks the promise the banner made.
+## 6d. The lab proposal pipeline
 
-**Conforming tools:** `mixbench.html`, `irrigation-bom.html`. Both dropped their hand-rolled implementations onto `grush-tool.js` — 4,688 and 3,608 bytes removed respectively.
+Built across several sessions; the version described here is current as of Aug 21 2026.
 
-**Deliberately undefined:** how a staff result persists. No tool has ever written a record, so persistence has no proven shape. It gets defined when a third tool needs it.
+**Every proposal goes through a team. There is no path that skips it.** This was a deliberate late change — an earlier version of `propose.html` let a student submit straight to Chad, bypassing team review entirely, and Chad had that option removed once he saw it defeated the purpose.
+
+**The full chain:**
+
+1. **`propose.html`** — student picks a team from a directory limited to teams with a documented leader, writes the proposal, submits. Lands at `approval_status = 'team_review'`.
+2. **`notify_team_review()`** (AFTER INSERT trigger) creates one `lfg_proposal_reviews` row per active team member and emails each a personal token link.
+3. **`team-review.html`** — every member can respond (agree / suggest changes / alternative); the leader can additionally edit and finalize.
+4. **`finalize_team_proposal()`** — leader-only, token-gated, SECURITY DEFINER. Saves edits, sets a sponsor, flips `approval_status` to `'new'`.
+5. **`notify_proposal_new()`** (fires on INSERT *or* UPDATE of `approval_status`, so it catches both a legacy direct submission and a team finalize) emails Chad.
+6. **`admin.html`** Review Queue — Chad reviews, then either **Forward to sponsor** (`approval_status → 'pending'`, fires `notify_proposal_submitted()`, emails the sponsor a token link to `review.html`) or **Reject** (`approval_status → 'rejected'`, fires `notify_proposal_decided()`, emails the student — sponsor never sees it).
+7. **`review.html`** — the sponsor's one-click decision page, via `get_experiment_by_token()` / `decide_experiment()`. Their decision fires `notify_proposal_decided()` again, this time on the sponsor's actual verdict.
+
+**Every step from 2 through 7 is a SECURITY DEFINER function or trigger.** No public page ever has direct RLS-governed write access to `lfg_experiments` or `lfg_proposal_reviews` beyond the single, narrow insert `propose.html` performs — everything downstream is mediated. This is the same pattern the sponsor-decision flow (`review.html`) already used before the team-review layer existed; the team layer was built to match it rather than invent a second convention.
 
 ---
 
@@ -374,194 +308,152 @@ Written Aug 8, published to the **getgrush repo** as `GRUSH-TOOL-CONTRACT.md` an
 ### Co-tenant architecture
 All `lfg_*` tables belong to Lancer Farms & Gardens. All `fgf_*` tables belong to Fun Guy Fungi. Shared tables: `grush_operators`, `grush_people`.
 
-### Tables — LFG
+### Tables — LFG (unchanged from Aug 8; see that section for the full list)
 
-**`lfg_config`** (9 rows) — Key/value farm config
-- `key` PK, `value`, `updated_at`
-- Keys: `farm_name`, `farm_lat`, `farm_lng`, `cloudinary_cloud`, `cloudinary_preset`, `visit_days`, `admin_password`, `donations_enabled`, `donations_url`
-- RLS: public read (except `admin_password`), operators update
+`lfg_config`, `lfg_growing_areas`, `lfg_master_plants`, `lfg_photos`, `lfg_tasks`, `lfg_task_completions`, `lfg_log`, `lfg_area_events`, `lfg_howto_cards`, `lfg_inventory`, `lfg_access_requests`, `lfg_comments`, `lfg_reports`, `lfg_requests`, `lfg_manual_entries`, `lfg_settings`, `lfg_visit_overrides` — structure as documented Aug 8. `lfg_access_requests.requested_role` was widened (migration `widen_access_request_roles`, Aug 20) to accept `staff | instructor | faculty` in addition to the original `crew | operator`, matching the six-tier rank system.
 
-**`lfg_growing_areas`** (35 rows) — All growing zones and landmarks
-- `id` UUID PK, `name`, `area_type` (raised_bed/tree/shrub/ground/container/other/zone/landmark), `zone`, `manager`, `description`, `blessing`, `blessing_ref`, `created_at`, `archived_at`, `sort_order`, `code`, `lat`, `lng`
-- **Added Aug 4 2026:** `width_ft` NUMERIC(5,2), `length_ft` NUMERIC(5,2), `soil_depth_in` NUMERIC(5,1), `sun_exposure` TEXT
-- RLS: public read (non-archived), operators update, anon insert
-- **Current data:** 23 raised beds (Zone 1: 10 beds 4×8, Zone 2: 6 beds 5×10, Zone 3: 7 beds 5×10, all 30" deep, all full sun), plus grove/grounds/landmarks
+### Tables — added since Aug 8
 
-**`lfg_master_plants`** (34 rows) — Plant database
-- Full agronomic profile: botanical name, planting windows, spacing, days to maturity, stage timeline (JSONB), transplant flag, temp ranges, approval workflow
-- `approval_status`: pending/approved/rejected
+**`lfg_experiments`** (migration `lfg_experiments_module`, Aug 17 2026, extended through Aug 21) — the lab proposal / experiment record. Columns as of Aug 21:
 
-**`lfg_photos`** (59 rows) — Photo records
-- Links to Cloudinary URLs, area FK, plant FK, approval workflow
-- `subject_type` for categorization
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `title` | text NOT NULL | |
+| `kind` | text NOT NULL, default `'proposal'` | |
+| `research_question`, `background`, `hypothesis`, `design`, `procedure`, `materials` | text | all nullable |
+| `approval_status` | text NOT NULL, default `'pending'` | see CHECK constraint below |
+| `submitted_by`, `submitted_by_email` | text | |
+| `sponsor_id`, `sponsor_name` | uuid / text | nullable — optional until a team lead finalizes |
+| `team_id` | uuid, FK → `lfg_teams` | nullable — added Aug 21, `null` means a legacy direct submission |
+| `requested_area_id`, `requested_location_label` | uuid / text | |
+| `approval_token` | uuid, default `gen_random_uuid()` | the sponsor's single-use-in-spirit (not enforced single-use) decision link credential |
+| `approval_token_expires_at`, `approval_token_used_at` | timestamptz | |
+| `reviewed_by`, `reviewed_at`, `review_note` | text / timestamptz / text | |
+| `status`, `start_date`, `end_date`, `description`, `created_by`, `created_at`, `archived_at` | — | pre-dates the proposal-specific fields; general experiment record |
 
-**`lfg_tasks`** (10 rows) — Task definitions
-- Recurrence types: visit/daily/weekly/biweekly/monthly/interval/one_time/seasonal
-- `recurrence_days` JSONB (array of weekday names for weekly tasks)
-- Links to `lfg_howto_cards` via `howto_id` and `howto_ids[]`
-- Priority 1–5, color, is_core flag
+**`approval_status` CHECK constraint** (fixed Aug 21, migration `fix_approval_status_check_constraint`): `ANY (ARRAY['new', 'team_review', 'pending', 'approved', 'rejected'])`. **This constraint was NOT updated when `'new'` and `'team_review'` were introduced as valid statuses** (migrations `proposal_chad_gate` and `team_review_workflow`) — it silently rejected every insert at either value with a generic Postgres error until a real end-to-end submission test on Aug 21 surfaced it. If you add a new `approval_status` value in the future, **check this constraint**, not just the RLS policy — they are two separate gates and both need updating.
 
-**`lfg_task_completions`** (9 rows) — Task log
-- `task_id` FK, `completed_by`, `visit_date`, `notes`, `task_title` (denormalized)
+**`lfg_proposal_reviews`** (migration `team_review_workflow`, Aug 21) — one row per team member per proposal under review.
 
-**`lfg_log`** (4 rows) — Field activity log
-- Area FK, note, logged_by, approval workflow, `group_id` for batch entries
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `experiment_id` | uuid NOT NULL, FK → `lfg_experiments`, ON DELETE CASCADE | |
+| `team_member_id` | uuid NOT NULL, FK → `lfg_team_members`, ON DELETE CASCADE | |
+| `review_token` | uuid NOT NULL UNIQUE, default `gen_random_uuid()` | the member's personal magic-link credential |
+| `response_type` | text, CHECK `IN ('agree','suggest_changes','alternative')` | null until they respond |
+| `note` | text | |
+| `responded_at` | timestamptz | null until they respond; presence of a value is what "responded" means everywhere else in the app |
+| `created_at` | timestamptz, default `now()` | |
 
-**`lfg_area_events`** (0 rows) — Planting/harvest events
-- Event types: planted/harvested/pruned/treated/fruited/removed/observed/other
-- Approval workflow
+RLS: locked to operators only (`grush_rank() >= 4`). No public policy — every access goes through the SECURITY DEFINER RPCs in section 6d.
 
-**`lfg_howto_cards`** (5 rows) — How-to card content
-- `title`, `summary`, `steps` JSONB (`[{text: "..."}]`), `materials` text, `safety_note`, `material_ids[]` UUID array
-- **Cards as of Aug 4 2026:** 4 pre-existing + "Build a removable shade structure for a raised bed" (added this session, 12 steps)
+**`lfg_teams`** (migration `create_lfg_teams`, Aug 20) — research teams.
 
-**`lfg_inventory`** (13 rows) — Supply inventory
-- `item_name`, `category`, `quantity`, `unit`, `par_level`, `notes`, `image_url`, `image_credit`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `name` | text NOT NULL | |
+| `faculty_sponsor` | text | display-only, informational — the real sponsor relationship lives on `lfg_experiments.sponsor_id/name` |
+| `current_research` | text | shown in the `propose.html` directory |
+| `active` | boolean, default `true` | |
+| `created_at` | timestamptz | |
 
-**`lfg_access_requests`** (1 row) — Staff access queue
-- `display_name`, `email`, `reason`, `requested_role` (crew/operator), `status` (new/approved/declined)
-- Insert triggers `notify_access_request()` → Resend email
+RLS: public SELECT where `active = true` (added Aug 21, migration `public_team_directory`) — needed so `propose.html`'s directory works for an anonymous visitor. Operator write access separately.
 
-**`lfg_comments`**, **`lfg_reports`**, **`lfg_requests`** — Community/issue tracking (all empty)
+**`lfg_team_members`** (migration `create_lfg_teams`, extended `add_team_leader_flag` Aug 20) — team roster.
 
-**`lfg_manual_entries`** (1 row) — CMS entries for manual sections
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `team_id` | uuid NOT NULL, FK → `lfg_teams` | |
+| `display_name` | text NOT NULL | |
+| `email` | text | CBU email — shown as a `mailto:` in the public directory |
+| `term` | text | e.g. a semester label, informational |
+| `joined_at` | date, default `CURRENT_DATE` | |
+| `left_at` | date | null means currently active |
+| `is_leader` | boolean, default `false` | exactly the flag both the directory and the finalize permission check key off of |
 
-**`lfg_settings`** (1 row) — JSONB settings (donation config)
+RLS: public SELECT limited to `is_leader = true and left_at is null` (migration `public_team_directory`, Aug 21) — **deliberately not a full-roster read.** Someone with an idea should be able to reach the person coordinating a team without every member's email becoming public. Operator write access separately.
 
-**`lfg_visit_overrides`** — Override visit day scheduling (empty)
+**Current seed data (as of Aug 21):** one active team, "Carbon Research Team," sponsored by Dr. Koo, three members — Fabio Da Costa Silva, Liesel Arden Young, Isabella V. Salazar (`is_leader = true`).
 
-### Tables — FGF (mirror of LFG schema, prefixed `fgf_`)
-Same structure as LFG tables. `fgf_growing_areas` has 7 rows (mushroom station/chamber types). Other FGF tables are empty — FGF site not yet built out.
+### Functions — added or changed since Aug 8
 
-### Shared tables
+All are SECURITY DEFINER unless noted.
 
-**`grush_operators`** (1 row) — Operator allowlist
-- `email` PK, `display_name`, `note`, `added_at`, `revoked_at`
-- Comment: "Signing in is NOT enough; the email must appear here and not be revoked."
+| Function | Purpose |
+|---|---|
+| `notify_proposal_submitted()` | Trigger. Emails the sponsor a decision link when `approval_status` becomes `'pending'`. Fires on **INSERT or UPDATE of `approval_status`** (widened Aug 21 so it also catches a team-lead forward, not only a legacy direct submission at insert time). |
+| `notify_proposal_decided()` | Trigger, UPDATE. Emails the student when the sponsor (or Chad, on reject) sets `approval_status` to `'approved'`/`'rejected'`. |
+| `get_experiment_by_token(p_token)` | Sponsor reads a proposal via their token, bypassing RLS. |
+| `decide_experiment(p_token, p_decision, p_note, p_reviewer_name)` | Sponsor's approve/reject action from `review.html`. |
+| `notify_proposal_new()` | Trigger. Emails Chad when a proposal reaches `approval_status = 'new'`. Fires on **INSERT or UPDATE**, so it catches a team-lead finalize as well as an insert. |
+| `notify_team_review()` | Trigger, AFTER INSERT. When a proposal lands at `approval_status = 'team_review'`, creates one `lfg_proposal_reviews` row per active team member and emails each their personal `team-review.html` link. |
+| `get_proposal_by_review_token(p_token)` | A team member reads the proposal, their own tier's status, and whether they're the leader, via their token. |
+| `get_team_responses(p_token)` | Everyone else's already-submitted responses on the same proposal — names and content, not tokens or contact info. |
+| `submit_team_response(p_token, p_response_type, p_note)` | A team member's agree/suggest/alternative response. Reusable — updates in place, not single-use. Refuses once the proposal has left `'team_review'`. |
+| `finalize_team_proposal(p_token, ...all fields..., p_sponsor_id, p_sponsor_name)` | **Leader-only**, enforced inside the function by checking `is_leader` on the token's team-member row. Saves the leader's edits and sets `approval_status = 'new'`. |
 
-**`grush_people`** (3 rows) — Crew roster (credential-free)
-- `site` (lfg/fgf), `display_name`, `active`, `sort_order`
+Functions unchanged since Aug 8 (`is_operator()`, `grush_track_view()`, `grush_total_views()`, `grush_weekly_digest()`, `set_updated_at()`, `lfg_calendar()`, `area_name_status()`) are not repeated here.
 
-### Functions
+### Migrations
 
-| Function | Type | Security | Search path | Notes |
-|---|---|---|---|---|
-| `set_updated_at()` | Trigger | Invoker | public | Sets `updated_at = now()` |
-| `is_operator()` | SQL stable | **DEFINER** | public, pg_temp | Checks JWT email in grush_operators. Must stay DEFINER for auth.jwt() access |
-| `lfg_calendar(date,date)` | SQL stable | Invoker | public | Returns unified calendar projection across log/photos/completions/events/tasks |
-| `area_name_status(text)` | SQL stable | Invoker | public | Fuzzy name lookup for growing areas |
-| `notify_access_request()` | PLpgSQL trigger | **DEFINER** | public,extensions,vault,pg_temp | Sends Resend email on new access request. Must stay DEFINER for vault access |
-| `grush_track_view(text,text)` | PLpgSQL | **DEFINER** | public | The **only** write path into `grush_page_views`. Validates site, normalises path (keeps `?b=CODE` on bed.html, strips query elsewhere), rejects overlong/bad paths |
-| `grush_total_views(text)` | SQL | **DEFINER** | public | Site-wide view sum, used by share.html |
-| `grush_weekly_digest(text,boolean)` | PLpgSQL | **DEFINER** | public | Builds and emails the pending-decisions report. `p_send=false` is a dry run: no email, no snapshot. Pending counts mirror admin.html's queue exactly (`approval_status='pending'`) |
+Migrations 1–41 (through `digest_twice_weekly`, Aug 5 2026) are as documented in earlier copies of this file — see git history if the detail is needed. **Migrations 42 onward, in order, names only** (the detailed narrative for Aug 9–Aug 17 was not reconstructed for this rewrite — see the note at the top of this document):
 
-### Migrations (in order)
-1. `lfg_full_schema_replay` — full schema baseline
-2. `add_photo_subject_type` — subject_type on photos
-3. `allow_update_photos_for_moderation` — RLS for photo approval
-4. `clone_lfg_schema_to_fgf` — FGF co-tenant tables
-5. `fgf_area_type_container_values` — FGF area type enum
-6. `grush_identity_core` — grush_operators, grush_people, is_operator()
-7. `seed_grush_people_roster` — initial crew names
-8. `areas_and_photo_links` — lat/lng, photo-plant FK
-9. `howto_cards` — lfg_howto_cards table
-10. `howto_chains` — howto_ids[] on tasks
-11. `inventory_images` — image_url/credit on inventory
-12. `add_check_admin_password_rpc` — admin password check RPC
-13. `restrict_admin_password_read` — RLS fence on admin_password key
-14. `add_is_operator_function` — is_operator() function
-15. `lfg_photos_operator_writes` — operator photo RLS
-16. `lfg_comments_moderation_rls` — comments RLS
-17. `lfg_operator_only_config_and_events` — config/events operator gates
-18. `revoke_check_admin_password_execute` — revoke public execute on password RPC
-19. `lfg_manual_entries_operator_writes` — manual entries RLS
-20. `lfg_operator_edits_areas_howto_plants` — areas/howto/plants operator writes
-21. `lfg_operator_approvals_log_reports_requests_tasks` — approval workflow RLS
-22. `fix_lfg_tasks_role_scope` — task RLS scope fix
-23. `lfg_zone1_renumber_add_two_beds` — Zone 1 bed numbering
-24. `lfg_calendar_projection_function` — lfg_calendar() function
-25. `lfg_master_plants_operator_update` — plants operator RLS
-26. `lfg_access_requests` — access request table + trigger
-27. `enable_pg_net_and_store_resend_secrets` — pg_net + vault secrets
-28. `notify_on_access_request` — notify_access_request() trigger
-29. `007_area_dedupe` — deduplicate growing areas
-30. `008_log_group_id` — group_id on lfg_log
-31. `lfg_growing_areas_code_and_coords` — code + lat/lng columns
-32. `add_bed_dimensions` — **width_ft, length_ft, soil_depth_in, sun_exposure** (Aug 4 2026)
-33. `fix_function_search_paths` — set_updated_at, lfg_calendar, area_name_status search paths fixed (Aug 4 2026)
-34. `grush_page_views_counter` — `grush_page_views` table + `grush_track_view()` (Aug 5 2026)
-35. `grush_total_views_function` — `grush_total_views()` (Aug 5 2026)
-36. `grush_weekly_digest` — `grush_view_snapshots` table + `grush_weekly_digest()` (Aug 5 2026)
-37. `grush_weekly_digest_fix_pending_predicates` — counted `approval_status<>'approved'`, which swept in **rejected** items and reported them as awaiting approval. Now `='pending'` (Aug 5 2026)
-38. `enable_pg_cron` — pg_cron extension (Aug 5 2026)
-39. `schedule_weekly_digest` — cron job `lfg-weekly-digest` (Aug 5 2026)
-40. `digest_heading_cadence_neutral` — heading "Farm week in review" → "Farm status", rewritten from the live definition rather than retyped (Aug 5 2026)
-41. `digest_twice_weekly` — schedule to Tuesday + Saturday (Aug 5 2026)
+42. `add_operator_role_tier` (Aug 8)
+43. `photo_consent_and_read_policy` (Aug 9)
+44. `area_events_plant_link` (Aug 9)
+45. `log_operator_autoapprove` (Aug 9)
+46. `operator_delete_rejected` (Aug 9)
+47. `photo_upload_acknowledgements` (Aug 9)
+48. `notify_pending_review` (Aug 9)
+49. `notify_pending_review_triggers` (Aug 9)
+50. `lfg_experiments_module` (Aug 17) — introduces `lfg_experiments`
+51. `lfg_experiment_readings_custom_area` (Aug 17)
+52. `lfg_experiment_files` (Aug 17)
+53. `lfg_experiments_template_section_model` (Aug 17)
+54. `lfg_experiments_structured_proposal_fields` (Aug 17)
+55. `lfg_donations_table` (Aug 17)
+56. `lfg_supply_donations_table` (Aug 17)
+57. `lab_proposal_faculty_and_review_workflow` (Aug 20) — introduces the sponsor token/`review.html` flow
+58. `lfg_experiments_add_requested_location` (Aug 20)
+59. `allow_public_file_attach_to_pending_proposals` (Aug 20)
+60. `lfg_experiments_add_submitted_by_email` (Aug 20)
+61. `lab_proposal_email_triggers` (Aug 20)
+62. `assessment_catalog_orders_and_results` (Aug 20)
+63. `student_auth_and_assessment_convergence` (Aug 20)
+64. `public_read_assessment_readings` (Aug 20)
+65. `create_lfg_teams` (Aug 20)
+66. `add_team_leader_flag` (Aug 20)
+67. `six_tier_rank_system` (Aug 20) — see section 6
+68. `widen_access_request_roles` (Aug 20)
+
+**Migrations 69 onward — Aug 20–21, fully documented, this session:**
+
+69. `proposal_chad_gate` — introduces `approval_status = 'new'`, the RLS policy restricting public inserts to that value, `notify_proposal_new()`, widens `notify_proposal_submitted()`'s trigger to fire on UPDATE as well as INSERT.
+70. `public_team_directory` — public SELECT on `lfg_teams` (active only) and `lfg_team_members` (leaders only), for `propose.html`'s directory.
+71. `team_review_workflow` — `lfg_experiments.team_id`, `lfg_proposal_reviews` table, `notify_team_review()`, `get_proposal_by_review_token()`, `get_team_responses()`, `submit_team_response()`, `finalize_team_proposal()`.
+72. `proposal_team_only` — tightens the RLS policy so a public insert may **only** land at `'team_review'`, removing the direct-to-`'new'` path entirely, matching the UI change that removed the "submit solo" option.
+73. `fix_approval_status_check_constraint` — the CHECK-constraint fix described above.
 
 ### Scheduled jobs (pg_cron)
 
-| Job | Schedule | Command |
-|---|---|---|
-| `lfg-weekly-digest` | `0 14 * * 2,6` | `select public.grush_weekly_digest('lfg', true);` |
+Unchanged since Aug 5 — see that section's original text for the DST note.
 
-- pg_cron evaluates schedules in **UTC**, and this database is set to UTC.
-  `14:00 UTC` = **07:00 America/Los_Angeles while PDT is in force**.
-- **DST, dated:** when PDT ends **Nov 1 2026** the send drifts to 06:00 local.
-  Reschedule to `0 15 * * 2,6` to hold 07:00, and reverse it in March.
-- The job is a handful of counts plus one HTTP call — no quiet window needed.
-  The time is chosen for when the report is worth reading.
-- Reschedule with `cron.schedule('lfg-weekly-digest', …)` — reusing the name
-  **replaces** the job. A new name would add a second job and double-send.
+### RLS summary — additions since Aug 8
 
-### RLS summary
-- **Public read:** growing areas (non-archived), config (except admin_password), photos (approved), master plants (approved), log, task completions, howto cards, people, inventory
-- **Operator write:** all tables — areas, tasks, photos, plants, log, events, comments, inventory, config, manual entries, howto cards
-- **Anon insert:** growing areas, log entries, comments, reports, requests, access requests, area events
-- **No public write:** config, operators table, settings
-- **`grush_page_views`:** RLS on, SELECT for anon+authenticated, **no INSERT/UPDATE policy** — all writes go through `grush_track_view()`
-- **`grush_view_snapshots`:** RLS on, **zero policies** — reachable only by the DEFINER digest function
+- **`lfg_experiments`:** public INSERT only at `approval_status = 'team_review'` (see migration 72 above — this is the current state; it was `'new'` then `'new' or 'team_review'` at earlier points in the same session, so don't trust an older copy of this doc or a stale comment in the code). Operator ALL access (`grush_rank() >= 4`).
+- **`lfg_proposal_reviews`:** operator-only, no public policy of any kind — every access goes through SECURITY DEFINER RPCs.
+- **`lfg_teams`:** public SELECT where `active = true`. Operator write.
+- **`lfg_team_members`:** public SELECT where `is_leader = true and left_at is null` only — not a full roster. Operator write.
 
 ---
 
 ## 8. Physical garden data
 
-**Location:** 33.9281° N, 117.4302° W (Hawthorne House, Colony area, CBU)
-**USDA Zone:** 9b
-**CIMIS ETo Zone:** 9 — South Coast marine-to-desert transition, ~55.1 in/year
-
-**Beds:**
-
-| Zone | Count | Size | Area | Soil depth | Sun | Irrigation station |
-|---|---|---|---|---|---|---|
-| Zone 1 | 10 | 4 × 8 ft | 320 sq ft | 30 in | Full | Station A |
-| Zone 2 | 6 | 5 × 10 ft | 300 sq ft | 30 in | Full | Station B |
-| Zone 3 | 7 | 5 × 10 ft | 350 sq ft | 30 in | Full | Station C |
-| **Total** | **23** | | **970 sq ft** | | | |
-
-**Soil volume:** ~81 cu yd at 27" fill (3" freeboard), ~90 cu yd at full 30" fill
-**Settling:** ~1.5 in/year typical → ~3 cu yd annual replacement needed
-
-**Irrigation:**
-- Controller: Irritrol Rain Dial series, 3 zones for garden beds (sequential), citrus on separate program
-- Measured supply: 3.3 GPM at zone valve (90 sec to fill 5-gal bucket)
-- Design emitter: 0.4 GPH pressure-compensating inline dripline
-- Regulator: 25 PSI at each zone valve
-- Filter: 155-mesh inline before regulator
-- Beds 1A and 1B: prototype PVC manifold with Orbit screw-in manifolds (installed summer 2026)
-- Remaining 21 beds: upgrade pending (see irrigation-bom.html for full spec)
-
-**Irrigation schedule (CIMIS Zone 9, 0.4 GPH emitters, 85% efficiency):**
-
-| Month | Interval | Zone 1 runtime | Zone 2–3 runtime |
-|---|---|---|---|
-| Jan | 3 days | 31 min | 29 min |
-| Feb | 3 days | 44 min | 41 min |
-| Mar–Oct | Daily | 19–35 min | 18–33 min |
-| Jul (peak) | Daily | 35 min | 33 min |
-| Nov | 3 days | 40 min | 37 min |
-| Dec | 3 days | 26 min | 25 min |
-
-**Rain Dial Water Budget percentages:** Jul=100%, Jun/Aug=92%, May/Sep=79%, Apr=71%, Mar/Oct=54%, Nov=38%, Feb=42%, Dec=25%, Jan=29%
+Unchanged since Aug 8 — see that section's original text.
 
 ---
 
@@ -570,193 +462,93 @@ Same structure as LFG tables. `fgf_growing_areas` has 7 rows (mushroom station/c
 | Name | Role | Notes |
 |---|---|---|
 | Chad Pattengale | Caretaker / developer | chad@getgrush.com |
-| Julie Ratzlaff | Lab Director, immediate supervisor | Out until mid-August |
-| Dr. Jacob Lanphere | Env. Science faculty, founding advisor | Returns Aug 17 |
-| Dr. Bonjun Koo | Env. Science program director | Meeting Aug 18 |
+| Dr. Jacob Lanphere | Env. Science faculty, founding advisor | |
+| Dr. Bonjun Koo | Env. Science program director | Sponsors the Carbon Research Team |
+| Isabella V. Salazar | Carbon Research Team lead | |
+| Fabio Da Costa Silva | Carbon Research Team member | |
+| Liesel Arden Young | Carbon Research Team member | |
 
 ---
 
 ## 10. Rebuild procedure
 
-### Step 1 — GitHub repo
-Create public repo `pattengalec/lancerfarms-v2`. Enable GitHub Pages on `main` branch, root folder. Add `CNAME` file containing `lancerfarms.com`.
+Steps 1–4 and 7–9 are unchanged since Aug 8 — see that section's original text.
 
-### Step 2 — Supabase project
-Create project in Grush organization, us-east-2. Run all migrations in the order listed in section 7 above. The migration files are not in the GitHub repo — they exist only in Supabase's migration history. Reconstruct from the schema in section 7 if rebuilding from zero.
+### Step 5 — Seed data (updated)
+- Insert operator email into `grush_operators`, with a `role` **and `rank`** matching the six-tier system in section 6 — the first one should be `rank = 5` (owner).
+- Seed `lfg_config`, `grush_people`, `lfg_growing_areas`, `lfg_master_plants`, `lfg_inventory`, `lfg_howto_cards` as before.
+- **Seed `lfg_teams`** with at least one active team, and **`lfg_team_members`** with at least one row where `is_leader = true` and `left_at IS NULL` — without this, `propose.html`'s directory is empty and nobody can submit a proposal at all, since the site no longer offers a direct-to-Chad path.
 
-### Step 3 — lfg-config.js
-This file is in the repo and contains the public anon key. If the Supabase project is recreated, update `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
-
-### Step 4 — Cloudinary
-Create upload preset `lfg-photos` on cloud `ddbsuxerb` (unsigned, folder: `lfg`). If using a new cloud, update `lfg-config.js`.
-
-### Step 5 — Seed data
-- Insert operator email into `grush_operators`, **with a `role`** — `'admin'` for the first one, or nothing works
-- Seed `lfg_config` with: `farm_name`, `farm_lat`, `farm_lng`, `cloudinary_cloud`, `cloudinary_preset`, `visit_days`, `admin_password`
-- Seed `grush_people` with crew names
-- Seed `lfg_growing_areas` with the 35 records (23 beds + grove/grounds/landmarks)
-- Seed `lfg_master_plants` (36 records), `lfg_inventory` (13 records), `lfg_howto_cards` (7 records)
-
-### Step 6 — Vault secrets (for access request emails)
-In Supabase Vault: add `resend_api_key`, `notify_email_to`, `notify_email_from`.
-
-### Step 7 — DNS
-Point `lancerfarms.com` A record or CNAME to GitHub Pages. Verify HTTPS is enabled in repo Settings → Pages.
-
-### Step 8 — Upload all files
-Upload all 20 HTML files, every `.js` and `.css` listed in section 4, and the image assets to `main`.
-
-**Load order is load-bearing** on any page that talks to the database:
-
-```
-1. https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
-2. lfg-config.js      supplies URL + anon key
-3. lfg-db.js          creates the one client
-4. grush-auth.js      borrows it — only on pages that need identity
-```
-
-Getting 2 and 3 the wrong way round fails silently: `lfg-db.js` logs a warning and every query returns nothing.
-
-### Step 9 — Verify the removal test
-Before calling a rebuild done, run the procedure in section 6a. If deleting the Grush layer leaves a dangling reference on a public page, the seam has leaked and the deployment is not clean.
+### Step 6 — Vault secrets (updated)
+Add `resend_api_key`, `notify_email_to`, `notify_email_from`. **`notify_email_from` must be an address on a Resend-verified domain**, or every email to anyone but the Resend account's own owner will be silently rejected — see section 2 and section 11.
 
 ---
 
-## 11. Open items (as of Aug 8 2026)
+## 11. Open items (as of Aug 21 2026)
 
 | Item | Priority | Notes |
 |---|---|---|
-| ~~Staff gate in mixbench.html~~ | ✅ Aug 8 | Gate was dead and is **removed**. The estimator is open to everyone; nothing there is private. See section 6c. |
-| Plant illustrations | High | **All 36 plants have `stock_image_url` empty.** learn.html ships text-first by design. Planned mechanism: a GitHub Action fetching PD-only botanical illustrations from Wikimedia (`<Botanical name> - botanical illustrations`), restricted to PD-Old / CC-PD-Mark, recording source + author per image |
-| ~~8 placeholder rows in `lfg_master_plants`~~ | ✅ Aug 8 | All completed. 36 plants, every one with a botanical name, common name and summary. Mint was split into Spearmint / Peppermint / Apple Mint; "Kabotia" corrected to Kabocha Squash; Borage recategorised Shrub → Herb. |
-| `plant-autofill.ts` Edge Function | Medium | Written, **not deployed**. The unbuilt piece of the Learn/Do content pipeline |
-| `lfg_manual_entries` has 1 row | Medium | The manual's topic/tab system is nearly empty. The 7 written procedures live in `lfg_howto_cards` and are now listed on the manual home, but no topic mapping exists |
-| Financials tab | Medium | Stub only, under **Records** in admin.html. No financial table exists. Schema decision pending: plain ledger vs. ledger with purchase-order approval states |
-| DST reschedule of `lfg-weekly-digest` | Low | **Nov 1 2026** — see Scheduled jobs above |
-| Purchase order approver signature | Medium | `LFG PO Bed QR Signs v004.docx` — $45.63, unsigned. Approver not yet named |
-| Bed QR signs fabrication | Medium | Cards printed to `bed-qr-cards.pdf`; cedar/laminate/mount steps written as how-to cards parts 1–3. Signs not yet mounted, so per-bed view counts are all zero |
-| sun_exposure field populated | Low | All 23 beds currently `full`. Field exists for future beds under shade |
-| irrigation retrofit hardware purchased + installed | High | BOM at irrigation-bom.html. ~$838 + 15% contingency. Needs Facilities for controller reprogramming. |
-| Email to Julie Ratzlaff re: garden budget | High | Draft after Lanphere review Aug 17, Koo conversation Aug 18 |
-| Supabase: is_operator() callable by anon | Advisory | Intentional — function needs DEFINER context. Documented, not fixable without breaking auth. |
-| Supabase: notify_access_request() callable by anon | Advisory | Intentional — needs DEFINER for vault access. |
-| Empty Cottages project (muecvqxsqnhkhjrabtxh) | Low | Delete from Grush org when ready. Blank project, no data. |
-| Spanish review by a native speaker | Medium | `i18n.js` es strings are unreviewed. Low risk on tiles; higher on anything a stranger acts on. |
-| mixbench / triage Spanish | Medium | Currently machine-translated along with everything else. A mistranslated dilution ratio is a safety problem, not a UX one. Hand-translate if crew start relying on them in Spanish. |
-| Grush tool style not migrated | Low | mixbench and irrigation-bom still use the navy/cyan palette that predates `grush-theme.css`. Two Grush looks co-exist. |
-| `desk.html` 2×2 uses `localStorage` | Low | The tool contract says ephemeral state is `sessionStorage`. A visitor's slot choices currently outlive the visit. |
-| i18n only covers visitor chrome | Low | 35 keys. The manual, triage tree and plant records are browser-translated by design — see section 6b. |
+| **Resend domain verification for lancerfarms.com** | High | Submitted Aug 21; DNS records (DKIM, MX, SPF, DMARC) added at Namecheap. Propagation can take a few hours. Once verified: update `notify_email_from` vault secret to a `lancerfarms.com` address, then re-test the team-review notification chain end to end with a real email delivery, not just the DB rows. |
+| **Team-review pipeline: DB-verified, email delivery not yet confirmed** | High | The full chain — insert, trigger, `lfg_proposal_reviews` rows, tokens — was tested and confirmed correct in the database on Aug 21. The Resend sandbox restriction (see section 2) meant the actual emails to Fabio, Liesel, and Isabella were never delivered. Re-test once the domain verifies. |
+| ~~Direct-to-Chad proposal submission~~ | ✅ Aug 21 | Removed by design decision — every proposal now must go through a team. See section 6d. |
+| ~~i18n / Spanish translation layer~~ | ✅ Aug 21 | Removed entirely rather than fixed — see section 6b. |
+| ~~"Propose a lab" under Tools~~ | ✅ Aug 21 | Moved to the locked CBU Student tier. |
+| Plant illustrations | High | Unchanged since Aug 8 — see that section. |
+| `plant-autofill.ts` Edge Function | Medium | Unchanged since Aug 8. |
+| Financials tab | Medium | Unchanged since Aug 8. |
+| DST reschedule of `lfg-weekly-digest` | Low | **Nov 1 2026** — unchanged since Aug 8. |
+| Bed QR signs fabrication | Medium | Unchanged since Aug 8. |
+| irrigation retrofit hardware purchased + installed | High | Unchanged since Aug 8. |
+| Aug 9–17 migrations undocumented in narrative form | Low | See the note at the top of this document and the bare migration list in section 7. Worth a proper writeup if anyone has the context. |
+| Grush tool style not migrated | Low | Unchanged since Aug 8. |
+| `desk.html` 2×2 uses `localStorage` | Low | Unchanged since Aug 8. |
+| Team management UI (`admin.html`) | Low | `lfg_teams`/`lfg_team_members` exist and are seeded; no admin page manages them yet — listed `soon:true` in the Faculty tier. |
 
 ---
 
 ## 12. Session history
 
+### August 20–21, 2026
+
+Carried over from a prior "Research team kickoff" session: battle-test the six-tier drawer, README, and several smaller items. What actually happened, roughly in order:
+
+**Six-tier drawer confirmed live.** Verified by direct testing (screenshots against the running site, not just code review) that all six tiers, correct lock states, and correct sign-in CTAs render exactly as coded on `desk.html`.
+
+**`desk.html` gained an accordion + Request Access pattern.** It had its own older, flat menu renderer that predated the pattern `grush-nav.js` already used everywhere else — locked tiers showed items flat and disabled with a single generic "sign in" button, no way to preview what was inside without already having access. Rebuilt to match: closed-by-default `<details>` per tier, a dimmed item preview for locked tiers, the existing sign-in CTA kept, and a new Request Access button underneath that writes to `lfg_access_requests` — the same table the homepage's "Work here?" form and `grush-nav.js`'s drawer both already used.
+
+**The Spanish/i18n layer was removed, not fixed.** Investigation found the ES toggle only ever covered a sliver of the site (three tiles, a couple of headings) and gave no active guidance toward the browser's native translation for everything else — it read as broken. Rather than widen coverage, the whole layer was deleted: `i18n.js` removed from the repo, the switch UI removed from `index.html`/`visitor.html`, `data-i18n` attributes stripped from six pages.
+
+**The lab proposal gate was built, then rebuilt twice as requirements sharpened.** First pass: proposals landed as `'new'` and Chad had to explicitly forward them before a sponsor ever saw them — a genuine gap before this, where the site emailed the sponsor the instant a student submitted, with no review step for Chad at all. Second pass, after Chad proposed the idea of routing proposals through a research team first: a team-review stage was added in front of the Chad gate, with per-member response tokens and a leader-only finalize action. Third pass, after live testing: the direct-to-Chad path was removed outright, at Chad's explicit request, once he saw that leaving it in place undermined the whole point of routing through a team.
+
+**A public team directory was added to `propose.html`**, deliberately narrow — only teams with a documented, currently-active leader are shown, and only that leader's contact info is exposed (their CBU email, not a full roster). This was itself iterated once: an early version fell back to a solo-submission form if no team qualified, which stopped making sense once solo submission was removed entirely, and was replaced with a plain "email Chad directly" message instead.
+
+**A real end-to-end test caught a genuine schema bug.** A live submission through `propose.html` failed with a generic "submission failed" error. Root cause, found via Postgres logs: a CHECK constraint on `lfg_experiments.approval_status`, left over from before this session's work, still only allowed `pending/approved/rejected` — the RLS policy had been updated to allow `'new'` and `'team_review'`, but the CHECK constraint, a separate gate, had not. Fixed, and the same test proposal (a real fungal strain bank research proposal Chad co-drafted for the Carbon Research Team) was resubmitted successfully — confirmed in the database down to all three team members' review tokens.
+
+**That same real test then surfaced a second, external problem:** the Resend account was still using its shared sandbox sender address (`onboarding@resend.dev`), which can only deliver to the account owner's own inbox. Every notification this site had ever sent up to that point happened to be addressed to Chad, so this had never been caught. The moment a notification needed to reach someone else — Fabio, Liesel, Isabella — it silently failed. Diagnosed via Resend's own delivery logs (`net._http_response`), not guesswork. Chad began domain verification for `lancerfarms.com` at Resend, added the required DNS records at Namecheap (DKIM, MX, SPF, DMARC), and it was propagating, unresolved, at the end of the session — see section 11.
+
+**A wrong Resend account was found and worked around mid-session.** Logging into Resend via a fresh GitHub OAuth grant landed in a different, empty account than the one already sending Chad's emails — the working account required logging in with `chad@getgrush.com` credentials specifically, reached through the "getgrush" workspace. Documented in section 3 so it isn't rediscovered the hard way again.
+
+**This README was brought back into alignment with reality.** It had drifted significantly — not just from tonight's work, but from roughly thirty undocumented migrations between Aug 8 and Aug 20 covering assessments, donations, photo consent, the experiments module, and the six-tier rank system itself. Rather than fabricate a detailed history for a period not directly witnessed, that gap is flagged explicitly (see the note at the top of this document) with the migration names preserved and the narrative left for whoever has the context to fill in.
+
+---
+
 ### August 8, 2026
 
-The longest session so far. Roughly in order:
-
-**Data.** Eight plant records completed — the weekly digest had flagged them for weeks. Mint split into three species, "Kabotia" corrected to Kabocha Squash, Borage recategorised. `lfg_master_plants` now 36 rows with no gaps.
-
-**Three-tier auth.** `grush_operators.role` added; `grush_role()` written as SECURITY DEFINER. Chad set to `admin`.
-
-**`desk.html` built** — tiered menu, 2×2 glove desktop, drag via Pointer Events, `?preview=` for checking other tiers.
-
-**The Grush layer became removable.** `lfg-db.js` split out of `grush-auth.js` so six public pages stopped importing identity to reach a database client. The removal test now passes site-wide. A regression was caught mid-way: `almanac.html` needed the identity stack after all, for `grush-nav`'s staff group, and got it back inside a marked block.
-
-**The mark.** Designed in Canva (deep-orange baseball script, no swoosh), keyed to true transparency by hand because Canva's transparent export could not clear an image background. Placed at the foot of the desk drawer. Canonical copy plus `grush-brand.css` published to the getgrush repo; `grush_badge_rect.png` deleted as an unused orphan whose cyan appeared nowhere in the palette.
-
-**Tracking extracted.** `grush-track.js` split from `grush-nav.js`, so a page can be counted without inheriting a nav rail. Coverage 12 → 17 pages. Paths normalised at write time (`/index.html` → `/`) so one page cannot split across two rows.
-
-**The tool contract** written and published, then made load-bearing: `mixbench.html` and `irrigation-bom.html` both refitted onto `grush-tool.js`, shedding 4,688 and 3,608 bytes of hand-rolled implementation.
-
-**`mixbench`'s estimator turned on** after months invisible to every user.
-
-**`index.html`** lost `chooseRole()` and gained share metadata it never had.
-
-**Tiering resolved** on the contract's own line: Tools open to everyone, Staff and Admin locked. `manual.html` came out from behind a login it never needed. `features.html` finally linked.
-
-**`triage.html` rewritten** — 392 duplicated lines removed, a dead handler found, five leaks fixed, palette and labels rebuilt for readability.
-
-**Languages.** Old dictionary discarded (0 of 38 keys matched the live copy), rebuilt as en+es, with the site made translatable for everything else.
-
-**Bugs I introduced and then fixed in the same session:** a reload loop from wiring `location.reload()` to `grush:auth`, and a wiped Sign-out button from appending it before a call that clears the menu. Both were violations of contracts documented in the files I was editing.
+*(unchanged from earlier copies of this file — see git history)*
 
 ### August 5, 2026
 
-**New files:**
-- `see.html` — photo gallery, 58 approved photos, zone filters, lightbox
-- `learn.html` — plant knowledge base, 26 plants, text-first
-- `do.html` — bed soil volume + harvest date calculators
-- `share.html` — visit counter, moderated notes, share link
-- `bed-qr-cards.pdf` — 23 print-ready QR cards, 4-up, error-correction H
-
-**Modified files:**
-- `visitor.html` — rebuilt as the four-tile hub; `NOT_BUILT` now empty, all tiles live
-- `admin.html` — **12 tabs consolidated into 5 groups** (Review / Work / Farm / Records / People).
-  Two tabs were both labelled "Requests": `lfg_requests` is now **Supplies**,
-  `lfg_access_requests` is **Requests**. The access-request tab had been in
-  position 12, off the right edge on a phone, which is why a request sat unseen
-  for three days. Panel markup and every `load*()` function were left untouched —
-  47 data-layer calls before and after. Sub-tabs are pills, not a second row of
-  underlined tabs, so the shape tells you which depth you are at.
-- `app.html` — Manual tile called `go('manual')`, but `#screen-manual` never
-  existed, so it cleared every panel and left the tool blank. Now opens
-  `manual.html`. `go()` falls back to the hub instead of blanking. Log tile's
-  text wrapper made a flex column — it had been rendering "LogActivity · problem · need"
-  on one line because the primary tile lays out in a row.
-- `manual.html` — restyled to repo conventions: `IM Fell English` → **Fraunces**;
-  palette rebuilt on the nine repo tokens with the old names kept as aliases;
-  body text was `--forest` (pale sage), now `--ink`; removed `maximum-scale=1.0`
-  which blocked pinch-zoom; added `color-scheme` meta; `Inter` was referenced
-  7× and never loaded. Removed the "← App" and Admin buttons and the duplicate
-  nav row — Mix Bench and Irrigation BOM existed **only** there, so they moved
-  into the drawer first. `--terra` was used but never defined, so the Remove
-  button rendered white text on no background. Added a **Field how-tos** list
-  surfacing all 7 `lfg_howto_cards` procedures, each linking to `howto.html?id=`.
-- `howto.html` — steps support an optional `url` + `url_label` button
-- `grush-nav.js` — page-view tracking on every page; staff pages excluded
-
-**Database:**
-- Migrations 34–41 (see list above): page-view counter, total-views function,
-  weekly digest, pending-predicate fix, pg_cron, schedule, heading, twice-weekly
-- `grush_page_views` — RLS on, read-only to clients; `grush_track_view()` is the only writer
-- `grush_view_snapshots` — RLS on, **no policies**; only the digest function reaches it
-- Digest scheduled **Tuesday + Saturday 07:00 Pacific**; first send delivered and confirmed
-- How-to cards: bed QR signs split into **parts 1–3** (5 / 7 / 7 steps)
-
-**Corrections made to earlier assumptions during this session:**
-- The 8 problem rows in `lfg_master_plants` are fully blank placeholders, not
-  named plants missing a botanical name
-- The 12 plants without `days_to_maturity` are all trees, shrubs or perennials.
-  The data is complete wherever the measure applies — Do was never blocked
-- Shipping Learn without images does not violate the accuracy rule. The rule is
-  don't fabricate; an honest blank is fine
-
----
+*(unchanged from earlier copies of this file — see git history)*
 
 ### August 4, 2026
 
-**New files:**
-- `mixbench.html` — Mix Bench teaching configurator + chemical estimator + water demand calculator + irrigation BOM (all in one)
-- `irrigation-bom.html` — Standalone drip irrigation bill of materials calculator
-- `visitor.html` — Public-facing farm landing page
-- `about-grush.html` — Redirect to getgrush.com
-
-**Modified files:**
-- `manual.html` — Added Mix Bench + Irrigation BOM to nav and as tool cards in Irrigation and Pest sections
-- `app.html` — Added Mix Bench + Irrigation BOM to Learn menu
-- `data.html` — Added Mix Bench + Irrigation BOM to Learn menu
-
-**Database (Supabase):**
-- Migration `add_bed_dimensions`: added `width_ft`, `length_ft`, `soil_depth_in`, `sun_exposure` to `lfg_growing_areas`; seeded all 23 beds with measured dimensions
-- Migration `fix_function_search_paths`: fixed `set_updated_at`, `lfg_calendar`, `area_name_status` search_path advisories; switched `area_name_status` from SECURITY DEFINER to INVOKER
-- Inserted how-to card: "Build a removable shade structure for a raised bed" (12 steps, `lfg_howto_cards`)
-
-**Security:**
-- Removed `#staff` URL bypass from `mixbench.html` staff gate
+*(unchanged from earlier copies of this file — see git history)*
 
 ---
 
-*README updated August 5, 2026. Every figure in this document was verified against
-the live site and Supabase project `gblizuknnvguxyxfequh` at time of writing —
-file sizes from the repository tree, row counts and policies from the database.*
+*README updated August 21, 2026. Sections 4, 5, 6, 6b, 6d, 7, 9, 10, 11 and the
+top of 12 were verified against the live repository and Supabase project
+`gblizuknnvguxyxfequh` at time of writing. Sections 1, 2 (partially), 3
+(partially), 6a, 6c, 8, and the Aug 4/5/8 entries in section 12 are carried
+over from the Aug 8 2026 version of this document and were not independently
+re-verified in this pass.*
