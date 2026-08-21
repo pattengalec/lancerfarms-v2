@@ -173,6 +173,40 @@ body{
 .tier-cta .cta-action{font-size:1rem; font-weight:700;}
 .tier-cta .cta-why{font-size:.82rem; line-height:1.45; color:var(--desk-dim);}
 
+/* ── access accordion ──
+   Every labelled tier -- open or locked -- renders closed by default,
+   native <details> so there is no toggle state to manage by hand. This
+   mirrors grush-nav.js's pattern; desk.html kept its own flat renderer
+   because it predates that pattern and needs the + add-to-desk button
+   the shared drawer doesn't have. */
+.tier-acc{margin:0 10px 10px; border:1.5px solid var(--desk-line); border-radius:12px; overflow:hidden;}
+.tier-acc > summary{list-style:none; cursor:pointer; padding:14px 16px; display:flex;
+  align-items:center; justify-content:space-between; gap:8px;
+  font:700 .68rem/1 var(--font-mono,ui-monospace,monospace);
+  letter-spacing:.16em; text-transform:uppercase; color:var(--desk-accent);
+  -webkit-tap-highlight-color:transparent;}
+.tier-acc > summary::-webkit-details-marker{display:none;}
+.tier-acc > summary::after{content:'\25BE'; font-size:.9rem; transition:transform .2s ease; flex:none;}
+.tier-acc[open] > summary::after{transform:rotate(180deg);}
+.tier-acc-body{padding:0 0 10px;}
+.tier-acc-body .row{margin-left:10px; margin-right:10px;}
+
+/* Locked-tier preview row: the real item, shown dimmed, not interactive.
+   No + button -- you cannot add to your desk what you cannot open. */
+.locked-row{display:flex; align-items:center; gap:14px; min-height:56px;
+  padding:0 14px; margin:0 10px 8px; color:var(--desk-dim);
+  font:600 1.02rem/1.25 inherit; opacity:.7;}
+.locked-row .ic{font-size:1.4rem; flex:none; width:28px; text-align:center;}
+
+.req-wrap{padding:4px 10px 12px;}
+.req-btn{width:100%; min-height:52px; border-radius:12px;
+  border:1.5px dashed var(--desk-line); background:transparent; color:#F0EDE2;
+  font:600 .95rem/1 inherit; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.req-btn:active{background:var(--desk-cell);}
+.req-msg{font-size:.78rem; color:var(--desk-dim); padding:8px 2px 0; min-height:1.2em;}
+.req-in{width:100%; min-height:48px; margin-top:8px; padding:0 12px; border-radius:10px;
+  border:1.5px solid var(--desk-line); background:var(--desk-cell); color:#F0EDE2; font:inherit;}
+
 /* ── RIGHT: the desk ── */
 .desk{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; padding:20px; gap:16px;}
 .desk-head{flex:0 0 auto; display:flex; align-items:center; gap:12px;}
@@ -412,6 +446,76 @@ window.GrushDesk = (function(){
     toast((f ? f.item.label : 'Button') + ' cleared.');
   }
 
+  /* Locked-tier body: dimmed preview of the real items (no + — you cannot
+     add to your desk what you cannot open), the existing sign-in CTA if
+     the overlay supplied one, and a Request Access button underneath that
+     expands to name/email and writes to lfg_access_requests — the same
+     table grush-nav.js and index.html's "Work here?" form already use.
+     Sign In and Request Access serve different people: Sign In is for
+     someone already on the operator allowlist, Request Access is for
+     someone who wants to get on it. Both belong. */
+  function buildRequestAccess(tier){
+    var wrap = document.createElement('div');
+    wrap.className = 'req-wrap';
+
+    /* Nothing to request yet — the program itself isn't approved. */
+    if (tier.id === 'student'){
+      var soon = document.createElement('div');
+      soon.className = 'req-msg';
+      soon.textContent = 'Coming soon \u2014 pending campus approval.';
+      wrap.appendChild(soon);
+      return wrap;
+    }
+
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'req-btn'; btn.textContent = 'Request access';
+
+    var form = document.createElement('div');
+    form.style.display = 'none';
+    var nameIn = document.createElement('input');
+    nameIn.className = 'req-in'; nameIn.type = 'text'; nameIn.placeholder = 'Your name';
+    var emailIn = document.createElement('input');
+    emailIn.className = 'req-in'; emailIn.type = 'email'; emailIn.placeholder = 'you@example.com';
+    emailIn.autocapitalize = 'off'; emailIn.spellcheck = false;
+    form.appendChild(nameIn); form.appendChild(emailIn);
+
+    var msg = document.createElement('div');
+    msg.className = 'req-msg';
+
+    btn.addEventListener('click', function(){
+      if (form.style.display === 'none'){
+        form.style.display = 'block';
+        btn.textContent = 'Send request';
+        nameIn.focus();
+        return;
+      }
+      var name = nameIn.value.trim();
+      var email = emailIn.value.trim();
+      if (!name){ msg.textContent = 'Please give your name.'; return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent = 'That email does not look right.'; return; }
+
+      var G; try{ G = GRUSH; }catch(e){ G = undefined; }
+      if (!G || !G.sb){ msg.textContent = 'Requests are unavailable right now \u2014 try the homepage.'; return; }
+
+      btn.disabled = true; msg.textContent = 'Sending\u2026';
+      G.sb.from('lfg_access_requests').insert({
+        display_name: name, email: email, requested_role: tier.id
+      }).then(function(res){
+        if (res.error){
+          msg.textContent = 'Could not send: ' + (res.error.message || 'please try again');
+          btn.disabled = false;
+          return;
+        }
+        msg.textContent = 'Sent \u2014 Chad will get you set up.';
+        form.style.display = 'none';
+        btn.style.display = 'none';
+      });
+    });
+
+    wrap.appendChild(btn); wrap.appendChild(form); wrap.appendChild(msg);
+    return wrap;
+  }
+
   function renderMenu(){
     menuScroll.innerHTML = '';
     TIERS.forEach(function(tier){
@@ -426,57 +530,93 @@ window.GrushDesk = (function(){
       var locked = tier.locked && !gate(tier.id);
 
       /* A tier may declare no label. One item under a heading is furniture,
-         and the emergency row has to be the first thing in the drawer. */
-      if(tier.label){
-        var lb = document.createElement('div');
-        lb.className = 'tier-label';
-        lb.innerHTML = '<span class="dot" style="background:' + tier.color + '"></span>' +
-                       '<span>' + tier.label + '</span>' +
-                       (locked ? '<span class="lock">\u{1F512} Locked</span>' : '');
-        menuScroll.appendChild(lb);
+         and the emergency row has to be the first thing in the drawer, so
+         it stays flat and always visible — never behind a tap. */
+      if(!tier.label){
+        tier.items.forEach(function(it){
+          var row = document.createElement('div');
+          row.className = 'row row-' + tier.id;
+
+          var go = document.createElement('a');
+          go.className = 'go'; go.href = it.href;
+          go.innerHTML = '<span class="ic">' + it.icon + '</span><span>' + it.label + '</span>';
+
+          var add = document.createElement('button');
+          add.className = 'add'; add.type = 'button'; add.textContent = '+';
+          add.setAttribute('aria-label','Add ' + it.label + ' to your desk');
+          /* The emergency row has no + at all — a desk slot holding it is a
+             slot someone fills with something else on the day it matters. */
+          add.disabled = true; add.tabIndex = -1;
+
+          row.appendChild(go); row.appendChild(add);
+          menuScroll.appendChild(row);
+        });
+        return;
       }
 
-      tier.items.forEach(function(it){
-        var row = document.createElement('div');
-        row.className = 'row row-' + tier.id + (locked ? ' locked' : '');
+      /* Every labelled tier is a closed-by-default accordion — open or
+         locked, so a visitor and an operator see the same six doors and
+         only some of them open on the first tap. Matches grush-nav.js's
+         drawer on every other page. */
+      var details = document.createElement('details');
+      details.className = 'tier-acc';
 
-        var go = document.createElement('a');
-        go.className = 'go';
-        go.href = locked ? '#' : it.href;
-        if (locked){ go.setAttribute('aria-disabled','true'); go.tabIndex = -1; }
-        go.innerHTML = '<span class="ic">' + it.icon + '</span><span>' + it.label + '</span>';
+      var summary = document.createElement('summary');
+      summary.style.color = tier.color;
+      summary.textContent = tier.label + (locked ? '  \u{1F512}' : '');
+      details.appendChild(summary);
 
-        var add = document.createElement('button');
-        add.className = 'add'; add.type = 'button'; add.textContent = '+';
-        add.setAttribute('aria-label','Add ' + it.label + ' to your desk');
-        if (locked) add.disabled = true;
-        /* The emergency row has no + at all — a desk slot holding it is a
-           slot someone fills with something else on the day it matters. */
-        if (tier.id === 'emergency'){ add.disabled = true; add.tabIndex = -1; }
-        add.addEventListener('click', function(){ addToDesk(it.href); });
-        if (!locked && tier.id !== 'emergency') attachDrag(add, it);
+      var body = document.createElement('div');
+      body.className = 'tier-acc-body';
 
-        row.appendChild(go); row.appendChild(add);
-        menuScroll.appendChild(row);
-      });
+      if (locked){
+        tier.items.forEach(function(it){
+          var lr = document.createElement('div');
+          lr.className = 'locked-row';
+          lr.innerHTML = '<span class="ic">' + it.icon + '</span><span>' + it.label + '</span>';
+          body.appendChild(lr);
+        });
+        /* The overlay's sign-in CTA, unchanged, for someone already on
+           the allowlist who hasn't signed in on this device yet. */
+        if (tier.cta){
+          var cta = document.createElement('button');
+          cta.className = 'tier-cta'; cta.type = 'button';
+          cta.innerHTML = '<span class="cta-action">' + tier.cta.action + '</span>' +
+                          '<span class="cta-why">' + tier.cta.why + '</span>';
+          cta.addEventListener('click', function(){ tier.cta.onClick && tier.cta.onClick(tier.id); });
+          body.appendChild(cta);
+        }
+        body.appendChild(buildRequestAccess(tier));
+      } else {
+        tier.items.forEach(function(it){
+          var row = document.createElement('div');
+          row.className = 'row row-' + tier.id;
 
-      /* A locked tier with no way out is a dead end. The overlay supplies
-         the way out; without the overlay no tier is ever locked. */
-      if (locked && tier.cta){
-        var cta = document.createElement('button');
-        cta.className = 'tier-cta'; cta.type = 'button';
-        cta.innerHTML = '<span class="cta-action">' + tier.cta.action + '</span>' +
-                        '<span class="cta-why">' + tier.cta.why + '</span>';
-        cta.addEventListener('click', function(){ tier.cta.onClick && tier.cta.onClick(tier.id); });
-        menuScroll.appendChild(cta);
+          var go = document.createElement('a');
+          go.className = 'go'; go.href = it.href;
+          go.innerHTML = '<span class="ic">' + it.icon + '</span><span>' + it.label + '</span>';
+
+          var add = document.createElement('button');
+          add.className = 'add'; add.type = 'button'; add.textContent = '+';
+          add.setAttribute('aria-label','Add ' + it.label + ' to your desk');
+          add.addEventListener('click', function(){ addToDesk(it.href); });
+          attachDrag(add, it);
+
+          row.appendChild(go); row.appendChild(add);
+          body.appendChild(row);
+        });
       }
+
+      details.appendChild(body);
+      menuScroll.appendChild(details);
     });
 
     /* ── footer ─────────────────────────────────────────────────────────
        After every tier, including any the overlay added. Quieter than the
        menu above it and separated by a rule: this is a reference to the
        whole drawer rather than another destination in it. No + button —
-       an index of everything does not belong in a four-slot desk. */
+       an index of everything does not belong in a four-slot desk. Never
+       inside an accordion — it describes the whole menu above it. */
     FOOTER.forEach(function(it){
       var row = document.createElement('div');
       row.className = 'row row-footer';
