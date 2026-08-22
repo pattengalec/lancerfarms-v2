@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Team management — Lancer Farms &amp; Gardens</title>
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#2A2620; --card:#34302A; --line:#45423A; --line-strong:#5A554A;
+  --ink:#F0EDE2; --soft:#B0A99C; --green:#7E9A6E;
+  --amber:#C9973F; --amber-bg:#4A3A22;
+  --red:#D15A48;
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;}
+body{font-family:'Source Sans 3',system-ui,sans-serif; font-size:16px; line-height:1.5;
+  color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; line-height:1.15;}
+.wrap{max-width:560px; margin:0 auto; padding:0 18px;}
+.top{padding:36px 0 24px; border-bottom:1px solid var(--line);}
+.kick{font-size:11.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--green); margin-bottom:8px;}
+h1{font-size:clamp(24px,6vw,32px); margin-bottom:6px;}
+.top p{color:var(--soft); font-size:14.5px;}
+
+.sec{padding:22px 0;}
+.btn{min-height:48px; border-radius:12px; border:1.5px solid var(--line-strong); background:var(--card);
+  color:var(--ink); font-size:15px; font-weight:600; padding:0 18px; cursor:pointer;}
+.btn.lead{background:var(--green); border-color:var(--green); color:#fff;}
+.btn.small{min-height:38px; font-size:13.5px; padding:0 14px;}
+.btn.danger{border-color:var(--red); color:var(--red); background:transparent;}
+.btn:disabled{opacity:.5;}
+
+.team-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px;}
+.team-card.inactive{opacity:.55;}
+.team-head{display:flex; align-items:flex-start; gap:10px; justify-content:space-between;}
+.team-head h3{font-size:18px;}
+.team-sub{font-size:13.5px; color:var(--soft); margin-top:2px;}
+.badge{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  padding:3px 8px; border-radius:7px; background:var(--amber-bg); color:var(--amber); flex:0 0 auto;}
+.badge.off{background:var(--line); color:var(--soft);}
+
+.member{display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid var(--line); font-size:14px;}
+.member .mname{flex:1; min-width:0;}
+.member .mname b{display:block;}
+.member .mname span{display:block; color:var(--soft); font-size:12.5px;}
+.member .lead-flag{font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase;}
+
+.field{margin-bottom:12px;}
+.field label{display:block; font-size:12.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--soft); margin-bottom:5px;}
+.field input, .field textarea{width:100%; min-height:46px; padding:0 12px; font-size:15px;
+  font-family:inherit; color:var(--ink); background:var(--paper); border:1.5px solid var(--line-strong);
+  border-radius:10px; outline:none;}
+.field textarea{min-height:64px; padding:10px 12px; resize:vertical;}
+.field input:focus, .field textarea:focus{border-color:var(--green);}
+.field.chk{display:flex; align-items:center; gap:8px;}
+.field.chk label{margin:0; text-transform:none; font-weight:400; font-size:14.5px; color:var(--ink);}
+
+.panel{border-top:1px solid var(--line); margin-top:12px; padding-top:12px; display:none;}
+.panel.on{display:block;}
+.row2{display:flex; gap:8px; margin-top:10px;}
+.row2 .btn{flex:1;}
+
+#gate{max-width:420px; margin:60px auto; text-align:center; padding:0 22px;}
+#gate h2{font-size:22px; margin-bottom:8px;}
+#gate p{color:var(--soft); font-size:14.5px; margin-bottom:18px;}
+#gate input{width:100%; min-height:52px; padding:0 14px; font-size:16px; margin-bottom:12px;
+  font-family:inherit; color:var(--ink); background:var(--card); border:1.5px solid var(--line);
+  border-radius:11px; outline:none;}
+#gate input:focus{border-color:var(--amber);}
+#gate button{width:100%; min-height:52px; border-radius:12px; font-weight:600; font-size:15px;
+  border:1.5px solid var(--green); background:var(--green); color:#fff; cursor:pointer;}
+#gateMsg{font-size:13.5px; margin-top:10px; min-height:1.2em;}
+#gateMsg.ok{color:var(--green);} #gateMsg.bad{color:var(--red);}
+#content{display:none;}
+
+#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:#3E3A32; color:#F5F2E8; border:1.5px solid var(--line-strong); padding:12px 20px;
+  border-radius:12px; font-size:15px; font-weight:600; z-index:200;
+  transition:all .3s; pointer-events:none; max-width:88%; text-align:center;}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.empty{text-align:center; color:var(--soft); padding:30px 10px; font-size:14.5px;}
+footer{padding:30px 22px 10px; text-align:center; font-size:11.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--line-strong);}
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+</head>
+<body>
+
+<div id="gate">
+  <h2>Faculty sign-in</h2>
+  <p>Team management is limited to Faculty rank. Enter your CBU email and we'll send a sign-in link.</p>
+  <input id="gateEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="you@calbaptist.edu">
+  <button id="gateSend">Send sign-in link</button>
+  <p id="gateMsg"></p>
+</div>
+
+<div id="content">
+<div class="wrap">
+  <div class="top">
+    <div class="kick">Faculty</div>
+    <h1>Team management</h1>
+    <p>Research teams and their rosters. A team needs at least one leader to receive lab proposals.</p>
+  </div>
+
+  <div class="sec">
+    <button class="btn lead" id="btnNewTeam">+ New team</button>
+    <div class="panel" id="newTeamPanel">
+      <div class="field"><label>Team name</label><input id="ntName" placeholder="e.g. Carbon Research Team"></div>
+      <div class="field"><label>Faculty sponsor</label><input id="ntSponsor" placeholder="e.g. Dr. Bonjun Koo"></div>
+      <div class="field"><label>Current research</label><textarea id="ntResearch" placeholder="Shown in the public proposal directory"></textarea></div>
+      <div class="row2">
+        <button class="btn" id="ntCancel">Cancel</button>
+        <button class="btn lead" id="ntSave">Create team</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div id="teamList"><div class="empty">Loading&hellip;</div></div>
+  </div>
+</div>
+</div><!-- /content -->
+
+<div id="toast"></div>
+
+<script>
+window.GRUSH_NAV = { eyebrow: 'Faculty', rail: false, title: 'Lancer Farms & Gardens' };
+</script>
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+
+<footer>Lancer Farms &amp; Gardens · CBU Environmental Science</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var sb = null, myEmail = null, teams = [], membersByTeam = {};
+
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  async function checkGate(){
+    var s = await GRUSH.session();
+    if(!s){ showGate(); return; }
+    sb = GRUSH.sb; myEmail = s.user.email;
+    var r = await sb.rpc('grush_rank');
+    if(!r.error && typeof r.data === 'number' && r.data >= 4){ showContent(); loadTeams(); }
+    else showGate('Signed in, but that address is not Faculty rank on this farm.');
+  }
+  function showGate(msg){
+    $('gate').style.display = 'block'; $('content').style.display = 'none';
+    if(msg){ $('gateMsg').className = 'bad'; $('gateMsg').textContent = msg; }
+  }
+  function showContent(){
+    $('gate').style.display = 'none'; $('content').style.display = 'block';
+  }
+  $('gateSend').addEventListener('click', async function(){
+    var email = $('gateEmail').value.trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+      $('gateMsg').className='bad'; $('gateMsg').textContent='That doesn\u2019t look like an email address.'; return;
+    }
+    $('gateSend').disabled = true; $('gateSend').textContent = 'Sending\u2026';
+    var r = await GRUSH.sendLink(email);
+    $('gateMsg').className = r.ok ? 'ok' : 'bad';
+    $('gateMsg').textContent = r.msg;
+    $('gateSend').textContent = 'Send sign-in link'; $('gateSend').disabled = false;
+  });
+  document.addEventListener('grush:auth', function(e){
+    var evt = e && e.detail;
+    if(evt === 'INITIAL_SESSION' || evt === 'TOKEN_REFRESHED' || evt === 'USER_UPDATED') return;
+    checkGate();
+  });
+
+  /* ── new team ── */
+  $('btnNewTeam').addEventListener('click', function(){ $('newTeamPanel').classList.add('on'); });
+  $('ntCancel').addEventListener('click', function(){ $('newTeamPanel').classList.remove('on'); });
+  $('ntSave').addEventListener('click', async function(){
+    var name = $('ntName').value.trim();
+    if(!name){ toast('Give the team a name'); return; }
+    $('ntSave').disabled = true;
+    var { error } = await sb.from('lfg_teams').insert({
+      name: name,
+      faculty_sponsor: $('ntSponsor').value.trim() || null,
+      current_research: $('ntResearch').value.trim() || null,
+      active: true
+    });
+    $('ntSave').disabled = false;
+    if(error){ toast('Could not create: ' + error.message); return; }
+    $('ntName').value=''; $('ntSponsor').value=''; $('ntResearch').value='';
+    $('newTeamPanel').classList.remove('on');
+    loadTeams();
+  });
+
+  /* ── load + render ── */
+  async function loadTeams(){
+    var { data, error } = await sb.from('lfg_teams').select('*').order('active', {ascending:false}).order('name');
+    if(error){ $('teamList').innerHTML = '<div class="empty">Could not load teams.</div>'; return; }
+    teams = data || [];
+    if(!teams.length){ $('teamList').innerHTML = '<div class="empty">No teams yet.</div>'; return; }
+
+    var ids = teams.map(function(t){ return t.id; });
+    var mres = await sb.from('lfg_team_members').select('*').in('team_id', ids).order('joined_at');
+    membersByTeam = {};
+    (mres.data || []).forEach(function(m){
+      (membersByTeam[m.team_id] = membersByTeam[m.team_id] || []).push(m);
+    });
+    renderTeams();
+  }
+
+  function renderTeams(){
+    $('teamList').innerHTML = teams.map(function(t){
+      var mem = membersByTeam[t.id] || [];
+      var memberHtml = mem.map(function(m){
+        var active = !m.left_at;
+        return '<div class="member" style="' + (active ? '' : 'opacity:.5') + '">'
+          + '<div class="mname"><b>' + esc(m.display_name) + (m.is_leader ? ' <span class="lead-flag">Leader</span>' : '') + '</b>'
+          + '<span>' + esc(m.email || '') + (m.term ? ' \u00b7 ' + esc(m.term) : '') + (active ? '' : ' \u00b7 left') + '</span></div>'
+          + (active ? '<button class="btn small danger" data-leave="' + m.id + '">Mark left</button>' : '')
+          + '</div>';
+      }).join('') || '<div class="member" style="border-top:1px solid var(--line); color:var(--soft); font-size:13.5px; padding:9px 0">No members yet.</div>';
+
+      return '<div class="team-card' + (t.active ? '' : ' inactive') + '">'
+        + '<div class="team-head"><div><h3>' + esc(t.name) + '</h3>'
+        + '<div class="team-sub">' + esc(t.faculty_sponsor || 'No sponsor listed') + '</div></div>'
+        + '<span class="badge' + (t.active ? '' : ' off') + '">' + (t.active ? 'Active' : 'Inactive') + '</span></div>'
+        + (t.current_research ? '<div class="team-sub" style="margin-top:8px">' + esc(t.current_research) + '</div>' : '')
+        + memberHtml
+        + '<div class="row2" style="margin-top:12px">'
+        + '<button class="btn small" data-addmember="' + t.id + '">+ Add member</button>'
+        + '<button class="btn small" data-toggle="' + t.id + '">' + (t.active ? 'Deactivate' : 'Reactivate') + '</button>'
+        + '</div>'
+        + '<div class="panel" id="addMemberPanel-' + t.id + '">'
+        + '<div class="field"><label>Name</label><input id="mName-' + t.id + '" placeholder="Full name"></div>'
+        + '<div class="field"><label>CBU email</label><input id="mEmail-' + t.id + '" type="email" placeholder="you@calbaptist.edu"></div>'
+        + '<div class="field"><label>Term (optional)</label><input id="mTerm-' + t.id + '" placeholder="e.g. Fall 2026"></div>'
+        + '<div class="field chk"><input type="checkbox" id="mLeader-' + t.id + '"><label for="mLeader-' + t.id + '">This person is the team leader</label></div>'
+        + '<div class="row2"><button class="btn" data-cancelmember="' + t.id + '">Cancel</button>'
+        + '<button class="btn lead" data-savemember="' + t.id + '">Add member</button></div>'
+        + '</div></div>';
+    }).join('');
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-addmember]'), function(b){
+      b.addEventListener('click', function(){ $('addMemberPanel-' + b.dataset.addmember).classList.add('on'); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-cancelmember]'), function(b){
+      b.addEventListener('click', function(){ $('addMemberPanel-' + b.dataset.cancelmember).classList.remove('on'); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-savemember]'), function(b){
+      b.addEventListener('click', async function(){
+        var id = b.dataset.savemember;
+        var name = $('mName-' + id).value.trim();
+        var email = $('mEmail-' + id).value.trim();
+        if(!name){ toast('Name is required'); return; }
+        b.disabled = true;
+        var { error } = await sb.from('lfg_team_members').insert({
+          team_id: id, display_name: name, email: email || null,
+          term: $('mTerm-' + id).value.trim() || null,
+          is_leader: $('mLeader-' + id).checked
+        });
+        b.disabled = false;
+        if(error){ toast('Could not add: ' + error.message); return; }
+        loadTeams();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-leave]'), function(b){
+      b.addEventListener('click', async function(){
+        var { error } = await sb.from('lfg_team_members')
+          .update({ left_at: new Date().toISOString().slice(0,10) })
+          .eq('id', b.dataset.leave);
+        if(error){ toast('Could not update: ' + error.message); return; }
+        loadTeams();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-toggle]'), function(b){
+      b.addEventListener('click', async function(){
+        var t = teams.find(function(x){ return x.id === b.dataset.toggle; });
+        var { error } = await sb.from('lfg_teams').update({ active: !t.active }).eq('id', t.id);
+        if(error){ toast('Could not update: ' + error.message); return; }
+        loadTeams();
+      });
+    });
+  }
+
+  checkGate();
+})();
+</script>
+
+</body>
+</html>

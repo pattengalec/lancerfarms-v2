@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Assign labs to students — Lancer Farms &amp; Gardens</title>
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#2A2620; --card:#34302A; --line:#45423A; --line-strong:#5A554A;
+  --ink:#F0EDE2; --soft:#B0A99C; --green:#7E9A6E;
+  --amber:#C9973F; --amber-bg:#4A3A22;
+  --red:#D15A48;
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;}
+body{font-family:'Source Sans 3',system-ui,sans-serif; font-size:16px; line-height:1.5;
+  color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; line-height:1.15;}
+.wrap{max-width:560px; margin:0 auto; padding:0 18px;}
+.top{padding:36px 0 24px; border-bottom:1px solid var(--line);}
+.kick{font-size:11.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--green); margin-bottom:8px;}
+h1{font-size:clamp(24px,6vw,32px); margin-bottom:6px;}
+.top p{color:var(--soft); font-size:14.5px;}
+.sec{padding:22px 0;}
+.sec h2{font-size:18px; margin-bottom:10px;}
+
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:12.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--soft); margin-bottom:5px;}
+.field input, .field select{width:100%; min-height:48px; padding:0 12px; font-size:15px;
+  font-family:inherit; color:var(--ink); background:var(--card); border:1.5px solid var(--line-strong);
+  border-radius:10px; outline:none;}
+select{-webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B0A99C' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center; padding-right:38px;}
+.field input:focus, .field select:focus{border-color:var(--green);}
+.field .hint{font-size:12.5px; color:var(--soft); margin-top:5px; line-height:1.4;}
+
+.btn{width:100%; min-height:52px; border-radius:14px; border:none; background:var(--green);
+  color:#fff; font-size:16px; font-weight:700; cursor:pointer;}
+.btn:disabled{background:var(--line-strong);}
+.btn.small{width:auto; min-height:38px; font-size:13.5px; padding:0 14px; border-radius:10px;
+  background:transparent; border:1.5px solid var(--line-strong); color:var(--ink); font-weight:600;}
+.btn.small.danger{border-color:var(--red); color:var(--red);}
+
+.order-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:10px;}
+.order-card .otitle{font-family:'Fraunces',serif; font-weight:600; font-size:16px;}
+.order-card .osub{font-size:13px; color:var(--soft); margin-top:2px;}
+.order-card .row{display:flex; align-items:center; gap:8px; margin-top:10px;}
+.badge{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  padding:3px 8px; border-radius:7px; background:var(--amber-bg); color:var(--amber);}
+.badge.closed{background:var(--line); color:var(--soft);}
+.empty{text-align:center; color:var(--soft); padding:24px 10px; font-size:14.5px;}
+
+#gate{max-width:420px; margin:60px auto; text-align:center; padding:0 22px;}
+#gate h2{font-size:22px; margin-bottom:8px;}
+#gate p{color:var(--soft); font-size:14.5px; margin-bottom:18px;}
+#gate input{width:100%; min-height:52px; padding:0 14px; font-size:16px; margin-bottom:12px;
+  font-family:inherit; color:var(--ink); background:var(--card); border:1.5px solid var(--line);
+  border-radius:11px; outline:none;}
+#gate input:focus{border-color:var(--amber);}
+#gate button{width:100%; min-height:52px; border-radius:12px; font-weight:600; font-size:15px;
+  border:1.5px solid var(--green); background:var(--green); color:#fff; cursor:pointer;}
+#gateMsg{font-size:13.5px; margin-top:10px; min-height:1.2em;}
+#gateMsg.ok{color:var(--green);} #gateMsg.bad{color:var(--red);}
+#content{display:none;}
+
+#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:#3E3A32; color:#F5F2E8; border:1.5px solid var(--line-strong); padding:12px 20px;
+  border-radius:12px; font-size:15px; font-weight:600; z-index:200;
+  transition:all .3s; pointer-events:none; max-width:88%; text-align:center;}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+footer{padding:30px 22px 10px; text-align:center; font-size:11.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--line-strong);}
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+</head>
+<body>
+
+<div id="gate">
+  <h2>Instructor sign-in</h2>
+  <p>Assigning labs is limited to Instructor rank and above. Enter your CBU email and we'll send a sign-in link.</p>
+  <input id="gateEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="you@calbaptist.edu">
+  <button id="gateSend">Send sign-in link</button>
+  <p id="gateMsg"></p>
+</div>
+
+<div id="content">
+<div class="wrap">
+  <div class="top">
+    <div class="kick">Instructor</div>
+    <h1>Assign labs to students</h1>
+    <p>Pick a test, name your class, and set a due date. Your students will find it waiting for them on the assessments page — no account needed until they submit results.</p>
+  </div>
+
+  <div class="sec">
+    <h2>New assignment</h2>
+    <div class="field">
+      <label>Test type</label>
+      <select id="fTest"><option value="">Loading&hellip;</option></select>
+    </div>
+    <div class="field">
+      <label>Class / section label</label>
+      <input id="fLabel" placeholder="e.g. ENVS 3900 — Fall 2026">
+      <div class="hint">This is what students will see in their list.</div>
+    </div>
+    <div class="field">
+      <label>Bed <span style="text-transform:none; font-weight:400">(optional)</span></label>
+      <select id="fBed"><option value="">Any bed &mdash; student picks</option></select>
+    </div>
+    <div class="field">
+      <label>Due date <span style="text-transform:none; font-weight:400">(optional)</span></label>
+      <input id="fDue" type="date">
+    </div>
+    <button class="btn" id="btnAssign">Assign to students</button>
+  </div>
+
+  <div class="sec">
+    <h2>Your assignments</h2>
+    <div id="orderList"><div class="empty">Loading&hellip;</div></div>
+  </div>
+</div>
+</div><!-- /content -->
+
+<div id="toast"></div>
+
+<script>
+window.GRUSH_NAV = { eyebrow: 'Instructor', rail: false, title: 'Lancer Farms & Gardens' };
+</script>
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+
+<footer>Lancer Farms &amp; Gardens · CBU Environmental Science</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var sb = null, myEmail = null, catalog = [], beds = [], containerId = null;
+  var CONTAINER_TITLE = 'Instructor-Assigned Labs';
+
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  async function checkGate(){
+    var s = await GRUSH.session();
+    if(!s){ showGate(); return; }
+    sb = GRUSH.sb; myEmail = s.user.email;
+    var r = await sb.rpc('grush_rank');
+    if(!r.error && typeof r.data === 'number' && r.data >= 3){
+      showContent();
+      await Promise.all([loadCatalog(), loadBeds()]);
+      await loadOrders();
+    } else showGate('Signed in, but that address is not Instructor rank on this farm.');
+  }
+  function showGate(msg){
+    $('gate').style.display = 'block'; $('content').style.display = 'none';
+    if(msg){ $('gateMsg').className = 'bad'; $('gateMsg').textContent = msg; }
+  }
+  function showContent(){
+    $('gate').style.display = 'none'; $('content').style.display = 'block';
+  }
+  $('gateSend').addEventListener('click', async function(){
+    var email = $('gateEmail').value.trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+      $('gateMsg').className='bad'; $('gateMsg').textContent='That doesn\u2019t look like an email address.'; return;
+    }
+    $('gateSend').disabled = true; $('gateSend').textContent = 'Sending\u2026';
+    var r = await GRUSH.sendLink(email);
+    $('gateMsg').className = r.ok ? 'ok' : 'bad';
+    $('gateMsg').textContent = r.msg;
+    $('gateSend').textContent = 'Send sign-in link'; $('gateSend').disabled = false;
+  });
+  document.addEventListener('grush:auth', function(e){
+    var evt = e && e.detail;
+    if(evt === 'INITIAL_SESSION' || evt === 'TOKEN_REFRESHED' || evt === 'USER_UPDATED') return;
+    checkGate();
+  });
+
+  async function loadCatalog(){
+    var { data, error } = await sb.from('lfg_test_catalog').select('id,name,category').order('name');
+    catalog = error ? [] : (data || []);
+    $('fTest').innerHTML = catalog.length
+      ? catalog.map(function(c){ return '<option value="' + c.id + '">' + esc(c.name) + (c.category ? ' (' + esc(c.category) + ')' : '') + '</option>'; }).join('')
+      : '<option value="">No test types set up yet \u2014 ask Chad</option>';
+  }
+
+  async function loadBeds(){
+    var { data, error } = await sb.from('lfg_growing_areas').select('id,name,zone').is('archived_at', null).order('sort_order', {ascending:true});
+    beds = error ? [] : (data || []);
+    $('fBed').innerHTML = '<option value="">Any bed &mdash; student picks</option>' +
+      beds.map(function(b){ return '<option value="' + b.id + '">' + esc(b.zone ? b.zone + ' \u2014 ' + b.name : b.name) + '</option>'; }).join('');
+  }
+
+  /* One shared, invisible-to-instructors container experiment holds every
+     section this tool creates, so an instructor never has to think about
+     the research-template concept at all. Created once, on first use. */
+  async function ensureContainer(){
+    if(containerId) return containerId;
+    var found = await sb.from('lfg_experiments').select('id').eq('title', CONTAINER_TITLE).maybeSingle();
+    if(found.data){ containerId = found.data.id; return containerId; }
+    var made = await sb.from('lfg_experiments').insert({ title: CONTAINER_TITLE, created_by: myEmail }).select('id').single();
+    if(made.error) throw made.error;
+    containerId = made.data.id;
+    return containerId;
+  }
+
+  $('btnAssign').addEventListener('click', async function(){
+    var testId = $('fTest').value;
+    var label = $('fLabel').value.trim();
+    var bedId = $('fBed').value || null;
+    var due = $('fDue').value || null;
+    if(!testId){ toast('Pick a test type'); return; }
+    if(!label){ toast('Give the class a label'); return; }
+
+    var btn = $('btnAssign');
+    btn.disabled = true; btn.textContent = 'Assigning\u2026';
+    try{
+      var expId = await ensureContainer();
+      var sec = await sb.from('lfg_experiment_sections').insert({
+        experiment_id: expId, label: label, status: 'active', created_by: myEmail
+      }).select('id').single();
+      if(sec.error) throw sec.error;
+
+      var ord = await sb.from('lfg_assessment_orders').insert({
+        section_id: sec.data.id, catalog_id: testId, area_id: bedId,
+        assigned_label: label, due_date: due, status: 'active',
+        assigned_scope: bedId ? 'bed' : 'class'
+      });
+      if(ord.error) throw ord.error;
+
+      toast('Assigned \u2014 students will see it on the assessments page');
+      $('fLabel').value = ''; $('fDue').value = ''; $('fBed').value = '';
+      await loadOrders();
+    }catch(e){
+      /* assigned_scope's exact allowed values weren't confirmed against a
+         live constraint before this was written \u2014 if this is the error,
+         that CHECK is the first place to look. */
+      toast('Could not assign: ' + (e.message || 'unknown error'));
+      console.error(e);
+    }finally{
+      btn.disabled = false; btn.textContent = 'Assign to students';
+    }
+  });
+
+  async function loadOrders(){
+    var expId = await ensureContainer().catch(function(){ return null; });
+    if(!expId){ $('orderList').innerHTML = '<div class="empty">Could not load.</div>'; return; }
+
+    var secs = await sb.from('lfg_experiment_sections').select('id,label').eq('experiment_id', expId).eq('created_by', myEmail);
+    var sections = secs.data || [];
+    if(!sections.length){ $('orderList').innerHTML = '<div class="empty">You haven\u2019t assigned anything yet.</div>'; return; }
+    var secIds = sections.map(function(s){ return s.id; });
+    var secLabel = {}; sections.forEach(function(s){ secLabel[s.id] = s.label; });
+
+    var { data, error } = await sb.from('lfg_assessment_orders')
+      .select('id,assigned_label,due_date,status,section_id,area_id,lfg_test_catalog(name),lfg_growing_areas(name,zone)')
+      .in('section_id', secIds)
+      .order('due_date', {ascending:true, nullsFirst:false});
+    if(error){ $('orderList').innerHTML = '<div class="empty">Could not load assignments.</div>'; return; }
+
+    var orders = data || [];
+    if(!orders.length){ $('orderList').innerHTML = '<div class="empty">You haven\u2019t assigned anything yet.</div>'; return; }
+
+    $('orderList').innerHTML = orders.map(function(o){
+      var cat = o.lfg_test_catalog || {};
+      var area = o.lfg_growing_areas;
+      var bedText = area ? (area.zone ? area.zone + ' \u2014 ' + area.name : area.name) : 'Any bed';
+      var closed = o.status !== 'active';
+      return '<div class="order-card">'
+        + '<div class="otitle">' + esc(cat.name || 'Test') + '</div>'
+        + '<div class="osub">' + esc(o.assigned_label) + ' \u00b7 ' + esc(bedText)
+        + (o.due_date ? ' \u00b7 due ' + esc(o.due_date) : '') + '</div>'
+        + '<div class="row">'
+        + '<span class="badge' + (closed ? ' closed' : '') + '">' + esc(o.status) + '</span>'
+        + (closed ? '' : '<button class="btn small danger" data-close="' + o.id + '">Mark closed</button>')
+        + '</div></div>';
+    }).join('');
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-close]'), function(b){
+      b.addEventListener('click', async function(){
+        var { error } = await sb.from('lfg_assessment_orders').update({ status: 'closed' }).eq('id', b.dataset.close);
+        if(error){ toast('Could not update: ' + error.message); return; }
+        loadOrders();
+      });
+    });
+  }
+
+  checkGate();
+})();
+</script>
+
+</body>
+</html>

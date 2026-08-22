@@ -169,26 +169,26 @@
   });
 
   /* ── INSTRUCTOR ──────────────────────────────────────────────────────
-     Not built yet. Instructors will choose or design a lab, then assign
-     it directly to their own students, digital-handout style. Placeholder
-     until lfg_experiment_sections gets a scoped, self-serve front end. */
+     Scoped, self-serve front end over lfg_experiment_sections /
+     lfg_assessment_orders — built Aug 21 2026. An instructor picks a
+     test from lfg_test_catalog, names their class, and it appears on
+     assess.html for students automatically. */
   D.addTier({
     id: 'instructor', label: 'Instructor', color: 'var(--tier-admin)', locked: true,
     items: [
-      { label: 'Assign labs to students', icon: '\u{1F4CB}', soon: true }
+      { label: 'Assign labs to students', icon: '\u{1F4CB}', href: 'assign-labs.html' }
     ]
   });
 
   /* ── FACULTY ─────────────────────────────────────────────────────────
-     Was "Admin" -- renamed to match the real rank name. Same two built
-     destinations; Team management is listed as soon:true because
-     lfg_teams exists in the database but has no page yet. */
+     Was "Admin" -- renamed to match the real rank name. Team management
+     built Aug 21 2026 — CRUD over lfg_teams / lfg_team_members. */
   D.addTier({
     id: 'faculty', label: 'Faculty', color: 'var(--tier-admin)', locked: true,
     items: [
       { label: 'Approvals',         icon: '\u{2705}',  href: 'app.html?s=approvals' },
       { label: 'Admin panel',       icon: '\u{1F510}', href: 'admin.html' },
-      { label: 'Team management',   icon: '\u{1F465}', soon: true }
+      { label: 'Team management',   icon: '\u{1F465}', href: 'team.html' }
     ]
   });
 
