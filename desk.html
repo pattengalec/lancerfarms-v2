@@ -538,6 +538,13 @@ window.GrushDesk = (function(){
           var row = document.createElement('div');
           row.className = 'row row-' + tier.id;
 
+          if (it.soon){
+            row.style.opacity = '.55';
+            row.innerHTML = '<span class="ic">' + it.icon + '</span><span>' + it.label + ' \u2014 Soon</span>';
+            menuScroll.appendChild(row);
+            return;
+          }
+
           var go = document.createElement('a');
           go.className = 'go'; go.href = it.href;
           go.innerHTML = '<span class="ic">' + it.icon + '</span><span>' + it.label + '</span>';
@@ -592,6 +599,13 @@ window.GrushDesk = (function(){
         tier.items.forEach(function(it){
           var row = document.createElement('div');
           row.className = 'row row-' + tier.id;
+
+          if (it.soon){
+            row.style.opacity = '.55';
+            row.innerHTML = '<span class="ic">' + it.icon + '</span><span>' + it.label + ' \u2014 Soon</span>';
+            body.appendChild(row);
+            return;
+          }
 
           var go = document.createElement('a');
           go.className = 'go'; go.href = it.href;
