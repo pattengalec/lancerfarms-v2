@@ -58,6 +58,24 @@ select{-webkit-appearance:none; appearance:none;
 .badge.closed{background:var(--line); color:var(--soft);}
 .empty{text-align:center; color:var(--soft); padding:24px 10px; font-size:14.5px;}
 
+.field textarea{width:100%; min-height:70px; padding:10px 12px; font-size:15px; font-family:inherit;
+  color:var(--ink); background:var(--card); border:1.5px solid var(--line-strong); border-radius:10px;
+  outline:none; resize:vertical;}
+.field textarea:focus{border-color:var(--green);}
+.metric-row{display:flex; gap:8px; margin-bottom:8px;}
+.metric-row input{flex:1; min-width:0; min-height:44px; padding:0 10px; font-size:14.5px;
+  font-family:inherit; color:var(--ink); background:var(--card); border:1.5px solid var(--line-strong);
+  border-radius:9px; outline:none;}
+.metric-row input:focus{border-color:var(--green);}
+.metric-row input.unit{flex:0 0 84px;}
+.metric-row .rm{flex:0 0 auto; width:44px; min-height:44px; border-radius:9px; border:1.5px solid var(--line-strong);
+  background:transparent; color:var(--red); font-size:18px; line-height:1;}
+.addrow{background:none; border:none; color:var(--green); font-size:14px; font-weight:600; padding:6px 0; cursor:pointer;}
+.toggle-panel{background:none; border:1.5px solid var(--line-strong); color:var(--ink); width:100%;
+  min-height:48px; border-radius:12px; font-size:15px; font-weight:600; margin-bottom:14px;}
+.own-panel{display:none; border-top:1px solid var(--line); margin-top:4px; padding-top:16px;}
+.own-panel.on{display:block;}
+
 #gate{max-width:420px; margin:60px auto; text-align:center; padding:0 22px;}
 #gate h2{font-size:22px; margin-bottom:8px;}
 #gate p{color:var(--soft); font-size:14.5px; margin-bottom:18px;}
@@ -122,6 +140,24 @@ footer{padding:30px 22px 10px; text-align:center; font-size:11.5px; letter-spaci
       <input id="fDue" type="date">
     </div>
     <button class="btn" id="btnAssign">Assign to students</button>
+  </div>
+
+  <div class="sec">
+    <button class="toggle-panel" id="btnToggleOwnLab">+ Add your own lab</button>
+    <div class="own-panel" id="ownLabPanel">
+      <div class="field"><label>Lab name</label><input id="olName" placeholder="e.g. Macroinvertebrate Water Quality Survey"></div>
+      <div class="field"><label>Category <span style="text-transform:none; font-weight:400">(optional)</span></label><input id="olCategory" placeholder="e.g. Biology"></div>
+      <div class="field"><label>Background</label><textarea id="olBackground" placeholder="Why this test, what it's measuring, why it matters"></textarea></div>
+      <div class="field"><label>Materials</label><textarea id="olMaterials" placeholder="One item per line"></textarea></div>
+      <div class="field"><label>Procedure</label><textarea id="olProcedure" placeholder="One step per line"></textarea></div>
+      <div class="field"><label>Notes for students <span style="text-transform:none; font-weight:400">(optional)</span></label><textarea id="olInstructions" placeholder="A short reminder shown right above the results form &mdash; e.g. &ldquo;Wear gloves, record to 2 decimals&rdquo;"></textarea></div>
+      <div class="field">
+        <label>Measurements to record</label>
+        <div id="olMetrics"></div>
+        <button type="button" class="addrow" id="olAddMetric">+ Add measurement</button>
+      </div>
+      <button class="btn" id="btnSaveOwnLab">Add lab to catalog</button>
+    </div>
   </div>
 
   <div class="sec">
@@ -260,6 +296,81 @@ window.GRUSH_NAV = { eyebrow: 'Instructor', rail: false, title: 'Lancer Farms & 
     }finally{
       btn.disabled = false; btn.textContent = 'Assign to students';
     }
+  });
+
+  /* ── Add your own lab ─────────────────────────────────────────────── */
+  var metricRows = [{label:'', unit:''}];
+
+  function renderMetricRows(){
+    $('olMetrics').innerHTML = metricRows.map(function(r, i){
+      return '<div class="metric-row">'
+        + '<input placeholder="Measurement, e.g. pH" data-mi="' + i + '" data-mf="label" value="' + esc(r.label) + '">'
+        + '<input class="unit" placeholder="Unit" data-mi="' + i + '" data-mf="unit" value="' + esc(r.unit) + '">'
+        + (metricRows.length > 1 ? '<button type="button" class="rm" data-mrm="' + i + '">\u00d7</button>' : '')
+        + '</div>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#olMetrics input'), function(inp){
+      inp.addEventListener('input', function(){
+        metricRows[+inp.dataset.mi][inp.dataset.mf] = inp.value;
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-mrm]'), function(b){
+      b.addEventListener('click', function(){
+        metricRows.splice(+b.dataset.mrm, 1);
+        renderMetricRows();
+      });
+    });
+  }
+  renderMetricRows();
+  $('olAddMetric').addEventListener('click', function(){
+    metricRows.push({label:'', unit:''});
+    renderMetricRows();
+  });
+
+  $('btnToggleOwnLab').addEventListener('click', function(){
+    $('ownLabPanel').classList.toggle('on');
+  });
+
+  function slugify(s){
+    return String(s).trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'metric';
+  }
+
+  $('btnSaveOwnLab').addEventListener('click', async function(){
+    var name = $('olName').value.trim();
+    if(!name){ toast('Give the lab a name'); return; }
+    var metrics = metricRows
+      .filter(function(r){ return r.label.trim(); })
+      .map(function(r){ return { key: slugify(r.label), label: r.label.trim(), unit: r.unit.trim() || null }; });
+    if(!metrics.length){ toast('Add at least one measurement'); return; }
+
+    var btn = $('btnSaveOwnLab');
+    btn.disabled = true; btn.textContent = 'Saving\u2026';
+    var { error } = await sb.from('lfg_test_catalog').insert({
+      name: name,
+      category: $('olCategory').value.trim() || null,
+      background: $('olBackground').value.trim() || null,
+      materials: $('olMaterials').value.trim() || null,
+      procedure: $('olProcedure').value.trim() || null,
+      instructions: $('olInstructions').value.trim() || null,
+      metrics: metrics
+    });
+    btn.disabled = false; btn.textContent = 'Add lab to catalog';
+
+    if(error){
+      /* If lfg_test_catalog doesn't have background/procedure/materials
+         columns yet, this is where that error surfaces \u2014 run the
+         migration first. */
+      toast('Could not save: ' + error.message);
+      console.error(error);
+      return;
+    }
+
+    toast('Lab added \u2014 it now appears in the Test type list above');
+    $('olName').value=''; $('olCategory').value=''; $('olBackground').value='';
+    $('olMaterials').value=''; $('olProcedure').value=''; $('olInstructions').value='';
+    metricRows = [{label:'', unit:''}]; renderMetricRows();
+    $('ownLabPanel').classList.remove('on');
+    await loadCatalog();
   });
 
   async function loadOrders(){
