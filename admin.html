@@ -744,6 +744,15 @@ body { display:flex; flex-direction:column; align-items:center; background:var(-
       <div class="data-list" id="comments-list"><div class="empty-state"><span class="spinner"></span> Loading…</div></div>
     </div>
 
+    <!-- Garden Use Policy sign-offs. This tab and the page that feeds it
+         (garden-use-policy.html) aren't linked from the drawer yet -- the
+         table exists so Chad has something to show while the pilot is
+         pending campus approval. -->
+    <div class="tab-panel" id="tab-acks">
+      <div class="section-label">Garden Use Policy Acknowledgments</div>
+      <div class="data-list" id="acks-list"><div class="empty-state"><span class="spinner"></span> Loading…</div></div>
+    </div>
+
     <!-- ══ TASK COMPLETION LOG ══ -->
     <div class="tab-panel" id="tab-completions">
       <div class="card">
@@ -1224,6 +1233,7 @@ async function addInventoryItem(fields) { return sbPost('lfg_inventory',{...fiel
 async function updateInventoryItem(id, fields) { return sbPatch('lfg_inventory',{id},{...fields,updated_at:new Date().toISOString()}); }
 async function deleteInventoryItem(id) { return sbDelete('lfg_inventory',{id}); }
 async function getComments() { return sbGet('lfg_comments','order=submitted_at.desc'); }
+async function getAcks() { return sbGet('lfg_policy_acknowledgments','order=acknowledged_at.desc'); }
 async function markCommentReviewed(id) { return sbPatch('lfg_comments',{id},{status:'reviewed'}); }
 
 // ─── Operator identity ───────────────────────────────────────
@@ -1574,6 +1584,7 @@ async function loadAll() {
   loadRequests();
   loadLog();
   loadComments();
+  loadAcks();
   setDefaultDateRange();
 }
 
@@ -2375,6 +2386,21 @@ window.markReviewed = async function(id) {
   catch(e) { showToast('Could not update'); }
 };
 
+async function loadAcks() {
+  const box = document.getElementById('acks-list');
+  try {
+    const acks = await getAcks();
+    if (!acks.length) { box.innerHTML = '<div class="empty-state">No acknowledgments yet.</div>'; return; }
+    box.innerHTML = acks.map(a => `
+      <div class="data-row">
+        <div class="row-main">
+          <div class="row-title">${esc(a.student_name)}</div>
+          <div class="row-sub">${esc(a.student_email)} · ${fmtDate(a.acknowledged_at)} · ${esc(a.policy_version)}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) { box.innerHTML = '<div class="empty-state">Could not load.</div>'; }
+}
+
 // ─── Completions Log ─────────────────────────────────────────
 function setDefaultDateRange() {
   const to = today();
@@ -2459,6 +2485,7 @@ document.addEventListener('grush:auth', (e) => {
       { name:'printlogs',   label:'Print logs', run:'initPrintLogs' },
       { name:'photoacks',   label:'Photo consent', run:'initPhotoAcks' },
       { name:'comments',    label:'Comments' },
+      { name:'acks',        label:'Acknowledgments' },
       { name:'financials',  label:'Financials' } ] },
     { key:'people',  label:'People',  tabs:[
       { name:'crew',        label:'Crew',      run:'loadCrewAdmin' } ] }
