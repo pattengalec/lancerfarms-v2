@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Garden Use Policy — Lancer Farms &amp; Gardens</title>
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#2A2620; --card:#34302A; --line:#45423A; --line-strong:#5A554A;
+  --ink:#F0EDE2; --soft:#B0A99C; --green:#7E9A6E;
+  --amber:#C9973F; --amber-bg:#4A3A22;
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;}
+body{font-family:'Source Sans 3',system-ui,sans-serif; font-size:16px; line-height:1.6;
+  color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; line-height:1.15;}
+.wrap{max-width:600px; margin:0 auto; padding:0 18px;}
+
+.pilot-flag{background:var(--amber-bg); color:var(--amber); font-size:12px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.06em; text-align:center; padding:8px 12px; line-height:1.4;}
+
+.top{padding:34px 0 22px; border-bottom:1px solid var(--line);}
+.kick{font-size:11.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--green); margin-bottom:8px;}
+h1{font-size:clamp(24px,6.5vw,32px); margin-bottom:8px;}
+.top p{color:var(--soft); font-size:14.5px;}
+
+.sec{padding:22px 0; border-bottom:1px solid var(--line);}
+.sec:last-of-type{border-bottom:none;}
+.sec h2{font-size:17px; margin-bottom:8px;}
+.sec p, .sec li{font-size:14.5px; color:var(--ink); margin-bottom:6px; line-height:1.6;}
+.sec ul{padding-left:20px;}
+.sec p:last-child, .sec ul:last-child{margin-bottom:0;}
+
+.field{margin-bottom:16px; padding-top:8px;}
+.field label{display:block; font-size:12.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--soft); margin-bottom:6px;}
+.field input{width:100%; min-height:50px; padding:0 13px; font-size:15px;
+  font-family:inherit; color:var(--ink); background:var(--card); border:1.5px solid var(--line-strong);
+  border-radius:11px; outline:none;}
+.field input:focus{border-color:var(--green);}
+.err{font-size:13px; color:#D15A48; margin-top:6px; display:none;}
+.err.show{display:block;}
+
+.chk-row{display:flex; align-items:flex-start; gap:10px; margin-bottom:18px; padding-top:6px;}
+.chk-row input{width:20px; height:20px; margin-top:2px; flex:0 0 auto;}
+.chk-row label{font-size:14px; color:var(--ink); line-height:1.5;}
+
+.btn-primary{width:100%; min-height:56px; border-radius:15px; border:none; background:var(--green);
+  color:#fff; font-size:16px; font-weight:700; cursor:pointer;}
+.btn-primary:disabled{background:var(--line-strong);}
+
+#success{display:none; text-align:center; padding:50px 20px;}
+#success .ic{font-size:44px; margin-bottom:10px;}
+#success h1{font-size:22px; margin-bottom:8px;}
+#success p{color:var(--soft); font-size:14.5px; line-height:1.5;}
+
+footer{padding:30px 22px 10px; text-align:center; font-size:11.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--line-strong);}
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+</head>
+<body>
+
+<div class="pilot-flag">Draft &mdash; for campus review before this policy takes effect</div>
+
+<div class="wrap">
+  <div id="form-screen">
+    <div class="top">
+      <div class="kick">Lancer Farms &amp; Gardens</div>
+      <h1>Garden Use Policy</h1>
+      <p>Ground rules for anyone using the farm as a wellness space or an adopted growing area &mdash; short, and meant to be read before you start.</p>
+    </div>
+
+    <div class="sec">
+      <h2>Purpose</h2>
+      <p>Lancer Farms &amp; Gardens is a working teaching garden. This policy covers casual use of the space &mdash; sitting, studying, reflecting, or tending an adopted bed &mdash; separate from coursework or research use, which follows its own faculty-supervised process.</p>
+    </div>
+
+    <div class="sec">
+      <h2>Who this is for</h2>
+      <p>Any CBU student. Adopting a growing area is limited to students living on campus, matching the pilot's current scope.</p>
+    </div>
+
+    <div class="sec">
+      <h2>Hours &amp; access</h2>
+      <p>The farm is open during daylight hours, consistent with general campus grounds access. It is not staffed around the clock &mdash; the caretaker keeps regular hours, not 24/7 supervision.</p>
+    </div>
+
+    <div class="sec">
+      <h2>Caring for an adopted bed</h2>
+      <ul>
+        <li>Tend your own bed; leave others' beds and plants alone unless invited.</li>
+        <li>Use only the farm's shared tools and irrigation as directed by the caretaker &mdash; ask before bringing your own equipment.</li>
+        <li>No pesticides, herbicides, or fertilizers beyond what the caretaker provides, without prior approval.</li>
+        <li>Harvest what you grow. If you step away for a season, let the caretaker know so the bed can be reassigned.</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <h2>Shared-space courtesy</h2>
+      <ul>
+        <li>Keep the gazebo, grove, and paths clear for others to use.</li>
+        <li>Pack out any trash; leave the space as you found it.</li>
+        <li>Be mindful of noise &mdash; this space exists partly for quiet reflection.</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <h2>Safety</h2>
+      <p>Wear closed-toe shoes when working a bed. Report any injury, damaged equipment, or safety concern to the caretaker as soon as possible. The farm operates under the same photo-consent and visitor-safety process already in place for the site &mdash; adopting a bed doesn't change that.</p>
+    </div>
+
+    <div class="sec">
+      <p style="color:var(--soft); font-size:13px;">This page is a working draft written to support a campus approval request. It is not a final or legally binding policy, and it hasn't been reviewed by CBU's official channels yet. Wording is expected to change before this is used for real.</p>
+    </div>
+
+    <div class="sec">
+      <h2>Acknowledge &amp; continue</h2>
+      <div class="field">
+        <label>Your name</label>
+        <input id="fName" autocomplete="name" placeholder="Full name">
+        <div class="err" id="err-name">Enter your name.</div>
+      </div>
+      <div class="field">
+        <label>CBU email</label>
+        <input id="fEmail" type="email" autocomplete="email" placeholder="you@calbaptist.edu">
+        <div class="err" id="err-email">Enter a valid @calbaptist.edu email.</div>
+      </div>
+      <div class="chk-row">
+        <input type="checkbox" id="fAgree">
+        <label for="fAgree">I've read the Garden Use Policy above and agree to follow it.</label>
+      </div>
+      <div class="err" id="err-agree" style="margin-bottom:14px;">Check the box to continue.</div>
+      <button class="btn-primary" id="btnAck">Acknowledge</button>
+    </div>
+  </div>
+
+  <div id="success">
+    <div class="ic">&#9989;</div>
+    <h1>Thanks</h1>
+    <p>Your acknowledgment is on file. If you're adopting a growing area, you can go ahead and submit that request now.</p>
+  </div>
+</div>
+
+<script>
+window.GRUSH_NAV = { eyebrow: 'Draft policy · Pending review', rail: false, title: 'Lancer Farms & Gardens' };
+</script>
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+
+<footer>Lancer Farms &amp; Gardens · CBU Environmental Science</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var sb = GRUSH.sb;
+
+  function clearErrors(){
+    Array.prototype.forEach.call(document.querySelectorAll('.err'), function(e){ e.classList.remove('show'); });
+  }
+  function showError(id){ var el = $(id); if(el) el.classList.add('show'); }
+
+  $('btnAck').addEventListener('click', async function(){
+    clearErrors();
+    var name = $('fName').value.trim();
+    var email = $('fEmail').value.trim();
+    var agreed = $('fAgree').checked;
+
+    var hasError = false;
+    if(!name){ showError('err-name'); hasError = true; }
+    if(!/^[^\s@]+@calbaptist\.edu$/i.test(email)){ showError('err-email'); hasError = true; }
+    if(!agreed){ showError('err-agree'); hasError = true; }
+    if(hasError) return;
+
+    var btn = $('btnAck');
+    btn.disabled = true; btn.textContent = 'Saving\u2026';
+
+    var { error } = await sb.from('lfg_policy_acknowledgments').insert({
+      student_name: name, student_email: email, policy_version: 'v1-draft'
+    });
+
+    btn.disabled = false; btn.textContent = 'Acknowledge';
+
+    if(error){
+      showError('err-agree');
+      $('err-agree').textContent = 'Could not save: ' + error.message;
+      $('err-agree').classList.add('show');
+      console.error(error);
+      return;
+    }
+
+    $('form-screen').style.display = 'none';
+    $('success').style.display = 'block';
+    window.scrollTo(0,0);
+  });
+})();
+</script>
+
+</body>
+</html>

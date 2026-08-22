@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Adopt a Growing Area — Lancer Farms &amp; Gardens</title>
+<link rel="icon" type="image/webp" href="lfg-logo-192.webp">
+<link rel="apple-touch-icon" href="lfg-logo-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#2A2620; --card:#34302A; --line:#45423A; --line-strong:#5A554A;
+  --ink:#F0EDE2; --soft:#B0A99C; --green:#7E9A6E;
+  --amber:#C9973F; --amber-bg:#4A3A22;
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;}
+body{font-family:'Source Sans 3',system-ui,sans-serif; font-size:16px; line-height:1.55;
+  color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif; font-weight:600; line-height:1.15;}
+.wrap{max-width:560px; margin:0 auto; padding:0 18px;}
+
+.pilot-flag{background:var(--amber-bg); color:var(--amber); font-size:12px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.06em; text-align:center; padding:8px 12px;}
+
+.top{padding:34px 0 22px; border-bottom:1px solid var(--line);}
+.kick{font-size:11.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--green); margin-bottom:8px;}
+h1{font-size:clamp(26px,7vw,36px); margin-bottom:8px;}
+.top p{color:var(--soft); font-size:15px;}
+
+.sec{padding:24px 0; border-bottom:1px solid var(--line);}
+.sec:last-of-type{border-bottom:none;}
+.sec h2{font-size:19px; margin-bottom:8px;}
+.sec p{font-size:14.5px; color:var(--soft); margin-bottom:4px;}
+
+.steps{list-style:none; margin-top:12px; display:grid; gap:8px;}
+.steps li{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+  font-size:14.5px; color:var(--ink); display:flex; gap:10px;}
+.steps li b{color:var(--green); flex:0 0 auto;}
+
+.glance{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;}
+.glance div{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px;}
+.glance b{display:block; font-family:'Fraunces',serif; font-size:14.5px; color:var(--ink); margin-bottom:2px;}
+.glance span{display:block; font-size:12.5px; color:var(--soft);}
+
+.field{margin-bottom:16px;}
+.field label{display:block; font-size:12.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--soft); margin-bottom:6px;}
+.field input, .field select, .field textarea{width:100%; min-height:50px; padding:0 13px; font-size:15px;
+  font-family:inherit; color:var(--ink); background:var(--card); border:1.5px solid var(--line-strong);
+  border-radius:11px; outline:none;}
+.field textarea{min-height:70px; padding:12px 13px; resize:vertical;}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--green);}
+select{-webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B0A99C' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center; padding-right:38px;}
+.err{font-size:13px; color:#D15A48; margin-top:6px; display:none;}
+.err.show{display:block;}
+
+.btn-primary{width:100%; min-height:56px; border-radius:15px; border:none; background:var(--green);
+  color:#fff; font-size:16px; font-weight:700; cursor:pointer;}
+.btn-primary:disabled{background:var(--line-strong);}
+
+#success{display:none; text-align:center; padding:50px 20px;}
+#success .ic{font-size:44px; margin-bottom:10px;}
+#success h1{font-size:22px; margin-bottom:8px;}
+#success .bedname{font-family:'Fraunces',serif; font-size:20px; color:var(--green); margin:10px 0;}
+#success p{color:var(--soft); font-size:14.5px; line-height:1.5;}
+#form-screen{display:block;}
+
+footer{padding:30px 22px 10px; text-align:center; font-size:11.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--line-strong);}
+</style>
+<link rel="stylesheet" href="grush-tokens.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lfg-config.js"></script>
+<script src="grush-auth.js?v=2"></script>
+</head>
+<body>
+
+<div class="pilot-flag">Pilot program &mdash; pending campus approval</div>
+
+<div class="wrap">
+  <div id="form-screen">
+    <div class="top">
+      <div class="kick">Lancer Farms &amp; Gardens</div>
+      <h1>A place to sit, study, and touch dirt</h1>
+      <p>Reserve a raised bed for a semester and grow something of your own &mdash; no coursework, no grade, just a quiet outdoor space that's yours for a while.</p>
+    </div>
+
+    <div class="sec">
+      <h2>How it works</h2>
+      <ul class="steps">
+        <li><b>1.</b> Tell us how long you'd like a bed and what you want to grow.</li>
+        <li><b>2.</b> We match you to an available bed &mdash; already irrigated, already staffed by a caretaker.</li>
+        <li><b>3.</b> Tend it on your own time, for fun, like any hobby garden plot.</li>
+      </ul>
+      <div class="glance">
+        <div><b>$0</b><span>Cost &mdash; existing infrastructure</span></div>
+        <div><b>On campus</b><span>Lancer Farms &amp; Gardens</span></div>
+        <div><b>One semester</b><span>Renewable</span></div>
+        <div><b>Students</b><span>Living on campus</span></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Request a bed</h2>
+      <div class="field">
+        <label>Your name</label>
+        <input id="fName" autocomplete="name" placeholder="Full name">
+        <div class="err" id="err-name">Enter your name.</div>
+      </div>
+      <div class="field">
+        <label>CBU email</label>
+        <input id="fEmail" type="email" autocomplete="email" placeholder="you@calbaptist.edu">
+        <div class="err" id="err-email">Enter a valid @calbaptist.edu email.</div>
+      </div>
+      <div class="field">
+        <label>How long would you like a bed?</label>
+        <select id="fDuration">
+          <option value="8 weeks">About 8 weeks</option>
+          <option value="One semester" selected>One semester</option>
+          <option value="Full year">Full year</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>What would you like to grow?</label>
+        <textarea id="fPlant" placeholder="e.g. tomatoes and herbs, or I'm open to suggestions"></textarea>
+        <div class="err" id="err-plant">Tell us what you're hoping to grow.</div>
+      </div>
+      <button class="btn-primary" id="btnRequest">Request a bed</button>
+    </div>
+  </div>
+
+  <div id="success">
+    <div class="ic">&#127793;</div>
+    <h1 id="s-title">You're matched!</h1>
+    <div class="bedname" id="s-bed"></div>
+    <p id="s-note">A caretaker will follow up by email with next steps.</p>
+  </div>
+</div>
+
+<script>
+window.GRUSH_NAV = { eyebrow: 'Pilot · Pending approval', rail: false, title: 'Lancer Farms & Gardens' };
+</script>
+<script src="grush-menu.js?v=1"></script>
+<script src="grush-desk-staff.js?v=10"></script>
+<script src="grush-nav.js?v=5"></script>
+
+<footer>Lancer Farms &amp; Gardens · CBU Environmental Science</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var sb = GRUSH.sb;
+
+  function clearErrors(){
+    Array.prototype.forEach.call(document.querySelectorAll('.err'), function(e){ e.classList.remove('show'); });
+  }
+  function showError(id){ var el = $(id); if(el) el.classList.add('show'); }
+
+  $('btnRequest').addEventListener('click', async function(){
+    clearErrors();
+    var name = $('fName').value.trim();
+    var email = $('fEmail').value.trim();
+    var duration = $('fDuration').value;
+    var plant = $('fPlant').value.trim();
+
+    var hasError = false;
+    if(!name){ showError('err-name'); hasError = true; }
+    if(!/^[^\s@]+@calbaptist\.edu$/i.test(email)){ showError('err-email'); hasError = true; }
+    if(!plant){ showError('err-plant'); hasError = true; }
+    if(hasError) return;
+
+    var btn = $('btnRequest');
+    btn.disabled = true; btn.textContent = 'Requesting\u2026';
+
+    var { data, error } = await sb.rpc('request_bed_adoption', {
+      p_name: name, p_email: email, p_duration: duration, p_plant: plant
+    });
+
+    btn.disabled = false; btn.textContent = 'Request a bed';
+
+    if(error){
+      showError('err-plant');
+      $('err-plant').textContent = 'Could not submit: ' + error.message;
+      $('err-plant').classList.add('show');
+      console.error(error);
+      return;
+    }
+
+    var row = (data && data[0]) || {};
+    $('form-screen').style.display = 'none';
+    $('success').style.display = 'block';
+    window.scrollTo(0,0);
+
+    if(row.match_status === 'matched'){
+      $('s-title').textContent = "You're matched!";
+      $('s-bed').textContent = (row.area_zone ? row.area_zone + ' \u2014 ' : '') + row.area_name;
+      $('s-note').textContent = 'A caretaker will follow up by email with next steps for getting started.';
+    } else {
+      $('s-title').textContent = 'Request received';
+      $('s-bed').textContent = '';
+      $('s-note').textContent = 'Every bed is spoken for right now \u2014 we\u2019ll email you the moment one opens up.';
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
